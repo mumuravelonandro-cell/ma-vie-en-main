@@ -133,7 +133,8 @@
       energie: []
     },
     citations: [],
-    restaurants: []
+    restaurants: [],
+    activites: []
   };
   const TRACKER_KEY = "tracker_v4";
   const extractClassiques = async () => {
@@ -302,6 +303,9 @@
     const [restoCuisine, setRestoCuisine] = useState("Tout");
     const [restoSort, setRestoSort] = useState("ajout");
     const [restoFilter, setRestoFilter] = useState("Tout");
+    const [activiteType, setActiviteType] = useState("Tout");
+    const [activiteFilter, setActiviteFilter] = useState("Tout");
+    const [activiteSort, setActiviteSort] = useState("ajout");
     const [newDefiName, setNewDefiName] = useState("");
     const [newDefiCat, setNewDefiCat] = useState("");
     const [rCat, setRCat] = useState("Tout");
@@ -335,6 +339,7 @@
       { id: "objectifs", emoji: "\u{1F3AF}", label: "Objectifs" },
       { id: "defis", emoji: "\u{1F3C6}", label: "D\xE9fis" },
       { id: "citations", emoji: "\u{1F4AC}", label: "Citations" },
+      { id: "activites", emoji: "\u{1F5FA}\uFE0F", label: "Choses \xE0 faire" },
       { id: "nettoyage", emoji: "\u{1F9F9}", label: "M\xE9nage" }
     ];
     const reading = data.books.filter((b) => b.status === "en cours").length;
@@ -1111,6 +1116,190 @@
         },
         l
       ))), /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 14, padding: "16px 20px", border: `1px solid ${C.border}`, marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 } }, /* @__PURE__ */ React.createElement("span", { style: { fontWeight: 600 } }, "Progression \xB7 ", done, "/", total), /* @__PURE__ */ React.createElement("span", { style: { color: C.sage, fontWeight: 700 } }, pct, "%")), /* @__PURE__ */ React.createElement("div", { style: { height: 6, background: C.cream, borderRadius: 3, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { height: "100%", background: `linear-gradient(90deg,${C.sage},${C.gold})`, borderRadius: 3, width: `${pct}%`, transition: "width 0.5s" } })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.muted, marginTop: 8, fontStyle: "italic" } }, pct === 100 ? "\u{1F389} Tous les objectifs accomplis !" : pct >= 50 ? "Tu es \xE0 mi-chemin \u2728" : "Continue, chaque pas compte \u{1F331}")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8, marginBottom: accomplished.length > 0 ? 24 : 0 } }, active.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "28px 20px", color: C.muted, fontSize: 13 } }, "\u{1F3AF} Ajoute ton premier objectif"), active.map((g) => GoalCard(g))), accomplished.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "Accomplis \xB7 ", accomplished.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, accomplished.map((g) => GoalCard(g)))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Nouvel objectif...", onAdd: (name) => upd((d) => d.goals.push({ id: newId(), name, done: false, doneAt: null, cat: "", deadline: "", notes: "" })) }));
+    })()), tab === "activites" && /* @__PURE__ */ React.createElement("div", null, (() => {
+      const TYPES = [
+        { key: "nature", label: "\u{1F33F} Nature", short: "\u{1F33F}" },
+        { key: "musee", label: "\u{1F3DB}\uFE0F Mus\xE9es", short: "\u{1F3DB}\uFE0F" },
+        { key: "sport", label: "\u{1F3C3} Sport", short: "\u{1F3C3}" },
+        { key: "voyage", label: "\u2708\uFE0F Voyage", short: "\u2708\uFE0F" },
+        { key: "spectacle", label: "\u{1F3AD} Spectacle", short: "\u{1F3AD}" },
+        { key: "atelier", label: "\u{1F3A8} Atelier", short: "\u{1F3A8}" },
+        { key: "autre", label: "\u{1F4A1} Autre", short: "\u{1F4A1}" }
+      ];
+      const TYPE_MAP = Object.fromEntries(TYPES.map((t) => [t.key, t]));
+      const sortFn = (a, b) => {
+        if (activiteSort === "priorite") {
+          const pa = a.priorite === "forte" ? 0 : 1;
+          const pb = b.priorite === "forte" ? 0 : 1;
+          if (pa !== pb) return pa - pb;
+          return 0;
+        }
+        if (activiteSort === "date") {
+          if (!a.date && !b.date) return 0;
+          if (!a.date) return 1;
+          if (!b.date) return -1;
+          return a.date.localeCompare(b.date);
+        }
+        if (activiteSort === "nom") return a.name.localeCompare(b.name);
+        return 0;
+      };
+      const base = (data.activites || []).filter((a) => filterText(a.name) && (activiteType === "Tout" || a.type === activiteType));
+      const afaire = base.filter((a) => a.status !== "fait").sort(sortFn);
+      const faites = base.filter((a) => a.status === "fait");
+      const showAfaire = activiteFilter !== "fait";
+      const showFaites = activiteFilter !== "\xE0 faire";
+      const ActiviteCard = (a) => {
+        const t = TYPE_MAP[a.type];
+        const isForte = a.priorite === "forte";
+        return /* @__PURE__ */ React.createElement(CardShell, { key: a.id, active: expandedId === a.id, onClick: () => setExpId(expandedId === a.id ? null : a.id) }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, padding: "14px 18px" } }, /* @__PURE__ */ React.createElement(
+          "div",
+          {
+            onClick: (e) => {
+              e.stopPropagation();
+              upd((d) => {
+                const f = (d.activites || []).find((x) => x.id === a.id);
+                if (f) {
+                  f.status = f.status === "fait" ? "\xE0 faire" : "fait";
+                }
+              });
+            },
+            style: { width: 26, height: 26, borderRadius: "50%", border: a.status === "fait" ? "none" : `2px solid ${C.border}`, background: a.status === "fait" ? C.sage : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "white", flexShrink: 0, cursor: "pointer", transition: "all 0.2s" }
+          },
+          a.status === "fait" && "\u2713"
+        ), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 3 } }, isForte && a.status !== "fait" && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.gold } }, "\u2B50"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: a.status === "fait" ? C.muted : C.dark, textDecoration: a.status === "fait" ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, a.name)), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" } }, t && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, background: C.cream, color: C.brown, borderRadius: 10, padding: "1px 8px", fontWeight: 500 } }, t.label), a.lieu && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted } }, "\u{1F4CD} ", a.lieu), a.date && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.gold } }, "\u{1F4C5} ", a.date))), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.muted } }, "\u203A")), expandedId === a.id && /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.cream}`, padding: "16px 18px", background: C.light }, onClick: (e) => e.stopPropagation() }, a.status !== "fait" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 14 } }, [["forte", "\u2B50 Envie forte", C.gold, "#FEF9EC"], ["mod\xE9r\xE9e", "Envie mod\xE9r\xE9e", C.muted, C.cream]].map(([v, l, col, bg]) => /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            key: v,
+            onClick: () => upd((d) => {
+              (d.activites || []).find((x) => x.id === a.id).priorite = v;
+            }),
+            style: { flex: 1, padding: "8px 10px", borderRadius: 12, border: `1.5px solid ${a.priorite === v ? col : C.border}`, background: a.priorite === v ? bg : "white", fontSize: 12, fontWeight: a.priorite === v ? 700 : 400, color: a.priorite === v ? col : C.muted, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }
+          },
+          l
+        ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 12 } }, TYPES.map((t2) => /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            key: t2.key,
+            onClick: () => upd((d) => {
+              (d.activites || []).find((x) => x.id === a.id).type = t2.key;
+            }),
+            style: { border: `1.5px solid ${a.type === t2.key ? C.dark : C.border}`, background: a.type === t2.key ? C.dark : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: a.type === t2.key ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit" }
+          },
+          t2.label
+        ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            value: a.lieu || "",
+            onChange: (e) => upd((d) => {
+              (d.activites || []).find((x) => x.id === a.id).lieu = e.target.value;
+            }),
+            placeholder: "\u{1F4CD} Lieu / ville",
+            style: { flex: 1, minWidth: 120, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none" }
+          }
+        ), /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            value: a.avec || "",
+            onChange: (e) => upd((d) => {
+              (d.activites || []).find((x) => x.id === a.id).avec = e.target.value;
+            }),
+            placeholder: "\u{1F465} Avec qui",
+            style: { flex: 1, minWidth: 120, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none" }
+          }
+        )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            type: "date",
+            value: a.date || "",
+            onChange: (e) => upd((d) => {
+              (d.activites || []).find((x) => x.id === a.id).date = e.target.value;
+            }),
+            style: { flex: 1, minWidth: 130, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: a.date ? C.dark : C.muted, outline: "none" }
+          }
+        ), /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            value: a.prix || "",
+            onChange: (e) => upd((d) => {
+              (d.activites || []).find((x) => x.id === a.id).prix = e.target.value;
+            }),
+            placeholder: "\u{1F4B6} Prix estim\xE9",
+            style: { flex: 1, minWidth: 120, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none" }
+          }
+        )), a.status === "fait" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8, background: "#F0FAF0", borderRadius: 10, padding: "8px 12px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.sage, fontWeight: 600 } }, "Ton avis :"), /* @__PURE__ */ React.createElement(Stars, { value: a.rating || 0, onChange: (v) => upd((d) => {
+          (d.activites || []).find((x) => x.id === a.id).rating = v;
+        }) })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, alignItems: "center", marginBottom: 8 } }, /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            value: a.url || "",
+            onChange: (e) => upd((d) => {
+              (d.activites || []).find((x) => x.id === a.id).url = e.target.value;
+            }),
+            placeholder: "\u{1F517} Site, lien, maps...",
+            style: { flex: 1, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none" }
+          }
+        ), a.url && /* @__PURE__ */ React.createElement(
+          "a",
+          {
+            href: a.url,
+            target: "_blank",
+            rel: "noopener noreferrer",
+            style: { flexShrink: 0, background: C.dark, borderRadius: 8, padding: "7px 10px", color: "white", fontSize: 11, textDecoration: "none", fontWeight: 600 },
+            onClick: (e) => e.stopPropagation()
+          },
+          "\u2197"
+        )), /* @__PURE__ */ React.createElement(
+          "textarea",
+          {
+            value: a.notes || "",
+            onChange: (e) => upd((d) => {
+              (d.activites || []).find((x) => x.id === a.id).notes = e.target.value;
+            }),
+            placeholder: a.status === "fait" ? "Tes impressions, ce que tu as aim\xE9..." : "Pourquoi tu veux y aller, id\xE9es...",
+            style: { width: "100%", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "9px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, resize: "none", outline: "none", minHeight: 60, lineHeight: 1.5, marginBottom: 4 }
+          }
+        ), /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => {
+              upd((d) => {
+                d.activites = (d.activites || []).filter((x) => x.id !== a.id);
+              });
+              setExpId(null);
+            },
+            style: { fontSize: 11, color: C.terra, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }
+          },
+          "Supprimer"
+        )));
+      };
+      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, padding: "10px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 20, fontWeight: 700, color: C.terra } }, (data.activites || []).filter((a) => a.status !== "fait").length), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, "\xE0 faire")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, padding: "10px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 20, fontWeight: 700, color: C.gold } }, (data.activites || []).filter((a) => a.status !== "fait" && a.priorite === "forte").length), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, "\u2B50 envies fortes")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, padding: "10px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 20, fontWeight: 700, color: C.sage } }, (data.activites || []).filter((a) => a.status === "fait").length), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, "faites \u2713"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 10 } }, [{ key: "Tout", label: "Tout" }, ...TYPES].map((t) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: t.key,
+          onClick: () => setActiviteType(t.key),
+          style: { flexShrink: 0, border: `1.5px solid ${activiteType === t.key ? C.dark : C.border}`, background: activiteType === t.key ? C.dark : "white", borderRadius: 20, padding: "5px 12px", fontSize: 11, fontWeight: 600, color: activiteType === t.key ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
+        },
+        t.key === "Tout" ? "Tout" : t.short + " " + t.label.split(" ")[1]
+      ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" } }, [["Tout", "Tout"], ["\xE0 faire", "\xC0 faire"], ["fait", "\u2713 Faites"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: v,
+          onClick: () => setActiviteFilter(v),
+          style: { border: `1.5px solid ${activiteFilter === v ? C.gold : C.border}`, background: activiteFilter === v ? "#FEF9EC" : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: activiteFilter === v ? C.gold : C.muted, cursor: "pointer", fontFamily: "inherit" }
+        },
+        l
+      )), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted, marginLeft: "auto" } }, "Trier :"), [["priorite", "\u2B50"], ["date", "\u{1F4C5}"], ["ajout", "R\xE9cent"], ["nom", "A\u2192Z"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: v,
+          onClick: () => setActiviteSort(v),
+          style: { border: `1.5px solid ${activiteSort === v ? C.terra : C.border}`, background: activiteSort === v ? "#FEF3ED" : "white", borderRadius: 20, padding: "4px 9px", fontSize: 11, fontWeight: 600, color: activiteSort === v ? C.terra : C.muted, cursor: "pointer", fontFamily: "inherit" }
+        },
+        l
+      ))), showAfaire && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: afaire.length > 0 && showFaites ? 28 : 0 } }, showFaites && afaire.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 } }, "\u{1F4CD} \xC0 faire \xB7 ", afaire.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, afaire.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "32px 20px", color: C.muted, fontSize: 13, fontStyle: "italic" } }, "Rien \xE0 faire pour l'instant \u{1F5FA}\uFE0F"), afaire.map((a) => ActiviteCard(a)))), showFaites && faites.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 } }, "\u2713 Faites \xB7 ", faites.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, faites.map((a) => ActiviteCard(a)))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Ajouter une activit\xE9...", onAdd: (name) => upd((d) => {
+        if (!d.activites) d.activites = [];
+        d.activites.push({ id: newId(), name, type: "autre", priorite: "mod\xE9r\xE9e", lieu: "", avec: "", date: "", prix: "", url: "", notes: "", rating: 0, status: "\xE0 faire" });
+      }) }));
     })()), tab === "nettoyage" && (() => {
       const today = /* @__PURE__ */ new Date();
       const diffDays = (lastDone) => {

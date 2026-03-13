@@ -75,6 +75,7 @@
     { key: "running", label: "Running", emoji: "\u{1F3C3}\u200D\u2640\uFE0F", color: "#6B4F3A", bg: "#F5EDE8" },
     { key: "yoga", label: "Yoga", emoji: "\u{1F33F}", color: "#5B8A72", bg: "#EDFAF3" },
     { key: "cardio", label: "Cardio", emoji: "\u{1F525}", color: "#E05252", bg: "#FEF0F0" },
+    { key: "rando", label: "Randonn\xE9e", emoji: "\u{1F97E}", color: "#5B7A3A", bg: "#EFF5E8" },
     { key: "stretch", label: "Stretching", emoji: "\u{1F938}\u200D\u2640\uFE0F", color: "#9B7EC8", bg: "#F4F0FD" },
     { key: "rest", label: "Repos", emoji: "\u{1F60C}", color: "#94A3B8", bg: "#F4F6F9" }
   ];
@@ -181,12 +182,12 @@
       w[d] = (tpl[d] || []).map((s) => __spreadProps(__spreadValues({}, s), { id: `${Date.now()}-${Math.random()}`, status: "planned" }));
     return w;
   };
-  const newSession = (type = "pilates", hour = "6h15", subtype = "", km = "") => __spreadValues(__spreadValues({
+  const newSession = (type = "pilates", hour = "6h15", subtype = "", km = "", randoName = "", randoDeniv = "") => __spreadValues(__spreadValues(__spreadValues(__spreadValues(__spreadValues({
     id: `${Date.now()}-${Math.random()}`,
     type,
     hour,
     status: "planned"
-  }, subtype ? { subtype } : {}), type === "running" && km ? { km } : {});
+  }, subtype ? { subtype } : {}), type === "running" && km ? { km } : {}), type === "rando" && km ? { km } : {}), type === "rando" && randoName ? { randoName } : {}), type === "rando" && randoDeniv ? { randoDeniv } : {});
   const EMPTY_DAY = () => ({
     mood: null,
     energy: null,
@@ -290,6 +291,8 @@
     const [status, setStatus] = useState((session == null ? void 0 : session.status) || "planned");
     const [subtype, setSubtype] = useState((session == null ? void 0 : session.subtype) || "");
     const [km, setKm] = useState((session == null ? void 0 : session.km) || "");
+    const [randoName, setRandoName] = useState((session == null ? void 0 : session.randoName) || "");
+    const [randoDeniv, setRandoDeniv] = useState((session == null ? void 0 : session.randoDeniv) || "");
     const isNew = !session;
     const subs = SUBTYPES[type] || [];
     return /* @__PURE__ */ React.createElement("div", { style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 600, padding: 16 }, onClick: onClose }, /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 24, padding: 26, width: "100%", maxWidth: 390, maxHeight: "90vh", overflowY: "auto" }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 } }, /* @__PURE__ */ React.createElement("h3", { style: { fontFamily: "Georgia,serif", fontSize: 17 } }, isNew ? "Ajouter" : "Modifier", " \u2014 ", DAYS_FULL[dayIdx]), /* @__PURE__ */ React.createElement("button", { onClick: onClose, style: { background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#9B8B7E" } }, "\u2715")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 600, letterSpacing: "1.5px", textTransform: "uppercase", color: "#9B8B7E", marginBottom: 9 } }, "Type de s\xE9ance"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, marginBottom: subs.length ? 12 : 18 } }, SPORT_TYPES.map((s) => /* @__PURE__ */ React.createElement(
@@ -325,7 +328,31 @@
         placeholder: "Distance (optionnel)  ex: 8 km",
         style: { border: "none", background: "transparent", fontFamily: "inherit", fontSize: 13, color: "#6B4F3A", outline: "none", flex: 1 }
       }
-    ))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 600, letterSpacing: "1.5px", textTransform: "uppercase", color: "#9B8B7E", marginBottom: 9 } }, "Heure pr\xE9vue"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 18 } }, ["6h00", "6h15", "6h30", "7h00", "8h00", "9h00", "10h00", "12h00", "17h00", "18h00", "19h00"].map((h) => /* @__PURE__ */ React.createElement(
+    ))), type === "rando" && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 18, background: "#EFF5E8", borderRadius: 12, border: "1px solid #5B7A3A33", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, fontWeight: 600, letterSpacing: "1.5px", textTransform: "uppercase", color: "#5B7A3A", marginBottom: 2 } }, "D\xE9tails de la randonn\xE9e"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, "\u{1F3D4}\uFE0F"), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: randoName,
+        onChange: (e) => setRandoName(e.target.value),
+        placeholder: "Nom de la rando  ex: Calanque de Sugiton",
+        style: { border: "none", background: "transparent", fontFamily: "inherit", fontSize: 13, color: "#5B7A3A", outline: "none", flex: 1 }
+      }
+    )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, flex: 1 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, "\u{1F4CF}"), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: km,
+        onChange: (e) => setKm(e.target.value),
+        placeholder: "Distance  ex: 12 km",
+        style: { border: "none", background: "transparent", fontFamily: "inherit", fontSize: 13, color: "#5B7A3A", outline: "none", flex: 1 }
+      }
+    )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, flex: 1 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, "\u26F0\uFE0F"), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: randoDeniv,
+        onChange: (e) => setRandoDeniv(e.target.value),
+        placeholder: "D\xE9nivel\xE9  ex: 800m",
+        style: { border: "none", background: "transparent", fontFamily: "inherit", fontSize: 13, color: "#5B7A3A", outline: "none", flex: 1 }
+      }
+    )))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 600, letterSpacing: "1.5px", textTransform: "uppercase", color: "#9B8B7E", marginBottom: 9 } }, "Heure pr\xE9vue"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 18 } }, ["6h00", "6h15", "6h30", "7h00", "8h00", "9h00", "10h00", "12h00", "17h00", "18h00", "19h00"].map((h) => /* @__PURE__ */ React.createElement(
       "div",
       {
         key: h,
@@ -388,7 +415,7 @@
         }
       },
       "\u2713"
-    ), /* @__PURE__ */ React.createElement("div", { onClick, style: { flex: 1, minWidth: 0, cursor: "pointer" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 7 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 17 } }, (sub == null ? void 0 : sub.emoji) || sport.emoji), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: isDone ? sport.color : "#1A1410" } }, sub ? sub.label : sport.label, session.km ? /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: "#9B8B7E", fontWeight: 400, marginLeft: 6 } }, session.km, " km") : null), session.hour && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#9B8B7E", marginTop: 1 } }, session.hour)))), /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement("div", { onClick, style: { flex: 1, minWidth: 0, cursor: "pointer" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 7 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 17 } }, (sub == null ? void 0 : sub.emoji) || sport.emoji), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: isDone ? sport.color : "#1A1410" } }, sub ? sub.label : sport.label, session.type === "rando" && session.randoName ? /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: "#9B8B7E", fontWeight: 400, marginLeft: 6 } }, "\u{1F3D4}\uFE0F ", session.randoName) : null, session.km ? /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: "#9B8B7E", fontWeight: 400, marginLeft: 6 } }, "\u{1F4CF} ", session.km) : null, session.type === "rando" && session.randoDeniv ? /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: "#9B8B7E", fontWeight: 400, marginLeft: 6 } }, "\u26F0\uFE0F ", session.randoDeniv) : null), session.hour && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#9B8B7E", marginTop: 1 } }, session.hour)))), /* @__PURE__ */ React.createElement(
       "div",
       {
         onClick: (e) => {
@@ -498,10 +525,23 @@
           /* @__PURE__ */ React.createElement("span", { style: { flex: 1, fontSize: 13, color: "#1A1410", textAlign: "left" } }, it.label),
           /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16, color: checked ? "#7A9E7E" : "#E8DDD0" } }, checked ? "\u2713" : "\u25CB")
         );
-      })));
+      }), /* @__PURE__ */ React.createElement("div", { style: { padding: "9px 18px", borderTop: "1px solid #F5F0E8", display: "flex", justifyContent: "flex-end" } }, /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: () => updDay((d) => {
+            if (!d.eatWell) d.eatWell = {};
+            const allChecked = EAT_ITEMS.every((it) => d.eatWell[it.key]);
+            EAT_ITEMS.forEach((it) => {
+              d.eatWell[it.key] = !allChecked;
+            });
+          }),
+          style: { background: eatDone === EAT_ITEMS.length && EAT_ITEMS.length > 0 ? "#7A9E7E" : "#F5F0E8", border: "none", borderRadius: 8, padding: "5px 12px", fontSize: 11, cursor: "pointer", color: eatDone === EAT_ITEMS.length && EAT_ITEMS.length > 0 ? "white" : "#9B8B7E", fontFamily: "inherit", fontWeight: 500, transition: "all 0.2s" }
+        },
+        eatDone === EAT_ITEMS.length && EAT_ITEMS.length > 0 ? "\u25CB Tout d\xE9cocher" : "\u2713 Tout cocher"
+      ))));
     })(), /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 14, border: "1px solid #E8DDD0", padding: "13px 18px", marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#1A1410" } }, "\xC9quilibre de la semaine"), ratio !== null && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: ratio >= 75 ? "#7A9E7E" : ratio >= 50 ? "#C9A84C" : "#C4724A", background: ratio >= 75 ? "#F0FAF0" : ratio >= 50 ? "#FEF9EC" : "#FEF3ED", borderRadius: 20, padding: "3px 10px" } }, ratio, "% \xE9quilibr\xE9")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, marginBottom: filled > 0 ? 8 : 0 } }, days80.map((v, i) => {
       const isT = last7()[i] === todayKey();
-      return /* @__PURE__ */ React.createElement("div", { key: i, style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 } }, /* @__PURE__ */ React.createElement("div", { style: { width: "100%", height: 6, borderRadius: 3, background: v ? colMap[v] : "#F5F0E8", opacity: isT ? 1 : 0.7 } }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 8, color: isT ? "#C4724A" : "#9B8B7E", fontWeight: isT ? 700 : 400 } }, DAYS_SHORT[i]));
+      return /* @__PURE__ */ React.createElement("div", { key: i, style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 } }, /* @__PURE__ */ React.createElement("div", { style: { width: "100%", height: 6, borderRadius: 3, background: v ? colMap[v] : "#F5F0E8", opacity: isT ? 1 : 0.7 } }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 8, color: isT ? "#C4724A" : "#9B8B7E", fontWeight: isT ? 700 : 400 } }, DAYS_SHORT[((/* @__PURE__ */ new Date(last7()[i] + "T12:00:00")).getDay() + 6) % 7]));
     })), filled === 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#C8BEB5", fontStyle: "italic", textAlign: "center", marginTop: 4 } }, "\xC9value tes repas pour voir l'\xE9quilibre"), filled > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, justifyContent: "center" } }, [{ c: "#7A9E7E", n: greens, l: "\u{1F7E2} \xE9quil." }, { c: "#C9A84C", n: yellows, l: "\u{1F7E1} mitig\xE9" }, { c: "#E05252", n: reds, l: "\u{1F534} plaisir" }].filter((x) => x.n > 0).map((x) => /* @__PURE__ */ React.createElement("span", { key: x.l, style: { fontSize: 11, color: "#9B8B7E" } }, x.n, "j ", x.l)))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 14 } }, [
       { id: "semaine", label: "\u{1F5D3} Vue semaine", desc: "Planifier" },
       { id: "jour", label: "\u{1F4CB} Vue jour", desc: "Suivre" }
@@ -522,7 +562,7 @@
       const isT = iso === todayKey();
       const lunchSugg = pastEntries("lunch");
       const dinnerSugg = pastEntries("dinner");
-      return /* @__PURE__ */ React.createElement("div", { key: iso, style: { display: "grid", gridTemplateColumns: "44px 1fr 1fr", borderBottom: i < 6 ? "1px solid #F5F0E8" : "none", background: isT ? "#FFFBF7" : "white" } }, /* @__PURE__ */ React.createElement("div", { style: { padding: "8px 4px 8px 12px", display: "flex", flexDirection: "column", justifyContent: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: isT ? "#C4724A" : "#9B8B7E" } }, DAYS_SHORT[i]), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: isT ? "#C4724A" : "#1A1410" } }, d.getDate())), [["lunch", lunchSugg], ["dinner", dinnerSugg]].map(([slot, sugg]) => {
+      return /* @__PURE__ */ React.createElement("div", { key: iso, style: { display: "grid", gridTemplateColumns: "44px 1fr 1fr", borderBottom: i < 6 ? "1px solid #F5F0E8" : "none", background: isT ? "#FFFBF7" : "white" } }, /* @__PURE__ */ React.createElement("div", { style: { padding: "8px 4px 8px 12px", display: "flex", flexDirection: "column", justifyContent: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: isT ? "#C4724A" : "#9B8B7E" } }, DAYS_SHORT[((/* @__PURE__ */ new Date(iso + "T12:00:00")).getDay() + 6) % 7]), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: isT ? "#C4724A" : "#1A1410" } }, d.getDate())), [["lunch", lunchSugg], ["dinner", dinnerSugg]].map(([slot, sugg]) => {
         const val = dm[slot] || "";
         const bal = dm[slot === "lunch" ? "lunchBalance" : "dinnerBalance"] || null;
         const listId = "plan-" + iso + "-" + slot;
@@ -555,7 +595,7 @@
           onClick: () => setExpandedDay(isOpen ? null : iso),
           style: { padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: isT ? "#FFFBF7" : "white" }
         },
-        /* @__PURE__ */ React.createElement("div", { style: { width: 40, height: 40, borderRadius: 11, background: isT ? "#1A1410" : "#F5F0E8", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 8, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: isT ? "#C4724A" : "#9B8B7E" } }, DAYS_SHORT[i]), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: isT ? "white" : "#1A1410", lineHeight: 1.2 } }, d.getDate())),
+        /* @__PURE__ */ React.createElement("div", { style: { width: 40, height: 40, borderRadius: 11, background: isT ? "#1A1410" : "#F5F0E8", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 8, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: isT ? "#C4724A" : "#9B8B7E" } }, DAYS_SHORT[((/* @__PURE__ */ new Date(iso + "T12:00:00")).getDay() + 6) % 7]), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: isT ? "white" : "#1A1410", lineHeight: 1.2 } }, d.getDate())),
         /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, hasData ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 2 } }, lunchSnap && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#1A1410", display: "flex", alignItems: "center", gap: 5 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11 } }, "\u{1F37D}"), /* @__PURE__ */ React.createElement("span", { style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 } }, lunchSnap), lunchBal && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, flexShrink: 0 } }, balMap[lunchBal])), dinnerSnap && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#1A1410", display: "flex", alignItems: "center", gap: 5 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11 } }, "\u{1F319}"), /* @__PURE__ */ React.createElement("span", { style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 } }, dinnerSnap), dinnerBal && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, flexShrink: 0 } }, balMap[dinnerBal])), !lunchSnap && !dinnerSnap && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#C8BEB5", fontStyle: "italic" } }, "Repas \xE0 compl\xE9ter")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "#C8BEB5", fontStyle: "italic" } }, isT ? "Qu'est-ce que tu manges aujourd'hui ?" : "Journ\xE9e vide")),
         /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: "#C8BEB5", flexShrink: 0 } }, isOpen ? "\u25B2" : "\u25BC")
       ), isOpen && /* @__PURE__ */ React.createElement("div", { style: { borderTop: "1px solid #F5F0E8" } }, [
@@ -625,7 +665,20 @@
     const streakEmoji = streakVal >= 14 ? "\u{1F525}\u{1F525}" : streakVal >= 7 ? "\u{1F525}" : streakVal >= 1 ? "\u26A1" : "";
     const saveItems = (r) => setStore((prev) => __spreadProps(__spreadValues({}, prev), { [saveKey]: r }));
     const isEditing = editKey === saveKey;
-    return /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18 } }, emoji), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 700, color: "#1A1410" } }, title), streakVal > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: "#C9A84C", fontWeight: 600 } }, streakEmoji, " ", streakVal, "j")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: col } }, done, "/", total), /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18 } }, emoji), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 700, color: "#1A1410" } }, title), streakVal > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: "#C9A84C", fontWeight: 600 } }, streakEmoji, " ", streakVal, "j")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: col } }, done, "/", total), isToday && total > 0 && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => updDay((d) => {
+          if (!d[routineKey]) d[routineKey] = {};
+          const allChecked = items.every((it) => d[routineKey][it.key]);
+          items.forEach((it) => {
+            d[routineKey][it.key] = !allChecked;
+          });
+        }),
+        style: { background: done === total && total > 0 ? "#7A9E7E" : "#F5F0E8", border: "none", borderRadius: 8, padding: "4px 10px", fontSize: 11, cursor: "pointer", color: done === total && total > 0 ? "white" : "#9B8B7E", fontFamily: "inherit", fontWeight: 500, transition: "all 0.2s" }
+      },
+      done === total && total > 0 ? "\u25CB Tout" : "\u2713 Tout"
+    ), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => setEditKey(isEditing ? null : saveKey),
@@ -639,7 +692,7 @@
       const p2 = items.length > 0 ? d2 / items.length : 0;
       const isT = iso === todayKey();
       const c2 = p2 >= 0.8 ? "#7A9E7E" : p2 > 0 ? "#C9A84C" : "#E8DDD0";
-      return /* @__PURE__ */ React.createElement("div", { key: iso, style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 } }, /* @__PURE__ */ React.createElement("div", { style: { width: "100%", height: 24, display: "flex", alignItems: "flex-end" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "100%", height: Math.max(p2 * 100, p2 > 0 ? 15 : 6) + "%", minHeight: 3, background: c2, borderRadius: 3, opacity: isT ? 1 : 0.65, transition: "height 0.3s" } })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 8, color: isT ? "#C4724A" : "#9B8B7E", fontWeight: isT ? 700 : 400 } }, DAYS_SHORT[i]));
+      return /* @__PURE__ */ React.createElement("div", { key: iso, style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 } }, /* @__PURE__ */ React.createElement("div", { style: { width: "100%", height: 24, display: "flex", alignItems: "flex-end" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "100%", height: Math.max(p2 * 100, p2 > 0 ? 15 : 6) + "%", minHeight: 3, background: c2, borderRadius: 3, opacity: isT ? 1 : 0.65, transition: "height 0.3s" } })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 8, color: isT ? "#C4724A" : "#9B8B7E", fontWeight: isT ? 700 : 400 } }, DAYS_SHORT[((/* @__PURE__ */ new Date(iso + "T12:00:00")).getDay() + 6) % 7]));
     })), /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 16, border: "1px solid #E8DDD0", padding: "4px 0" } }, items.map((it, idx) => {
       const checked = data[it.key];
       return /* @__PURE__ */ React.createElement("div", { key: it.key, style: { display: "flex", alignItems: "center", gap: 8, borderBottom: idx < items.length - 1 ? "1px solid #F5F0E8" : "none" } }, /* @__PURE__ */ React.createElement(
@@ -858,7 +911,7 @@
           if (modal.session) {
             const idx = s.weeks[wKey][modal.dayIdx].findIndex((x) => x.id === modal.session.id);
             if (idx >= 0) s.weeks[wKey][modal.dayIdx][idx] = __spreadValues(__spreadValues({}, modal.session), vals);
-          } else s.weeks[wKey][modal.dayIdx].push(newSession(vals.type, vals.hour, vals.subtype, vals.km));
+          } else s.weeks[wKey][modal.dayIdx].push(newSession(vals.type, vals.hour, vals.subtype, vals.km, vals.randoName, vals.randoDeniv));
         }
       });
       setModal(null);
@@ -1145,6 +1198,7 @@
     const [newLabel, setNewLabel] = useState("");
     const [newEmoji, setNewEmoji] = useState("\u{1F4F5}");
     const [editMeals, setEditMeals] = useState(false);
+    const [journalOpen, setJournalOpen] = useState(false);
     const [newMLabel, setNewMLabel] = useState("");
     const [newMEmoji, setNewMEmoji] = useState("\u{1F37D}\uFE0F");
     useEffect(() => {
@@ -1330,7 +1384,7 @@
       })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 600, letterSpacing: "2px", textTransform: "uppercase", color: "#9B8B7E", marginBottom: 12 } }, "Cette semaine"), /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 16, border: "1px solid #E8DDD0", padding: "14px 16px", marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, justifyContent: "space-between" } }, wkMoods.map((d, i) => {
         const m = d.mood ? moodMap[d.mood] : null;
         const isT = d.iso === todayKey();
-        return /* @__PURE__ */ React.createElement("div", { key: d.iso, style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 36, height: 36, borderRadius: "50%", background: m ? m.color : "#F5F0E8", border: isT ? "2px solid #C4724A" : "2px solid transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, transition: "all 0.2s" } }, m ? m.emoji : ""), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 8, color: isT ? "#C4724A" : "#9B8B7E", fontWeight: isT ? 700 : 400, textAlign: "center" } }, DAYS_SHORT[i]));
+        return /* @__PURE__ */ React.createElement("div", { key: d.iso, style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 36, height: 36, borderRadius: "50%", background: m ? m.color : "#F5F0E8", border: isT ? "2px solid #C4724A" : "2px solid transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, transition: "all 0.2s" } }, m ? m.emoji : ""), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 8, color: isT ? "#C4724A" : "#9B8B7E", fontWeight: isT ? 700 : 400, textAlign: "center" } }, DAYS_SHORT[((/* @__PURE__ */ new Date(d.iso + "T12:00:00")).getDay() + 6) % 7]));
       }))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 600, letterSpacing: "2px", textTransform: "uppercase", color: "#9B8B7E", marginBottom: 12 } }, "Intention du jour"), /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 16, border: "1px solid #E8DDD0", padding: "14px 18px", marginBottom: 20 } }, /* @__PURE__ */ React.createElement(
         "textarea",
         {
@@ -1356,7 +1410,6 @@
           style: { flex: 1, border: "none", borderBottom: "1px solid #EDE8E0", background: "transparent", fontFamily: "inherit", fontSize: 13, color: "#1A1410", outline: "none", padding: "4px 0", lineHeight: 1.6 }
         }
       )))), (() => {
-        const [journalOpen, setJournalOpen] = React.useState(false);
         const past = last7().filter((iso) => iso !== todayKey()).map((iso) => {
           var _a2, _b2, _c2;
           return {
@@ -1444,7 +1497,7 @@
       )), /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: scoreCol } }, doneCnt, "/", total)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600 } }, allDone ? "Journ\xE9e parfaite \u{1F389}" : doneCnt === 0 ? "C'est parti !" : `${doneCnt} r\xE8gle${doneCnt > 1 ? "s" : ""} tenue${doneCnt > 1 ? "s" : ""}`), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#9B8B7E", marginTop: 2 } }, pct, "% des r\xE8gles respect\xE9es"))), /* @__PURE__ */ React.createElement("div", { style: { background: nsStreak > 0 ? "#1A1410" : "white", borderRadius: 16, border: "1px solid #E8DDD0", padding: "16px 18px", textAlign: "center", minWidth: 80 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 20, lineHeight: 1 } }, nsStreak >= 7 ? "\u{1F525}" : nsStreak >= 3 ? "\u26A1" : "\u{1F4F5}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 20, fontWeight: 700, color: nsStreak > 0 ? "#C9A84C" : "#9B8B7E", fontFamily: "Georgia,serif", lineHeight: 1.3 } }, nsStreak), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: "#9B8B7E", marginTop: 2 } }, "jour", nsStreak > 1 ? "s" : ""))), /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 16, border: "1px solid #E8DDD0", padding: "14px 18px", marginBottom: 22 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 600, letterSpacing: "1.5px", textTransform: "uppercase", color: "#9B8B7E", marginBottom: 12 } }, "Cette semaine"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 } }, nsWeek.map((d, i) => {
         const isT = d.iso === todayKey();
         const col = d.pct >= 1 ? "#7A9E7E" : d.pct >= 0.5 ? "#C9A84C" : d.pct > 0 ? "#C4724A" : "#E8DDD0";
-        return /* @__PURE__ */ React.createElement("div", { key: d.iso, style: { display: "flex", flexDirection: "column", alignItems: "center", gap: 3 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: isT ? "#C4724A" : "#9B8B7E" } }, DAYS_SHORT[i]), /* @__PURE__ */ React.createElement("div", { style: { width: 32, height: 32, borderRadius: 10, background: d.pct > 0 ? col + "22" : "#F5F0E8", border: `2px solid ${isT ? "#C4724A" : d.pct > 0 ? col : "#E8DDD0"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 } }, d.pct >= 1 ? "\u2705" : d.pct > 0 ? "\xB7" : ""), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: col, fontWeight: 600 } }, d.cnt > 0 ? `${d.cnt}/${total}` : ""));
+        return /* @__PURE__ */ React.createElement("div", { key: d.iso, style: { display: "flex", flexDirection: "column", alignItems: "center", gap: 3 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: isT ? "#C4724A" : "#9B8B7E" } }, DAYS_SHORT[((/* @__PURE__ */ new Date(d.iso + "T12:00:00")).getDay() + 6) % 7]), /* @__PURE__ */ React.createElement("div", { style: { width: 32, height: 32, borderRadius: 10, background: d.pct > 0 ? col + "22" : "#F5F0E8", border: `2px solid ${isT ? "#C4724A" : d.pct > 0 ? col : "#E8DDD0"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 } }, d.pct >= 1 ? "\u2705" : d.pct > 0 ? "\xB7" : ""), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 9, color: col, fontWeight: 600 } }, d.cnt > 0 ? `${d.cnt}/${total}` : ""));
       }))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 600, letterSpacing: "2px", textTransform: "uppercase", color: "#9B8B7E" } }, "Mes r\xE8gles"), /* @__PURE__ */ React.createElement(
         "button",
         {
@@ -1528,7 +1581,7 @@
           const h = v !== null ? Math.min(v / 8 * 100, 100) : 0;
           const col = v === null ? "#E8DDD0" : v <= 2 ? "#7A9E7E" : v <= 4 ? "#C9A84C" : "#E05252";
           const isT = last7()[i] === todayKey();
-          return /* @__PURE__ */ React.createElement("div", { key: i, style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 } }, /* @__PURE__ */ React.createElement("div", { style: { width: "100%", height: 28, display: "flex", alignItems: "flex-end", justifyContent: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "100%", height: `${h || 4}%`, minHeight: 3, background: col, borderRadius: 4, opacity: isT ? 1 : 0.6, transition: "height 0.3s" } })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 8, color: isT ? "#C4724A" : "#9B8B7E", fontWeight: isT ? 700 : 400 } }, DAYS_SHORT[i]));
+          return /* @__PURE__ */ React.createElement("div", { key: i, style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 } }, /* @__PURE__ */ React.createElement("div", { style: { width: "100%", height: 28, display: "flex", alignItems: "flex-end", justifyContent: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "100%", height: `${h || 4}%`, minHeight: 3, background: col, borderRadius: 4, opacity: isT ? 1 : 0.6, transition: "height 0.3s" } })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 8, color: isT ? "#C4724A" : "#9B8B7E", fontWeight: isT ? 700 : 400 } }, DAYS_SHORT[((/* @__PURE__ */ new Date(last7()[i] + "T12:00:00")).getDay() + 6) % 7]));
         })));
       })()), /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 16, border: "1px solid #E8DDD0", padding: "14px 18px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16 } }, "\u{1F4DD}"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 600 } }, "Note du jour"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: "#9B8B7E", marginLeft: "auto", fontStyle: "italic" } }, "optionnel")), /* @__PURE__ */ React.createElement(
         "textarea",
