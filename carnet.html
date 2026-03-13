@@ -134,7 +134,8 @@
     },
     citations: [],
     restaurants: [],
-    activites: []
+    activites: [],
+    activiteTypes: []
   };
   const TRACKER_KEY = "tracker_v4";
   const extractClassiques = async () => {
@@ -306,6 +307,8 @@
     const [activiteType, setActiviteType] = useState("Tout");
     const [activiteFilter, setActiviteFilter] = useState("Tout");
     const [activiteSort, setActiviteSort] = useState("ajout");
+    const [newTypeLabel, setNewTypeLabel] = useState("");
+    const [newTypeEmoji, setNewTypeEmoji] = useState("");
     const [newDefiName, setNewDefiName] = useState("");
     const [newDefiCat, setNewDefiCat] = useState("");
     const [rCat, setRCat] = useState("Tout");
@@ -1117,7 +1120,7 @@
         l
       ))), /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 14, padding: "16px 20px", border: `1px solid ${C.border}`, marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 } }, /* @__PURE__ */ React.createElement("span", { style: { fontWeight: 600 } }, "Progression \xB7 ", done, "/", total), /* @__PURE__ */ React.createElement("span", { style: { color: C.sage, fontWeight: 700 } }, pct, "%")), /* @__PURE__ */ React.createElement("div", { style: { height: 6, background: C.cream, borderRadius: 3, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { height: "100%", background: `linear-gradient(90deg,${C.sage},${C.gold})`, borderRadius: 3, width: `${pct}%`, transition: "width 0.5s" } })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.muted, marginTop: 8, fontStyle: "italic" } }, pct === 100 ? "\u{1F389} Tous les objectifs accomplis !" : pct >= 50 ? "Tu es \xE0 mi-chemin \u2728" : "Continue, chaque pas compte \u{1F331}")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8, marginBottom: accomplished.length > 0 ? 24 : 0 } }, active.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "28px 20px", color: C.muted, fontSize: 13 } }, "\u{1F3AF} Ajoute ton premier objectif"), active.map((g) => GoalCard(g))), accomplished.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "Accomplis \xB7 ", accomplished.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, accomplished.map((g) => GoalCard(g)))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Nouvel objectif...", onAdd: (name) => upd((d) => d.goals.push({ id: newId(), name, done: false, doneAt: null, cat: "", deadline: "", notes: "" })) }));
     })()), tab === "activites" && /* @__PURE__ */ React.createElement("div", null, (() => {
-      const TYPES = [
+      const TYPES_BASE = [
         { key: "nature", label: "\u{1F33F} Nature", short: "\u{1F33F}" },
         { key: "musee", label: "\u{1F3DB}\uFE0F Mus\xE9es", short: "\u{1F3DB}\uFE0F" },
         { key: "sport", label: "\u{1F3C3} Sport", short: "\u{1F3C3}" },
@@ -1126,7 +1129,20 @@
         { key: "atelier", label: "\u{1F3A8} Atelier", short: "\u{1F3A8}" },
         { key: "autre", label: "\u{1F4A1} Autre", short: "\u{1F4A1}" }
       ];
+      const customTypes = (data.activiteTypes || []).map((t) => ({ key: t.key, label: t.emoji ? t.emoji + " " + t.label : t.label, short: t.emoji || "\u2726", custom: true }));
+      const TYPES = [...customTypes, ...TYPES_BASE];
       const TYPE_MAP = Object.fromEntries(TYPES.map((t) => [t.key, t]));
+      const addCustomType = () => {
+        const trimmed = newTypeLabel.trim();
+        if (!trimmed) return;
+        const key = "custom_" + Date.now();
+        upd((d) => {
+          if (!d.activiteTypes) d.activiteTypes = [];
+          d.activiteTypes.unshift({ key, label: trimmed, emoji: newTypeEmoji.trim() || "\u2726" });
+        });
+        setNewTypeLabel("");
+        setNewTypeEmoji("");
+      };
       const sortFn = (a, b) => {
         if (activiteSort === "priorite") {
           const pa = a.priorite === "forte" ? 0 : 1;
@@ -1176,16 +1192,48 @@
             style: { flex: 1, padding: "8px 10px", borderRadius: 12, border: `1.5px solid ${a.priorite === v ? col : C.border}`, background: a.priorite === v ? bg : "white", fontSize: 12, fontWeight: a.priorite === v ? 700 : 400, color: a.priorite === v ? col : C.muted, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }
           },
           l
-        ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 12 } }, TYPES.map((t2) => /* @__PURE__ */ React.createElement(
+        ))), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 8 } }, TYPES.map((t2) => /* @__PURE__ */ React.createElement("div", { key: t2.key, style: { display: "flex", alignItems: "center", gap: 2 } }, /* @__PURE__ */ React.createElement(
           "button",
           {
-            key: t2.key,
             onClick: () => upd((d) => {
               (d.activites || []).find((x) => x.id === a.id).type = t2.key;
             }),
             style: { border: `1.5px solid ${a.type === t2.key ? C.dark : C.border}`, background: a.type === t2.key ? C.dark : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: a.type === t2.key ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit" }
           },
           t2.label
+        ), t2.custom && /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => upd((d) => {
+              d.activiteTypes = (d.activiteTypes || []).filter((x) => x.key !== t2.key);
+            }),
+            style: { background: "#FEF0F0", border: "none", borderRadius: "50%", width: 16, height: 16, fontSize: 9, color: "#E05252", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0, flexShrink: 0 }
+          },
+          "\u2715"
+        )))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, alignItems: "center" } }, /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            value: newTypeEmoji,
+            onChange: (e) => setNewTypeEmoji(e.target.value),
+            placeholder: "\u{1F3AF}",
+            style: { width: 40, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "5px 8px", fontFamily: "inherit", fontSize: 15, textAlign: "center", outline: "none", flexShrink: 0 }
+          }
+        ), /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            value: newTypeLabel,
+            onChange: (e) => setNewTypeLabel(e.target.value),
+            onKeyDown: (e) => e.key === "Enter" && addCustomType(),
+            placeholder: "Nouvelle cat\xE9gorie...",
+            style: { flex: 1, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 20, padding: "5px 12px", fontFamily: "inherit", fontSize: 11, color: C.dark, outline: "none" }
+          }
+        ), newTypeLabel.trim() && /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => addCustomType(),
+            style: { background: C.dark, border: "none", borderRadius: 20, padding: "5px 12px", color: "white", fontSize: 11, cursor: "pointer", fontFamily: "inherit", fontWeight: 600, flexShrink: 0 }
+          },
+          "+"
         ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
           "input",
           {
@@ -1279,7 +1327,7 @@
           onClick: () => setActiviteType(t.key),
           style: { flexShrink: 0, border: `1.5px solid ${activiteType === t.key ? C.dark : C.border}`, background: activiteType === t.key ? C.dark : "white", borderRadius: 20, padding: "5px 12px", fontSize: 11, fontWeight: 600, color: activiteType === t.key ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
         },
-        t.key === "Tout" ? "Tout" : t.short + " " + t.label.split(" ")[1]
+        t.key === "Tout" ? "Tout" : t.label
       ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" } }, [["Tout", "Tout"], ["\xE0 faire", "\xC0 faire"], ["fait", "\u2713 Faites"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
         "button",
         {
