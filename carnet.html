@@ -1,0 +1,1529 @@
+<!DOCTYPE html><html lang="fr"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Mon carnet</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#F5F0E8;-webkit-font-smoothing:antialiased}textarea,input,select{font-family:'DM Sans',system-ui,sans-serif}::-webkit-scrollbar{display:none}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+window.storage = {
+  get: async (key) => { try { const v = localStorage.getItem(key); return v ? { key, value: v } : null; } catch { return null; } },
+  set: async (key, value) => { try { localStorage.setItem(key, value); return { key, value }; } catch { return null; } },
+};
+
+// ── palette (cohérente avec le tracker) ──────────────────────────────────────
+const C = {
+  cream:"#F5F0E8", warm:"#E8DDD0", dark:"#1A1410", brown:"#6B4F3A",
+  terra:"#C4724A", sage:"#7A9E7E", gold:"#C9A84C", muted:"#9B8B7E",
+  light:"#FAFAF8", border:"#E8DDD0",
+};
+
+// ── storage ───────────────────────────────────────────────────────────────────
+const STORE_KEY = "carnet_v2";
+
+const DEFAULT_DATA = {
+  recipes: [
+    { id:1, name:"Tarte tatin au butternut", source:"À explorer", notes:"", status:"à tester" },
+    { id:2, name:"Cookies tahini-chocolat", source:"Instagram", notes:"Texture fondante", status:"à tester" },
+    { id:3, name:"Ramen maison", source:"YouTube", notes:"", status:"testé" },
+  ],
+  books: [
+    { id:1, name:"Atomic Habits", author:"James Clear", status:"à lire", notes:"", rating:0 },
+    { id:2, name:"The 5 AM Club", author:"Robin Sharma", status:"à lire", notes:"", rating:0 },
+    { id:3, name:"Ikigai", author:"Héctor García", status:"à lire", notes:"", rating:0 },
+  ],
+  podcasts: [
+    { id:1, name:"Huberman Lab", desc:"Science, santé, routine", status:"à écouter", notes:"" },
+    { id:2, name:"The Diary of a CEO", desc:"Mindset, business", status:"à écouter", notes:"" },
+    { id:3, name:"On Purpose", desc:"Jay Shetty — développement perso", status:"à écouter", notes:"" },
+  ],
+  movies: [
+    { id:1, name:"Past Lives", cat:"film", status:"à voir", notes:"" },
+    { id:2, name:"The Bear", cat:"série", status:"à voir", notes:"" },
+  ],
+  wishlist: [],
+  goals: [
+    { id:1, name:"Tenir la routine 21 jours", done:false, doneAt:null },
+    { id:2, name:"Lire 1 livre complet", done:false, doneAt:null },
+    { id:3, name:"Réduire scrolling à 30 min/j", done:false, doneAt:null },
+    { id:4, name:"Épargner ce mois-ci", done:false, doneAt:null },
+  ],
+  cleaning: [
+    { id:101, name:"Lave-vaisselle", freq:"Hebdo",        freqDays:7,   lastDone:null, notes:"En profondeur 1x/mois" },
+    { id:102, name:"Lave-vaisselle (profondeur)", freq:"Mensuel", freqDays:30, lastDone:null, notes:"" },
+    { id:103, name:"Frigo",          freq:"Mensuel",      freqDays:30,  lastDone:null, notes:"Vider + désinfecter" },
+    { id:104, name:"Aspirateur + lavage sol", freq:"Mensuel", freqDays:30, lastDone:null, notes:"" },
+    { id:105, name:"Brosse à dents", freq:"Trimestriel",  freqDays:75,  lastDone:null, notes:"Changer la tête" },
+    { id:106, name:"Toilette (lingette)", freq:"Quotidien", freqDays:1,  lastDone:null, notes:"1 à 2x/jour" },
+    { id:107, name:"Toilette (profondeur)", freq:"Hebdo",  freqDays:7,   lastDone:null, notes:"" },
+    { id:108, name:"Brosse à cheveux", freq:"Hebdo",      freqDays:10,  lastDone:null, notes:"Toutes les 1-2 semaines" },
+    { id:109, name:"Machine à laver", freq:"Mensuel",     freqDays:30,  lastDone:null, notes:"Cycle tambour vide" },
+    { id:110, name:"Interrupteurs",   freq:"Mensuel",     freqDays:30,  lastDone:null, notes:"" },
+    { id:111, name:"Plinthes",        freq:"Mensuel",     freqDays:30,  lastDone:null, notes:"À l'éponge mouillée" },
+  ],
+    defis: [
+    { id:1,  cat:"mindset",  emoji:"📝", name:"Écrire une page 'qui je suis dans 12 mois'", done:false, doneAt:null },
+    { id:2,  cat:"mindset",  emoji:"🛑", name:"Faire une liste de 10 choses à arrêter", done:false, doneAt:null },
+    { id:3,  cat:"mindset",  emoji:"📵", name:"1 semaine sans réseaux sociaux", done:false, doneAt:null },
+    { id:4,  cat:"mindset",  emoji:"✍️", name:"Commencer un junk journal", done:false, doneAt:null },
+    { id:5,  cat:"mindset",  emoji:"🙅‍♀️", name:"Apprendre à dire non clairement", done:false, doneAt:null },
+    { id:6,  cat:"corps",    emoji:"🏋️", name:"Soulever 4x/semaine pendant 12 semaines", done:false, doneAt:null },
+    { id:7,  cat:"corps",    emoji:"👟", name:"10k pas par jour pendant 30 jours", done:false, doneAt:null },
+    { id:8,  cat:"corps",    emoji:"😴", name:"Réparer mon sommeil", done:false, doneAt:null },
+    { id:9,  cat:"cuisine",  emoji:"🍳", name:"Apprendre 5 recettes signature", done:false, doneAt:null },
+    { id:10, cat:"social",   emoji:"🤝", name:"Reconnecter avec 5 personnes perdues de vue", done:false, doneAt:null },
+    { id:11, cat:"social",   emoji:"🏠", name:"Organiser un dîner (4-8 personnes)", done:false, doneAt:null },
+    { id:12, cat:"social",   emoji:"🚶‍♀️", name:"Aller à un événement seule et parler à 3 inconnus", done:false, doneAt:null },
+    { id:13, cat:"aventure", emoji:"🌅", name:"Une journée iconique sunrise → coucher de soleil", done:false, doneAt:null },
+    { id:14, cat:"aventure", emoji:"🧳", name:"Un weekend trip sans trop planifier", done:false, doneAt:null },
+    { id:15, cat:"aventure", emoji:"😅", name:"Faire quelque chose qui te fait peur une fois/mois", done:false, doneAt:null },
+    { id:16, cat:"perso",    emoji:"📸", name:"Prendre 10 photos de toi que tu aimes vraiment", done:false, doneAt:null },
+    { id:17, cat:"perso",    emoji:"💇‍♀️", name:"Nouvelle coupe de cheveux", done:false, doneAt:null },
+    { id:18, cat:"perso",    emoji:"📚", name:"Lire Psycho-Cybernétique", done:false, doneAt:null },
+    // perso complété
+    { id:19, cat:"perso",    emoji:"🩸", name:"Faire un bilan sanguin complet", done:false, doneAt:null },
+    { id:20, cat:"perso",    emoji:"💰", name:"Tracker chaque euro pendant 30 jours", done:false, doneAt:null },
+    { id:21, cat:"perso",    emoji:"🏦", name:"Ouvrir un compte épargne 'liberté'", done:false, doneAt:null },
+    { id:22, cat:"perso",    emoji:"🗂️", name:"Désencombrer une pièce complètement", done:false, doneAt:null },
+    // digital
+    { id:23, cat:"digital",  emoji:"🔐", name:"Changer tous ses mots de passe + activer 2FA", done:false, doneAt:null },
+    { id:24, cat:"digital",  emoji:"👻", name:"Se désabonner de 100 comptes", done:false, doneAt:null },
+    { id:25, cat:"digital",  emoji:"📱", name:"Nettoyer son camera roll", done:false, doneAt:null },
+    { id:26, cat:"digital",  emoji:"🗑️", name:"Supprimer les vieux numéros", done:false, doneAt:null },
+    { id:27, cat:"digital",  emoji:"📵", name:"1 semaine sans Reels ni TikTok", done:false, doneAt:null },
+    // culture & apprentissage
+    { id:28, cat:"perso",    emoji:"🗣️", name:"Apprendre les bases d'une nouvelle langue (Duolingo 30j)", done:false, doneAt:null },
+    { id:29, cat:"perso",    emoji:"📜", name:"Apprendre un poème par mois pendant 3 mois", done:false, doneAt:null },
+    { id:30, cat:"aventure", emoji:"🎬", name:"Regarder les 100 films cultes (liste IMDb)", done:false, doneAt:null },
+    // 75 Medium
+    { id:31, cat:"corps",    emoji:"💊", name:"Prendre mes vitamines chaque jour pendant 75 jours", done:false, doneAt:null },
+    { id:32, cat:"corps",    emoji:"📖", name:"Lire 10 pages par jour pendant 75 jours", done:false, doneAt:null },
+    { id:33, cat:"corps",    emoji:"😴", name:"8h de sommeil par nuit pendant 30 jours", done:false, doneAt:null },
+  ],
+  health: {
+    bilans: [],
+    vitamines: [],
+    cycle: { notes:"" },
+    energie: [],
+  },
+  citations: [],
+};
+
+const TRACKER_KEY = "tracker_v4";
+
+// Extraire les repas uniques depuis le store tracker
+const extractClassiques = async () => {
+  try {
+    const r = await window.storage.get(TRACKER_KEY);
+    if (!r) return [];
+    const tracker = JSON.parse(r.value);
+    const menus = tracker.weekMenus || {};
+    const names = new Set();
+    Object.values(menus).forEach(week => {
+      Object.values(week).forEach(day => {
+        if (day.lunch)      names.add(day.lunch.trim());
+        if (day.lunchReal)  names.add(day.lunchReal.trim());
+        if (day.dinner)     names.add(day.dinner.trim());
+        if (day.dinnerReal) names.add(day.dinnerReal.trim());
+      });
+    });
+    return [...names].filter(Boolean).sort();
+  } catch { return []; }
+};
+
+const load = async () => {
+  try {
+    // migrate v1 → v2 if needed
+    const r1 = await window.storage.get("carnet_v1");
+    const r2 = await window.storage.get(STORE_KEY);
+    if (r2) return { ...DEFAULT_DATA, ...JSON.parse(r2.value) };
+    if (r1) {
+      const old = JSON.parse(r1.value);
+      if (old.movies)   old.movies   = old.movies.map(m => ({ cat:"film", status: m.done?"vu":"à voir", notes:"", ...m }));
+      if (old.podcasts) old.podcasts = old.podcasts.map(p => ({ status: p.done?"terminé":"à écouter", notes:"", ...p }));
+      if (old.books)    old.books    = old.books.map(b => ({ rating:0, ...b }));
+      if (old.goals)    old.goals    = old.goals.map(g => ({ doneAt:null, ...g }));
+      return { ...DEFAULT_DATA, ...old };
+    }
+    return DEFAULT_DATA;
+  } catch { return DEFAULT_DATA; }
+};
+const save = async (data) => { try { await window.storage.set(STORE_KEY, JSON.stringify(data)); } catch {} };
+const newId = () => Date.now();
+
+// ── shared helpers ────────────────────────────────────────────────────────────
+const StatusPill = ({ value, options, onChange }) => {
+  const opt = options.find(o => o.value === value) || options[0];
+  const next = options[(options.findIndex(o=>o.value===value)+1) % options.length];
+  return (
+    <button onClick={e=>{e.stopPropagation();onChange(next.value);}}
+      style={{ fontSize:11,padding:"4px 11px",borderRadius:20,border:"1.5px solid "+opt.border,background:opt.bg,color:opt.color,cursor:"pointer",fontFamily:"inherit",fontWeight:600,whiteSpace:"nowrap",transition:"all 0.15s" }}>
+      {opt.emoji} {opt.label}
+    </button>
+  );
+};
+
+const Stars = ({ value, onChange }) => (
+  <div style={{ display:"flex",gap:2 }}>
+    {[1,2,3,4,5].map(n=>(
+      <button key={n} onClick={e=>{e.stopPropagation();onChange(value===n?0:n);}}
+        style={{ fontSize:15,background:"none",border:"none",cursor:"pointer",padding:"0 1px",color:n<=value?"#C9A84C":"#E8DDD0",transition:"color 0.15s" }}>★</button>
+    ))}
+  </div>
+);
+
+const BOOK_STATUS = [
+  { value:"à lire",   label:"À lire",   emoji:"📚", bg:"#EFF6FF", border:"#BFDBFE", color:"#3B82F6" },
+  { value:"en cours", label:"En cours", emoji:"📖", bg:"#FFF7ED", border:"#FED7AA", color:"#C4724A" },
+  { value:"lu",       label:"Lu",       emoji:"✓",  bg:"#F0FDF4", border:"#BBF7D0", color:"#7A9E7E" },
+];
+const MEDIA_STATUS = [
+  { value:"à voir",   label:"À voir",   emoji:"👀", bg:"#EFF6FF", border:"#BFDBFE", color:"#3B82F6" },
+  { value:"en cours", label:"En cours", emoji:"▶️",  bg:"#FFF7ED", border:"#FED7AA", color:"#C4724A" },
+  { value:"vu",       label:"Vu",       emoji:"✓",  bg:"#F0FDF4", border:"#BBF7D0", color:"#7A9E7E" },
+];
+const POD_STATUS = [
+  { value:"à écouter", label:"À écouter", emoji:"🎧", bg:"#EFF6FF", border:"#BFDBFE", color:"#3B82F6" },
+  { value:"en cours",  label:"En cours",  emoji:"▶️",  bg:"#FFF7ED", border:"#FED7AA", color:"#C4724A" },
+  { value:"terminé",   label:"Terminé",   emoji:"✓",  bg:"#F0FDF4", border:"#BBF7D0", color:"#7A9E7E" },
+];
+
+const CardShell = ({ active, accent=C.terra, onClick, children }) => (
+  <div onClick={onClick}
+    style={{ background:"white",borderRadius:16,border:`1.5px solid ${active?accent:C.border}`,overflow:"hidden",transition:"border-color 0.15s,box-shadow 0.15s",cursor:"pointer" }}
+    onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 18px rgba(0,0,0,0.07)"}
+    onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}>
+    {children}
+  </div>
+);
+
+const SectionTitle = ({ children, right }) => (
+  <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14 }}>
+    <div style={{ fontSize:11,fontWeight:700,letterSpacing:"2px",textTransform:"uppercase",color:C.muted }}>{children}</div>
+    {right}
+  </div>
+);
+
+const AddRow = ({ placeholder, onAdd, extraField }) => {
+  const [val, setVal] = useState("");
+  const [extra, setExtra] = useState("");
+  return (
+    <div style={{ marginTop:12,paddingTop:12,borderTop:`1px solid ${C.border}`,display:"flex",gap:8,flexWrap:"wrap" }}>
+      {extraField && (
+        <input value={extra} onChange={e=>setExtra(e.target.value)} placeholder={extraField}
+          style={{ width:130,border:"none",background:C.cream,borderRadius:10,padding:"9px 12px",fontFamily:"inherit",fontSize:12,color:C.dark,outline:"none" }} />
+      )}
+      <input value={val} onChange={e=>setVal(e.target.value)}
+        onKeyDown={e=>{ if(e.key==="Enter"&&val.trim()){ onAdd(val.trim(), extra.trim()); setVal(""); setExtra(""); }}}
+        placeholder={placeholder}
+        style={{ flex:1,minWidth:160,border:"none",background:C.cream,borderRadius:10,padding:"9px 12px",fontFamily:"inherit",fontSize:13,color:C.dark,outline:"none" }} />
+      <button onClick={()=>{ if(val.trim()){ onAdd(val.trim(), extra.trim()); setVal(""); setExtra(""); }}}
+        style={{ background:C.dark,border:"none",borderRadius:10,padding:"9px 16px",color:"white",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit" }}>+</button>
+    </div>
+  );
+};
+
+// ── MAIN ─────────────────────────────────────────────────────────────────────
+function Carnet() {
+  const [data, setData]         = useState(null);
+  const [tab, setTab]           = useState("cuisine");
+  const [search, setSearch]     = useState("");
+  const [expandedId, setExpId]  = useState(null);
+  const [classiques, setClassiques] = useState([]);
+  const [mediaCat,   setMediaCat]   = useState("Tout");
+  const [activeCat,  setActiveCat]  = useState("all");
+  const [newCit,     setNewCit]     = useState("");
+  const [newSrc,     setNewSrc]     = useState("");
+  const [wCat,       setWCat]       = useState("Tout");
+  const [wFilter,    setWFilter]    = useState("Tout");
+  const [wSort,      setWSort]      = useState("priorité");
+  const [goalSort,   setGoalSort]   = useState("échéance");
+  const [newCleanName, setNewCleanName] = useState("");
+  const [newCleanFreq, setNewCleanFreq] = useState("Mensuel");
+  const [newCleanDays, setNewCleanDays] = useState(30);
+  const [newDefiEmoji, setNewDefiEmoji] = useState("⭐");
+  const [newDefiName,  setNewDefiName]  = useState("");
+  const [newDefiCat,   setNewDefiCat]   = useState("");
+  const [rCat,       setRCat]       = useState("Tout");
+  const [rFilter,    setRFilter]    = useState("tous");
+  const [rSort,      setRSort]      = useState("ajout");
+  const [bookFilter, setBookFilter] = useState("tous");
+  const [podFilter,  setPodFilter]  = useState("tous");
+  const [movieFilter,setMovieFilter] = useState("tous");
+
+  useEffect(() => {
+    load().then(setData);
+    extractClassiques().then(setClassiques);
+  }, []);
+  useEffect(() => { if (data) save(data); }, [data]);
+
+  const upd = fn => setData(prev => {
+    const next = JSON.parse(JSON.stringify(prev));
+    fn(next);
+    return next;
+  });
+
+  const toggle = id => setExpId(prev => prev === id ? null : id);
+  const filterText = str => !search || (str||"").toLowerCase().includes(search.toLowerCase());
+
+  if (!data) return (
+    <div style={{ display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",fontFamily:"system-ui",color:C.muted,fontSize:14 }}>Chargement...</div>
+  );
+
+  const TABS = [
+    { id:"cuisine",   emoji:"🍳", label:"Cuisine" },
+    { id:"livres",    emoji:"📚", label:"Livres" },
+    { id:"podcasts",  emoji:"🎙️", label:"Podcasts" },
+    { id:"films",     emoji:"🎬", label:"Films & Séries" },
+    { id:"wishlist",  emoji:"✨", label:"Wishlist" },
+    { id:"objectifs", emoji:"🎯", label:"Objectifs" },
+    { id:"nettoyage", emoji:"🧹", label:"Nettoyage" },
+    { id:"defis",     emoji:"🏆", label:"Défis" },
+    { id:"citations", emoji:"💬", label:"Citations" },
+  ];
+
+  // ── Header stats ──────────────────────────────────────────────────────────
+  const reading   = data.books.filter(b=>b.status==="en cours").length;
+  const watching  = data.movies.filter(m=>m.status==="en cours").length;
+  const goalsDone = data.goals.filter(g=>g.done).length;
+  const defisDone = data.defis.filter(d=>d.done).length;
+
+  return (
+    <div style={{ fontFamily:"'DM Sans',system-ui,sans-serif",background:C.cream,minHeight:"100vh",color:C.dark }}>
+      <style>{`
+        .carnet-tabs-desktop { display:flex; }
+        .carnet-tabs-mobile  { display:none; }
+        @media (max-width: 640px) {
+          .carnet-tabs-desktop { display:none !important; }
+          .carnet-tabs-mobile  { display:flex !important; }
+        }
+      `}</style>
+
+      {/* HEADER */}
+      <div style={{ background:C.dark,padding:"clamp(16px,4vw,28px) clamp(16px,4vw,32px) 0",position:"relative",overflow:"hidden" }}>
+        <div style={{ position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:C.gold,opacity:0.1 }}/>
+        <div style={{ position:"absolute",bottom:-30,left:-30,width:100,height:100,borderRadius:"50%",background:C.terra,opacity:0.08 }}/>
+        <div style={{ position:"relative",zIndex:1 }}>
+          <h1 style={{ fontFamily:"Georgia,serif",fontSize:"clamp(20px,3.5vw,30px)",color:"#F5F0E8",fontStyle:"italic",letterSpacing:"-0.3px",marginBottom:4 }}>
+            Mon <span style={{ color:C.gold }}>carnet</span>
+          </h1>
+          {/* Quick stats */}
+          <div style={{ display:"flex",gap:12,flexWrap:"wrap",paddingBottom:18,marginTop:10 }}>
+            {[
+              reading>0   && { emoji:"📖", val:reading,   label:`livre${reading>1?"s":""} en cours` },
+              watching>0  && { emoji:"▶️",  val:watching,  label:`en cours` },
+              goalsDone>0 && { emoji:"🎯", val:goalsDone, label:`objectif${goalsDone>1?"s":""} accompli${goalsDone>1?"s":""}` },
+              defisDone>0 && { emoji:"🏆", val:defisDone, label:`défi${defisDone>1?"s":""} accompli${defisDone>1?"s":""}` },
+            ].filter(Boolean).map((s,i)=>(
+              <div key={i} style={{ display:"flex",alignItems:"center",gap:5,background:"rgba(255,255,255,0.07)",borderRadius:20,padding:"4px 12px" }}>
+                <span style={{ fontSize:13 }}>{s.emoji}</span>
+                <span style={{ fontSize:12,fontWeight:700,color:C.gold }}>{s.val}</span>
+                <span style={{ fontSize:11,color:C.muted }}>{s.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* SEARCH + TABS desktop */}
+      <div className="carnet-tabs-desktop" style={{ background:"white",borderBottom:`1px solid ${C.border}`,padding:"0 clamp(16px,4vw,32px)",flexDirection:"column",position:"sticky",top:0,zIndex:99 }}>
+        <div style={{ padding:"10px 0 8px",borderBottom:`1px solid ${C.border}` }}>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Rechercher dans le carnet..."
+            style={{ width:"100%",maxWidth:420,border:`1.5px solid ${C.border}`,borderRadius:10,padding:"7px 14px",fontFamily:"inherit",fontSize:13,color:C.dark,outline:"none",background:C.cream }} />
+        </div>
+        <div style={{ display:"flex",overflowX:"auto",scrollbarWidth:"none" }}>
+          {TABS.map(t=>(
+            <button key={t.id} onClick={()=>{ setTab(t.id); setSearch(""); setExpId(null); setMediaCat("Tout"); setActiveCat("all"); }} style={{
+              padding:"12px 14px",border:"none",background:"none",fontFamily:"inherit",fontSize:12,fontWeight:500,cursor:"pointer",whiteSpace:"nowrap",
+              color:tab===t.id?C.gold:C.muted,
+              borderBottom:tab===t.id?`2px solid ${C.gold}`:"2px solid transparent",
+              marginBottom:-1,display:"flex",alignItems:"center",gap:5,transition:"color 0.15s"
+            }}>{t.emoji} {t.label}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* SEARCH mobile */}
+      <div className="carnet-tabs-mobile" style={{ background:"white",borderBottom:`1px solid ${C.border}`,padding:"10px 16px" }}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Rechercher..."
+          style={{ width:"100%",border:`1.5px solid ${C.border}`,borderRadius:10,padding:"8px 14px",fontFamily:"inherit",fontSize:13,color:C.dark,outline:"none",background:C.cream }} />
+      </div>
+
+      {/* CONTENT */}
+      <div style={{ padding:"clamp(16px,4vw,24px) clamp(16px,4vw,32px)",maxWidth:800,margin:"0 auto",paddingBottom:80 }}>
+
+        {/* ── CUISINE ── */}
+        {tab==="cuisine" && (
+          <div>
+            {(() => {
+              const R_CATS   = ["Tout","Petit déj","Plat","Dessert","Snack","Boisson"];
+              const R_STATUS = [
+                { value:"à tester", label:"À tester", emoji:"🧪", bg:"#EFF6FF", border:"#BFDBFE", color:"#3B82F6" },
+                { value:"testé",    label:"Testé",    emoji:"✓",  bg:"#FFF7ED", border:"#FED7AA", color:"#C4724A" },
+                { value:"adopté",   label:"Adopté",   emoji:"🌟", bg:"#F0FDF4", border:"#BBF7D0", color:"#7A9E7E" },
+              ];
+              const R_TEMPS  = ["Rapide","Moyen","Long"];
+              const adopted  = data.recipes.filter(r=>r.status==="adopté").length;
+              const tested   = data.recipes.filter(r=>r.status==="testé").length;
+              const toTest   = data.recipes.filter(r=>r.status==="à tester").length;
+
+              // Tri
+              const sortFn = (a,b) => {
+                if(rSort==="note")  return (b.rating||0)-(a.rating||0);
+                if(rSort==="nom")   return a.name.localeCompare(b.name);
+                if(rSort==="temps") { const o=["Rapide","Moyen","Long",""];  return (o.indexOf(a.temps||"")||99)-(o.indexOf(b.temps||"")||99); }
+                return 0; // ajout = ordre naturel
+              };
+
+              const pipeline = data.recipes
+                .filter(r => r.status!=="adopté" &&
+                  (filterText(r.name)||filterText(r.source||"")) &&
+                  (rCat==="Tout"||(r.cat||"Plat")===rCat) &&
+                  (rFilter==="tous"||r.status===rFilter))
+                .sort(sortFn);
+
+              const adoptees = data.recipes
+                .filter(r => r.status==="adopté" &&
+                  (filterText(r.name)||filterText(r.source||"")) &&
+                  (rCat==="Tout"||(r.cat||"Plat")===rCat))
+                .sort(sortFn);
+
+              // helper carte recette
+              const RecipeCard = (r) => (
+                <CardShell key={r.id} active={expandedId===r.id} onClick={()=>toggle(r.id)}>
+                  <div style={{ padding:"13px 16px",display:"flex",alignItems:"center",gap:12 }}>
+                    <div style={{ flex:1,minWidth:0 }}>
+                      <div style={{ fontSize:14,fontWeight:600,color:r.status==="adopté"?C.sage:C.dark }}>{r.name}</div>
+                      <div style={{ display:"flex",gap:6,marginTop:3,flexWrap:"wrap",alignItems:"center" }}>
+                        {r.source && <span style={{ fontSize:10,color:C.muted }}>📌 {r.source}</span>}
+                        {r.cat && r.cat!=="Plat" && <span style={{ fontSize:10,background:C.cream,borderRadius:10,padding:"1px 7px",color:C.muted }}>{r.cat}</span>}
+                        {r.temps && <span style={{ fontSize:10,background:"#FEF9EC",borderRadius:10,padding:"1px 7px",color:C.gold }}>⏱ {r.temps}</span>}
+                        {r.rating>0 && <Stars value={r.rating||0} onChange={()=>{}} />}
+                      </div>
+                    </div>
+                    <StatusPill value={r.status||"à tester"} options={R_STATUS} onChange={v=>upd(d=>{ d.recipes.find(x=>x.id===r.id).status=v; })} />
+                  </div>
+                  {expandedId===r.id && (
+                    <div style={{ borderTop:`1px solid ${C.cream}`,padding:"12px 16px",background:C.light }} onClick={e=>e.stopPropagation()}>
+                      <div style={{ display:"flex",gap:8,marginBottom:8,flexWrap:"wrap" }}>
+                        <input value={r.source||""} onChange={e=>upd(d=>{ d.recipes.find(x=>x.id===r.id).source=e.target.value; })}
+                          placeholder="Source : TikTok, livre, amie..."
+                          style={{ flex:1,minWidth:140,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"8px 12px",fontFamily:"inherit",fontSize:12,color:C.dark,outline:"none" }} />
+                        <select value={r.cat||"Plat"} onChange={e=>upd(d=>{ d.recipes.find(x=>x.id===r.id).cat=e.target.value; })}
+                          style={{ flex:1,minWidth:110,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"8px 12px",fontFamily:"inherit",fontSize:12,color:C.dark,outline:"none",cursor:"pointer" }}>
+                          {R_CATS.filter(c=>c!=="Tout").map(c=><option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <div style={{ display:"flex",gap:8,marginBottom:8,flexWrap:"wrap" }}>
+                        <select value={r.temps||""} onChange={e=>upd(d=>{ d.recipes.find(x=>x.id===r.id).temps=e.target.value; })}
+                          style={{ flex:1,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"8px 12px",fontFamily:"inherit",fontSize:12,color:C.dark,outline:"none",cursor:"pointer" }}>
+                          <option value="">⏱ Temps</option>
+                          {R_TEMPS.map(t=><option key={t} value={t}>{t}</option>)}
+                        </select>
+                        <div style={{ flex:1,minWidth:130,display:"flex",gap:6,alignItems:"center" }}>
+                        <input value={r.url||""} onChange={e=>upd(d=>{ d.recipes.find(x=>x.id===r.id).url=e.target.value; })}
+                          placeholder="🔗 Lien"
+                          style={{ flex:1,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"8px 12px",fontFamily:"inherit",fontSize:12,color:C.dark,outline:"none" }} />
+                        {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer"
+                          style={{ flexShrink:0,background:C.dark,borderRadius:8,padding:"7px 10px",color:"white",fontSize:11,textDecoration:"none",fontWeight:600 }}
+                          onClick={e=>e.stopPropagation()}>↗</a>}
+                      </div>
+                      </div>
+                      {(r.status==="testé"||r.status==="adopté") && (
+                        <div style={{ marginBottom:8 }}>
+                          <div style={{ fontSize:11,fontWeight:700,color:C.muted,marginBottom:4,textTransform:"uppercase",letterSpacing:1 }}>Note</div>
+                          <Stars value={r.rating||0} onChange={v=>upd(d=>{ d.recipes.find(x=>x.id===r.id).rating=v; })} />
+                        </div>
+                      )}
+                      <textarea value={r.notes||""} onChange={e=>upd(d=>{ d.recipes.find(x=>x.id===r.id).notes=e.target.value; })}
+                        placeholder="Notes, modifications, ce qui m'a plu..."
+                        style={{ width:"100%",border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"9px 12px",fontFamily:"inherit",fontSize:13,color:C.dark,resize:"none",outline:"none",minHeight:50,lineHeight:1.6 }} />
+                      <button onClick={()=>upd(d=>{ d.recipes=d.recipes.filter(x=>x.id!==r.id); setExpId(null); })}
+                        style={{ marginTop:8,fontSize:11,color:C.terra,background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit" }}>Supprimer</button>
+                    </div>
+                  )}
+                </CardShell>
+              );
+
+              return (
+                <div>
+                  {/* Stats */}
+                  <div style={{ display:"flex",gap:8,marginBottom:16 }}>
+                    {[[toTest,"🧪","à tester","#3B82F6"],[tested,"✓","testées","#C4724A"],[adopted,"🌟","adoptées","#7A9E7E"]].map(([n,e,l,c])=>(
+                      <div key={l} style={{ flex:1,background:"white",borderRadius:12,border:`1.5px solid ${C.border}`,padding:"10px 8px",textAlign:"center" }}>
+                        <div style={{ fontSize:18,fontWeight:700,color:c }}>{n}</div>
+                        <div style={{ fontSize:10,color:C.muted,marginTop:1 }}>{e} {l}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Filtre catégorie */}
+                  <div style={{ display:"flex",gap:6,overflowX:"auto",paddingBottom:6,marginBottom:8 }}>
+                    {R_CATS.map(c=>(
+                      <button key={c} onClick={()=>setRCat(c)}
+                        style={{ flexShrink:0,border:`1.5px solid ${rCat===c?C.dark:C.border}`,background:rCat===c?C.dark:"white",borderRadius:20,padding:"5px 12px",fontSize:11,fontWeight:600,color:rCat===c?"white":C.muted,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap" }}>
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Tri */}
+                  <div style={{ display:"flex",gap:6,marginBottom:16,alignItems:"center" }}>
+                    <span style={{ fontSize:11,color:C.muted,flexShrink:0 }}>Trier :</span>
+                    {[["ajout","Ajout"],["note","⭐ Note"],["nom","A→Z"],["temps","⏱ Temps"]].map(([v,l])=>(
+                      <button key={v} onClick={()=>setRSort(v)}
+                        style={{ flexShrink:0,border:`1.5px solid ${rSort===v?C.gold:C.border}`,background:rSort===v?"#FEF9EC":"white",borderRadius:20,padding:"4px 10px",fontSize:11,fontWeight:600,color:rSort===v?C.gold:C.muted,cursor:"pointer",fontFamily:"inherit" }}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Filtre statut pipeline */}
+                  <div style={{ display:"flex",gap:6,marginBottom:16,flexWrap:"wrap" }}>
+                    {[["tous","Tous"],["à tester","🧪 À tester"],["testé","✓ Testées"]].map(([v,l])=>(
+                      <button key={v} onClick={()=>setRFilter(v)}
+                        style={{ flexShrink:0,border:`1.5px solid ${rFilter===v?C.terra:C.border}`,background:rFilter===v?"#FEF3ED":"white",borderRadius:20,padding:"4px 10px",fontSize:11,fontWeight:600,color:rFilter===v?C.terra:C.muted,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap" }}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* ── SECTION 1 : PIPELINE ── */}
+                  <div style={{ marginBottom:28 }}>
+                    <SectionTitle right={<span style={{ fontSize:12,color:C.muted }}>{pipeline.length} recette{pipeline.length>1?"s":""}</span>}>🧪 Pipeline</SectionTitle>
+                    <div style={{ display:"flex",flexDirection:"column",gap:8,marginBottom:12 }}>
+                      {pipeline.length===0 && <div style={{ textAlign:"center",padding:"24px",color:C.muted,fontSize:13 }}>Aucune recette dans le pipeline</div>}
+                      {pipeline.map(r=>RecipeCard(r))}
+                    </div>
+                    <AddRow placeholder="+ Recette à tester..." onAdd={name=>upd(d=>d.recipes.push({ id:newId(),name,source:"",url:"",cat:"Plat",temps:"",notes:"",rating:0,status:"à tester" }))} />
+                  </div>
+
+                  {/* ── SECTION 2 : ADOPTÉES ── */}
+                  <div style={{ marginBottom:28 }}>
+                    <SectionTitle right={<span style={{ fontSize:12,color:C.sage }}>{adoptees.length} recette{adoptees.length>1?"s":""}</span>}>🌟 Mes adoptées</SectionTitle>
+                    <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+                      {adoptees.length===0 && <div style={{ textAlign:"center",padding:"24px",color:C.muted,fontSize:13 }}>Tes recettes favorites apparaîtront ici</div>}
+                      {adoptees.map(r=>RecipeCard(r))}
+                    </div>
+                  </div>
+
+                  {/* ── SECTION 3 : CLASSIQUES ── */}
+                  <div>
+                    <SectionTitle right={<span style={{ fontSize:11,color:C.muted,fontStyle:"italic" }}>tracker + ajouts manuels</span>}>🏆 Mes classiques</SectionTitle>
+                    <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+                      {[...classiques.filter(c=>filterText(c)).map(name=>({
+                          id:"t_"+name, name, fromTracker:true,
+                          cat: (data.classiquesTrackerMeta||{})[name]?.cat||"",
+                          notes: (data.classiquesTrackerMeta||{})[name]?.notes||"",
+                        })),
+                        ...(data.classiquesManuel||[]).filter(c=>filterText(c.name))
+                      ].map((item)=>(
+                        <CardShell key={item.id} active={expandedId===item.id} onClick={()=>setExpId(expandedId===item.id?null:item.id)}>
+                          <div style={{ padding:"12px 16px",display:"flex",alignItems:"center",gap:12 }}>
+                            <span style={{ fontSize:16,flexShrink:0 }}>{item.fromTracker?"📅":"⭐"}</span>
+                            <div style={{ flex:1,minWidth:0 }}>
+                              <div style={{ fontSize:14,fontWeight:600,color:C.dark }}>{item.name}</div>
+                              {item.cat && <span style={{ fontSize:10,background:C.cream,borderRadius:10,padding:"1px 7px",color:C.muted }}>{item.cat}</span>}
+                            </div>
+                            <span style={{ fontSize:13,color:C.muted }}>›</span>
+                          </div>
+                          {expandedId===item.id && (
+                            <div style={{ borderTop:`1px solid ${C.cream}`,padding:"12px 16px",background:C.light }} onClick={e=>e.stopPropagation()}>
+                              <div style={{ display:"flex",gap:8,marginBottom:8 }}>
+                                <input value={item.cat||""} onChange={e=>upd(d=>{
+                                  if(item.fromTracker){
+                                    if(!d.classiquesTrackerMeta) d.classiquesTrackerMeta={};
+                                    if(!d.classiquesTrackerMeta[item.name]) d.classiquesTrackerMeta[item.name]={};
+                                    d.classiquesTrackerMeta[item.name].cat=e.target.value;
+                                  } else {
+                                    (d.classiquesManuel||[]).find(x=>x.id===item.id).cat=e.target.value;
+                                  }
+                                })}
+                                  placeholder="Catégorie (plat, dessert...)"
+                                  style={{ flex:1,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"8px 12px",fontFamily:"inherit",fontSize:12,color:C.dark,outline:"none" }} />
+                              </div>
+                              <textarea value={item.notes||""} onChange={e=>upd(d=>{
+                                if(item.fromTracker){
+                                  if(!d.classiquesTrackerMeta) d.classiquesTrackerMeta={};
+                                  if(!d.classiquesTrackerMeta[item.name]) d.classiquesTrackerMeta[item.name]={};
+                                  d.classiquesTrackerMeta[item.name].notes=e.target.value;
+                                } else {
+                                  (d.classiquesManuel||[]).find(x=>x.id===item.id).notes=e.target.value;
+                                }
+                              })}
+                                placeholder="Notes rapides (variantes, astuces...)"
+                                style={{ width:"100%",border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"9px 12px",fontFamily:"inherit",fontSize:13,color:C.dark,resize:"none",outline:"none",minHeight:48,lineHeight:1.5 }} />
+                              {!item.fromTracker && (
+                                <button onClick={()=>upd(d=>{ d.classiquesManuel=(d.classiquesManuel||[]).filter(x=>x.id!==item.id); setExpId(null); })}
+                                  style={{ marginTop:8,fontSize:11,color:C.terra,background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit" }}>Supprimer</button>
+                              )}
+                            </div>
+                          )}
+                        </CardShell>
+                      ))}
+                      {classiques.length===0 && !(data.classiquesManuel||[]).length && (
+                        <div style={{ background:"white",borderRadius:14,border:`1px solid ${C.border}`,padding:"28px 20px",textAlign:"center" }}>
+                          <div style={{ fontSize:28,marginBottom:8 }}>🍽</div>
+                          <div style={{ fontSize:13,color:C.muted,fontStyle:"italic",lineHeight:1.6 }}>
+                            Tes classiques apparaîtront ici<br/>depuis le tracker ou en les ajoutant manuellement
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <AddRow placeholder="+ Ajouter un classique manuellement..." onAdd={name=>upd(d=>{ if(!d.classiquesManuel) d.classiquesManuel=[]; d.classiquesManuel.push({ id:newId(), name, cat:"", notes:"" }); })} />
+                  </div>
+
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ── LIVRES ── */}
+        {tab==="livres" && (
+          <div>
+            {/* Progress bar lus */}
+            {(() => {
+              const lu    = data.books.filter(b=>b.status==="lu").length;
+              const cours = data.books.filter(b=>b.status==="en cours").length;
+              const total = data.books.length;
+              const pct   = total>0 ? Math.round((lu/total)*100) : 0;
+              return (
+                <div style={{ background:"white",borderRadius:14,padding:"14px 18px",border:`1px solid ${C.border}`,marginBottom:16,display:"flex",alignItems:"center",gap:16 }}>
+                  <div style={{ flex:1 }}>
+                    <div style={{ display:"flex",justifyContent:"space-between",marginBottom:6,fontSize:12 }}>
+                      <span style={{ color:C.muted }}>{lu} lu{lu>1?"s":""} · {cours} en cours · {total-lu-cours} à lire</span>
+                      <span style={{ fontWeight:700,color:C.sage }}>{pct}%</span>
+                    </div>
+                    <div style={{ height:6,background:C.cream,borderRadius:3,overflow:"hidden" }}>
+                      <div style={{ height:"100%",background:`linear-gradient(90deg,${C.sage},${C.gold})`,borderRadius:3,width:`${pct}%`,transition:"width 0.5s" }}/>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+            {/* Filtre statut livres */}
+            <div style={{ display:"flex",gap:6,marginBottom:16,flexWrap:"wrap" }}>
+              {[["tous","Tous"],["à lire","📚 À lire"],["en cours","📖 En cours"],["lu","✓ Lus"]].map(([v,l])=>(
+                <button key={v} onClick={()=>setBookFilter(v)}
+                  style={{ flexShrink:0,border:`1.5px solid ${bookFilter===v?C.gold:C.border}`,background:bookFilter===v?"#FEF9EC":"white",borderRadius:20,padding:"4px 10px",fontSize:11,fontWeight:600,color:bookFilter===v?C.gold:C.muted,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap" }}>
+                  {l}
+                </button>
+              ))}
+            </div>
+            <SectionTitle>{data.books.length} livres</SectionTitle>
+            <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+              {data.books.filter(b=>(filterText(b.name)||filterText(b.author||""))&&(bookFilter==="tous"||b.status===bookFilter)).map(b=>(
+                <CardShell key={b.id} active={expandedId===b.id} accent={C.gold} onClick={()=>toggle(b.id)}>
+                  <div style={{ padding:"14px 18px",display:"flex",alignItems:"center",gap:12 }}>
+                    <div style={{ width:42,height:54,borderRadius:8,background:b.status==="lu"?C.sage:b.status==="en cours"?C.terra:C.warm,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:18 }}>
+                      {b.status==="lu"?"✓":b.status==="en cours"?"📖":"📚"}
+                    </div>
+                    <div style={{ flex:1,minWidth:0 }}>
+                      <div style={{ fontSize:14,fontWeight:600,color:C.dark,marginBottom:2 }}>{b.name}</div>
+                      {b.author && <div style={{ fontSize:12,color:C.muted }}>{b.author}</div>}
+                      {b.status==="lu" && b.rating>0 && <div style={{ marginTop:4,display:"flex",gap:1 }}>{"★".repeat(b.rating)+"☆".repeat(5-b.rating)}</div>}
+                    </div>
+                    <StatusPill value={b.status} options={BOOK_STATUS} onChange={v=>upd(d=>{ d.books.find(x=>x.id===b.id).status=v; })} />
+                  </div>
+                  {expandedId===b.id && (
+                    <div style={{ borderTop:`1px solid ${C.cream}`,padding:"14px 18px",background:C.light }} onClick={e=>e.stopPropagation()}>
+                      <div style={{ display:"flex",gap:8,marginBottom:10,flexWrap:"wrap",alignItems:"center" }}>
+                        <input value={b.author||""} onChange={e=>upd(d=>{ d.books.find(x=>x.id===b.id).author=e.target.value; })}
+                          placeholder="Auteur..."
+                          style={{ flex:1,minWidth:140,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"8px 12px",fontFamily:"inherit",fontSize:13,color:C.dark,outline:"none" }} />
+                        {b.status==="lu" && <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+                          <span style={{ fontSize:11,color:C.muted }}>Note :</span>
+                          <Stars value={b.rating||0} onChange={v=>upd(d=>{ d.books.find(x=>x.id===b.id).rating=v; })} />
+                        </div>}
+                      </div>
+                      <textarea value={b.notes||""} onChange={e=>upd(d=>{ d.books.find(x=>x.id===b.id).notes=e.target.value; })}
+                        placeholder="Mes notes de lecture, citations favorites..."
+                        style={{ width:"100%",border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"10px 12px",fontFamily:"inherit",fontSize:13,color:C.dark,resize:"none",outline:"none",minHeight:70,lineHeight:1.6 }} />
+                      <button onClick={()=>upd(d=>{ d.books=d.books.filter(x=>x.id!==b.id); setExpId(null); })}
+                        style={{ marginTop:10,fontSize:11,color:C.terra,background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit" }}>Supprimer</button>
+                    </div>
+                  )}
+                </CardShell>
+              ))}
+            </div>
+            <AddRow placeholder="+ Nouveau livre..." extraField="Auteur..." onAdd={(name,author)=>upd(d=>d.books.push({ id:newId(),name,author,status:"à lire",notes:"",rating:0 }))} />
+          </div>
+        )}
+
+        {/* ── PODCASTS ── */}
+        {tab==="podcasts" && (
+          <div>
+            {/* Filtre statut */}
+            <div style={{ display:"flex",gap:6,marginBottom:16,flexWrap:"wrap" }}>
+              {[["tous","Tous"],["à écouter","🎧 À écouter"],["en cours","▶️ En cours"],["terminé","✓ Terminés"]].map(([v,l])=>(
+                <button key={v} onClick={()=>setPodFilter(v)}
+                  style={{ flexShrink:0,border:`1.5px solid ${podFilter===v?C.terra:C.border}`,background:podFilter===v?"#FEF3ED":"white",borderRadius:20,padding:"4px 10px",fontSize:11,fontWeight:600,color:podFilter===v?C.terra:C.muted,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap" }}>
+                  {l}
+                </button>
+              ))}
+            </div>
+            <SectionTitle>{data.podcasts.length} podcasts</SectionTitle>
+            <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+              {data.podcasts.filter(p=>(filterText(p.name)||filterText(p.notes||""))&&(podFilter==="tous"||p.status===podFilter)).map(p=>(
+                <CardShell key={p.id} active={expandedId===p.id} onClick={()=>toggle(p.id)}>
+                  <div style={{ padding:"14px 18px",display:"flex",alignItems:"center",gap:12 }}>
+                    <div style={{ width:44,height:44,borderRadius:12,background:p.status==="terminé"?C.sage+"22":p.status==="en cours"?C.terra+"22":C.warm,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0 }}>🎙️</div>
+                    <div style={{ flex:1,minWidth:0 }}>
+                      <div style={{ fontSize:14,fontWeight:600,color:C.dark }}>{p.name}</div>
+                      {p.notes && <div style={{ fontSize:12,color:C.muted,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{p.notes}</div>}
+                      {p.status==="terminé" && p.rating>0 && <div style={{ marginTop:3,display:"flex",gap:1,fontSize:12 }}>{"★".repeat(p.rating)+"☆".repeat(5-p.rating)}</div>}
+                    </div>
+                    <StatusPill value={p.status} options={POD_STATUS} onChange={v=>upd(d=>{ d.podcasts.find(x=>x.id===p.id).status=v; })} />
+                  </div>
+                  {expandedId===p.id && (
+                    <div style={{ borderTop:`1px solid ${C.cream}`,padding:"14px 18px",background:C.light }} onClick={e=>e.stopPropagation()}>
+                      <textarea value={p.notes||""} onChange={e=>upd(d=>{ d.podcasts.find(x=>x.id===p.id).notes=e.target.value; })}
+                        placeholder="Description, notes, épisodes favoris..."
+                        style={{ width:"100%",border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"10px 12px",fontFamily:"inherit",fontSize:13,color:C.dark,resize:"none",outline:"none",minHeight:70,lineHeight:1.6,marginBottom:8 }} />
+                      <div style={{ display:"flex",gap:8,marginBottom:8,alignItems:"center" }}>
+                        <div style={{ flex:1,display:"flex",gap:6,alignItems:"center" }}>
+                          <input value={p.url||""} onChange={e=>upd(d=>{ d.podcasts.find(x=>x.id===p.id).url=e.target.value; })}
+                            placeholder="🔗 Lien (Spotify, Apple...)"
+                            style={{ flex:1,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"8px 12px",fontFamily:"inherit",fontSize:12,color:C.dark,outline:"none" }} />
+                          {p.url && <a href={p.url} target="_blank" rel="noopener noreferrer"
+                            style={{ flexShrink:0,background:C.dark,borderRadius:8,padding:"7px 10px",color:"white",fontSize:11,textDecoration:"none",fontWeight:600 }}
+                            onClick={e=>e.stopPropagation()}>↗</a>}
+                        </div>
+                      </div>
+                      {p.status==="terminé" && (
+                        <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:8 }}>
+                          <span style={{ fontSize:11,color:C.muted }}>Note :</span>
+                          <Stars value={p.rating||0} onChange={v=>upd(d=>{ d.podcasts.find(x=>x.id===p.id).rating=v; })} />
+                        </div>
+                      )}
+                      <button onClick={()=>upd(d=>{ d.podcasts=d.podcasts.filter(x=>x.id!==p.id); setExpId(null); })}
+                        style={{ marginTop:2,fontSize:11,color:C.terra,background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit" }}>Supprimer</button>
+                    </div>
+                  )}
+                </CardShell>
+              ))}
+            </div>
+            <AddRow placeholder="+ Nouveau podcast..." onAdd={name=>upd(d=>d.podcasts.push({ id:newId(),name,status:"à écouter",notes:"",url:"",rating:0 }))} />
+          </div>
+        )}
+
+        {/* ── FILMS & SÉRIES ── */}
+        {tab==="films" && (
+          <div>
+            {(() => {
+              const MOVIE_GENRES = ["Drame","Comédie","Thriller","Action","Horreur","Sci-fi","Romance","Documentaire","Animation"];
+              const cats = [
+                { id:"Tout", label:"Tout" },
+                { id:"film", label:"🎬 Films" },
+                { id:"série", label:"📺 Séries" },
+              ];
+              const filtered = data.movies.filter(m =>
+                m.name &&
+                (mediaCat==="Tout" || m.cat===mediaCat) &&
+                (movieFilter==="tous" || m.status===movieFilter) &&
+                (filterText(m.name)||filterText(m.genre||""))
+              );
+              const aVoir  = data.movies.filter(m=>m.name&&m.status==="à voir").length;
+              const enCours= data.movies.filter(m=>m.name&&m.status==="en cours").length;
+              return (
+                <div>
+                  {/* Filtre type */}
+                  <div style={{ display:"flex",gap:6,marginBottom:10 }}>
+                    {cats.map(c=>(
+                      <button key={c.id} onClick={()=>setMediaCat(c.id)}
+                        style={{ padding:"6px 14px",borderRadius:20,border:`1.5px solid ${mediaCat===c.id?C.dark:C.border}`,background:mediaCat===c.id?C.dark:"white",color:mediaCat===c.id?"white":C.muted,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:"inherit" }}>
+                        {c.label}
+                      </button>
+                    ))}
+                    <div style={{ marginLeft:"auto",display:"flex",gap:8,alignItems:"center" }}>
+                      {aVoir>0   && <span style={{ fontSize:11,color:C.muted }}>{aVoir} à voir</span>}
+                      {enCours>0 && <span style={{ fontSize:11,color:C.terra,fontWeight:600 }}>{enCours} en cours</span>}
+                    </div>
+                  </div>
+                  {/* Filtre statut */}
+                  <div style={{ display:"flex",gap:6,marginBottom:16,flexWrap:"wrap" }}>
+                    {[["tous","Tous"],["à voir","👀 À voir"],["en cours","▶️ En cours"],["vu","✓ Vus"]].map(([v,l])=>(
+                      <button key={v} onClick={()=>setMovieFilter(v)}
+                        style={{ flexShrink:0,border:`1.5px solid ${movieFilter===v?C.terra:C.border}`,background:movieFilter===v?"#FEF3ED":"white",borderRadius:20,padding:"4px 10px",fontSize:11,fontWeight:600,color:movieFilter===v?C.terra:C.muted,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap" }}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+                    {filtered.map(m=>(
+                      <CardShell key={m.id} active={expandedId===m.id} onClick={()=>toggle(m.id)}>
+                        <div style={{ padding:"14px 18px",display:"flex",alignItems:"center",gap:12 }}>
+                          <div style={{ width:44,height:44,borderRadius:12,background:m.status==="vu"?C.sage+"22":m.status==="en cours"?C.terra+"22":C.warm,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0 }}>
+                            {m.cat==="série"?"📺":"🎬"}
+                          </div>
+                          <div style={{ flex:1,minWidth:0 }}>
+                            <div style={{ fontSize:14,fontWeight:600,color:C.dark }}>{m.name}</div>
+                            <div style={{ display:"flex",gap:4,marginTop:3,flexWrap:"wrap",alignItems:"center" }}>
+                              {m.genre && <span style={{ fontSize:10,background:C.cream,borderRadius:10,padding:"1px 7px",color:C.muted }}>{m.genre}</span>}
+                              {m.status==="vu" && m.rating>0 && <span style={{ fontSize:12 }}>{"★".repeat(m.rating)+"☆".repeat(5-m.rating)}</span>}
+                            </div>
+                          </div>
+                          <StatusPill value={m.status} options={MEDIA_STATUS} onChange={v=>upd(d=>{ d.movies.find(x=>x.id===m.id).status=v; })} />
+                        </div>
+                        {expandedId===m.id && (
+                          <div style={{ borderTop:`1px solid ${C.cream}`,padding:"14px 18px",background:C.light }} onClick={e=>e.stopPropagation()}>
+                            {/* Genre pills + type */}
+                            <div style={{ display:"flex",gap:8,marginBottom:10,flexWrap:"wrap",alignItems:"center" }}>
+                              <select value={m.cat||"film"} onChange={e=>upd(d=>{ d.movies.find(x=>x.id===m.id).cat=e.target.value; })}
+                                style={{ border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"7px 10px",fontFamily:"inherit",fontSize:12,color:C.dark,outline:"none",cursor:"pointer" }}>
+                                <option value="film">🎬 Film</option>
+                                <option value="série">📺 Série</option>
+                              </select>
+                            </div>
+                            <div style={{ display:"flex",gap:5,flexWrap:"wrap",marginBottom:10 }}>
+                              {MOVIE_GENRES.map(g=>(
+                                <button key={g} onClick={()=>upd(d=>{ d.movies.find(x=>x.id===m.id).genre=m.genre===g?"":g; })}
+                                  style={{ border:`1.5px solid ${m.genre===g?C.terra:C.border}`,background:m.genre===g?"#FEF3ED":"white",borderRadius:16,padding:"3px 10px",fontSize:11,fontWeight:500,color:m.genre===g?C.terra:C.muted,cursor:"pointer",fontFamily:"inherit" }}>
+                                  {g}
+                                </button>
+                              ))}
+                            </div>
+                            {/* Champ notes/critique fusionné */}
+                            <textarea value={m.notes||""} onChange={e=>upd(d=>{ d.movies.find(x=>x.id===m.id).notes=e.target.value; })}
+                              placeholder={m.status==="vu"?"Ma critique, ce qui m'a marqué, à revoir ?":"Note rapide, pourquoi ça m'intéresse..."}
+                              style={{ width:"100%",border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"10px 12px",fontFamily:"inherit",fontSize:13,color:C.dark,resize:"none",outline:"none",minHeight:m.status==="vu"?90:50,lineHeight:1.6,marginBottom:m.status==="vu"?8:0 }} />
+                            {m.status==="vu" && (
+                              <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:8 }}>
+                                <span style={{ fontSize:11,color:C.muted }}>Note :</span>
+                                <Stars value={m.rating||0} onChange={v=>upd(d=>{ d.movies.find(x=>x.id===m.id).rating=v; })} />
+                              </div>
+                            )}
+                            <button onClick={()=>upd(d=>{ d.movies=d.movies.filter(x=>x.id!==m.id); setExpId(null); })}
+                              style={{ marginTop:2,fontSize:11,color:C.terra,background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit" }}>Supprimer</button>
+                          </div>
+                        )}
+                      </CardShell>
+                    ))}
+                  </div>
+                  <AddRow placeholder="+ Nouveau film ou série..." onAdd={name=>upd(d=>d.movies.push({ id:newId(),name,cat:mediaCat==="série"?"série":"film",genre:"",status:"à voir",notes:"",rating:0 }))} />
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ── WISHLIST ── */}
+        {tab==="wishlist" && (
+          <div>
+            {(() => {
+              const WISH_CATS = ["Tout","Vêtements","Maison","Beauté","Tech","Expériences","Autre"];
+              const PRIORITY  = [{ v:"haute", label:"🔥 Indispensable" },{ v:"moyenne", label:"✨ Envie" },{ v:"basse", label:"💭 Un jour" }];
+              const PRIO_ORDER = { haute:0, moyenne:1, basse:2 };
+
+              const parsePrice = p => { const n=parseFloat((p||"").replace(/[^0-9.,]/g,"").replace(",",".")); return isNaN(n)?0:n; };
+
+              const sortFnW = (a,b) => {
+                if(wSort==="priorité") return (PRIO_ORDER[a.priority]||1)-(PRIO_ORDER[b.priority]||1);
+                if(wSort==="prix↑")   return parsePrice(a.price)-parsePrice(b.price);
+                if(wSort==="prix↓")   return parsePrice(b.price)-parsePrice(a.price);
+                if(wSort==="nom")     return a.name.localeCompare(b.name);
+                return 0;
+              };
+
+              const base = data.wishlist.filter(w =>
+                filterText(w.name) &&
+                (wCat==="Tout" || (w.cat||"Autre")===wCat)
+              );
+              const restants = base.filter(w=>!w.done).sort(sortFnW);
+              const acquis   = base.filter(w=>w.done).sort(sortFnW);
+              const showAcquis = wFilter!=="restant";
+              const showRestants = wFilter!=="acquis";
+
+              const total = restants.filter(w=>w.price).reduce((acc,w)=>acc+parsePrice(w.price),0);
+              const acquired = data.wishlist.filter(w=>w.done).length;
+
+              const WishCard = (w) => (
+                <CardShell key={w.id} active={expandedId===w.id} onClick={()=>setExpId(expandedId===w.id?null:w.id)}>
+                  <div style={{ display:"flex",alignItems:"center",gap:12,padding:"14px 18px" }}>
+                    <div onClick={e=>{e.stopPropagation();upd(d=>{ d.wishlist.find(x=>x.id===w.id).done=!w.done; });}}
+                      style={{ width:24,height:24,borderRadius:"50%",border:w.done?"none":`2px solid ${C.border}`,background:w.done?C.gold:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"white",flexShrink:0,cursor:"pointer",transition:"all 0.2s" }}>
+                      {w.done&&"✓"}
+                    </div>
+                    <div style={{ flex:1,minWidth:0 }}>
+                      <div style={{ fontSize:14,fontWeight:600,color:w.done?C.muted:C.dark,textDecoration:w.done?"line-through":"none" }}>{w.name}</div>
+                      <div style={{ display:"flex",gap:6,marginTop:3,flexWrap:"wrap" }}>
+                        {w.cat && <span style={{ fontSize:10,color:C.muted,background:C.cream,borderRadius:10,padding:"1px 7px" }}>{w.cat}</span>}
+                        {!w.done && w.priority && <span style={{ fontSize:10,color:C.terra,background:"#FEF3ED",borderRadius:10,padding:"1px 7px" }}>{PRIORITY.find(p=>p.v===w.priority)?.label||w.priority}</span>}
+                      </div>
+                    </div>
+                    {w.price && <span style={{ fontSize:13,color:w.done?C.muted:C.gold,fontWeight:700,flexShrink:0,textDecoration:w.done?"line-through":"none" }}>{parsePrice(w.price)>0?parsePrice(w.price).toFixed(0)+"€":w.price}</span>}
+                    <span style={{ fontSize:13,color:C.muted }}>›</span>
+                  </div>
+                  {expandedId===w.id && (
+                    <div style={{ borderTop:`1px solid ${C.cream}`,padding:"14px 18px",background:C.light }} onClick={e=>e.stopPropagation()}>
+                      <div style={{ display:"flex",gap:8,marginBottom:8,flexWrap:"wrap" }}>
+                        <div style={{ flex:1,minWidth:100,display:"flex",alignItems:"center",border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,overflow:"hidden" }}>
+                          <input type="number" min="0" value={parsePrice(w.price)||""} onChange={e=>upd(d=>{ d.wishlist.find(x=>x.id===w.id).price=e.target.value; })}
+                            placeholder="Prix"
+                            style={{ flex:1,border:"none",padding:"8px 0 8px 12px",fontFamily:"inherit",fontSize:12,color:C.dark,outline:"none",background:"transparent" }} />
+                          <span style={{ paddingRight:12,fontSize:12,color:C.muted }}>€</span>
+                        </div>
+                        <select value={w.cat||"Autre"} onChange={e=>upd(d=>{ d.wishlist.find(x=>x.id===w.id).cat=e.target.value; })}
+                          style={{ flex:1,minWidth:110,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"8px 12px",fontFamily:"inherit",fontSize:12,color:C.dark,outline:"none",cursor:"pointer" }}>
+                          {WISH_CATS.filter(c=>c!=="Tout").map(c=><option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <select value={w.priority||"moyenne"} onChange={e=>upd(d=>{ d.wishlist.find(x=>x.id===w.id).priority=e.target.value; })}
+                        style={{ width:"100%",border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"8px 12px",fontFamily:"inherit",fontSize:12,color:C.dark,outline:"none",cursor:"pointer",marginBottom:8 }}>
+                        {PRIORITY.map(p=><option key={p.v} value={p.v}>{p.label}</option>)}
+                      </select>
+                      <div style={{ display:"flex",gap:6,alignItems:"center",marginBottom:8 }}>
+                        <input value={w.url||""} onChange={e=>upd(d=>{ d.wishlist.find(x=>x.id===w.id).url=e.target.value; })}
+                          placeholder="🔗 Lien (site, Instagram...)"
+                          style={{ flex:1,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"8px 12px",fontFamily:"inherit",fontSize:12,color:C.dark,outline:"none" }} />
+                        {w.url && <a href={w.url} target="_blank" rel="noopener noreferrer"
+                          style={{ flexShrink:0,background:C.dark,borderRadius:8,padding:"7px 10px",color:"white",fontSize:11,textDecoration:"none",fontWeight:600 }}
+                          onClick={e=>e.stopPropagation()}>↗</a>}
+                      </div>
+                      <textarea value={w.notes||""} onChange={e=>upd(d=>{ d.wishlist.find(x=>x.id===w.id).notes=e.target.value; })}
+                        placeholder="Notes (couleur, taille, pourquoi tu le veux...)"
+                        style={{ width:"100%",border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"9px 12px",fontFamily:"inherit",fontSize:12,color:C.dark,resize:"none",outline:"none",minHeight:60,lineHeight:1.5 }} />
+                      <button onClick={()=>upd(d=>{ d.wishlist=d.wishlist.filter(x=>x.id!==w.id); setExpId(null); })}
+                        style={{ marginTop:8,fontSize:11,color:C.terra,background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit" }}>Supprimer</button>
+                    </div>
+                  )}
+                </CardShell>
+              );
+
+              return (
+                <div>
+                  {/* Stats */}
+                  <div style={{ display:"flex",gap:10,marginBottom:16,flexWrap:"wrap" }}>
+                    <div style={{ flex:1,minWidth:100,background:"white",borderRadius:12,border:`1.5px solid ${C.border}`,padding:"10px 14px",textAlign:"center" }}>
+                      <div style={{ fontSize:18,fontWeight:700,color:C.gold }}>{acquired}</div>
+                      <div style={{ fontSize:10,color:C.muted,marginTop:1 }}>acquis ✓</div>
+                    </div>
+                    <div style={{ flex:1,minWidth:100,background:"white",borderRadius:12,border:`1.5px solid ${C.border}`,padding:"10px 14px",textAlign:"center" }}>
+                      <div style={{ fontSize:18,fontWeight:700,color:C.terra }}>{data.wishlist.filter(w=>!w.done).length}</div>
+                      <div style={{ fontSize:10,color:C.muted,marginTop:1 }}>restants</div>
+                    </div>
+                    {total > 0 && (
+                      <div style={{ flex:1,minWidth:100,background:"white",borderRadius:12,border:`1.5px solid ${C.border}`,padding:"10px 14px",textAlign:"center" }}>
+                        <div style={{ fontSize:16,fontWeight:700,color:C.dark }}>{total.toFixed(0)}€</div>
+                        <div style={{ fontSize:10,color:C.muted,marginTop:1 }}>budget estimé</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Filtre catégorie */}
+                  <div style={{ display:"flex",gap:6,overflowX:"auto",paddingBottom:6,marginBottom:8 }}>
+                    {WISH_CATS.map(c=>(
+                      <button key={c} onClick={()=>setWCat(c)}
+                        style={{ flexShrink:0,border:`1.5px solid ${wCat===c?C.dark:C.border}`,background:wCat===c?C.dark:"white",borderRadius:20,padding:"5px 12px",fontSize:11,fontWeight:600,color:wCat===c?"white":C.muted,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap" }}>
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Filtre + tri */}
+                  <div style={{ display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",alignItems:"center" }}>
+                    {[["Tout","Tout"],["restant","À avoir"],["acquis","Acquis ✓"]].map(([v,l])=>(
+                      <button key={v} onClick={()=>setWFilter(v)}
+                        style={{ border:`1.5px solid ${wFilter===v?C.gold:C.border}`,background:wFilter===v?"#FEF9EC":"white",borderRadius:20,padding:"4px 10px",fontSize:11,fontWeight:600,color:wFilter===v?C.gold:C.muted,cursor:"pointer",fontFamily:"inherit" }}>
+                        {l}
+                      </button>
+                    ))}
+                    <span style={{ fontSize:11,color:C.muted,marginLeft:4 }}>Trier :</span>
+                    {[["priorité","🔥"],["prix↑","€↑"],["prix↓","€↓"],["nom","A→Z"]].map(([v,l])=>(
+                      <button key={v} onClick={()=>setWSort(v)}
+                        style={{ flexShrink:0,border:`1.5px solid ${wSort===v?C.terra:C.border}`,background:wSort===v?"#FEF3ED":"white",borderRadius:20,padding:"4px 9px",fontSize:11,fontWeight:600,color:wSort===v?C.terra:C.muted,cursor:"pointer",fontFamily:"inherit" }}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Section À avoir */}
+                  {showRestants && (
+                    <div style={{ marginBottom:restants.length>0&&showAcquis?28:0 }}>
+                      {showAcquis && restants.length>0 && <div style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:1,marginBottom:8 }}>À avoir · {restants.length}</div>}
+                      <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+                        {restants.length===0 && wFilter!=="acquis" && <div style={{ textAlign:"center",padding:"28px 20px",color:C.muted,fontSize:13 }}>✨ Wishlist vide !</div>}
+                        {restants.map(w=>WishCard(w))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Section Acquis */}
+                  {showAcquis && acquis.length>0 && (
+                    <div style={{ marginBottom:16 }}>
+                      <div style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:1,marginBottom:8 }}>Acquis · {acquis.length}</div>
+                      <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+                        {acquis.map(w=>WishCard(w))}
+                      </div>
+                    </div>
+                  )}
+
+                  <AddRow placeholder="+ Ajouter à ma wishlist..." onAdd={name=>upd(d=>d.wishlist.push({ id:newId(),name,price:"",cat:"Autre",priority:"moyenne",url:"",notes:"",done:false }))} />
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ── OBJECTIFS ── */}
+        {tab==="objectifs" && (
+          <div>
+            {(() => {
+              const GOAL_CATS = ["Perso","Santé","Pro","Finances","Relations","Créativité","Autre"];
+              const CAT_COLORS = { Perso:"#FEF3ED", Santé:"#F0FDF4", Pro:"#EFF6FF", Finances:"#FEF9EC", Relations:"#FDF4FF", Créativité:"#FFF7ED", Autre:C.cream };
+              const CAT_TEXT   = { Perso:C.terra, Santé:C.sage, Pro:"#3B82F6", Finances:C.gold, Relations:"#A855F7", Créativité:"#F97316", Autre:C.muted };
+
+              const today = new Date().toISOString().slice(0,10);
+              const isOverdue = (g) => !g.done && g.deadline && g.deadline < today;
+              const daysLeft  = (g) => {
+                if(!g.deadline) return null;
+                const diff = Math.ceil((new Date(g.deadline)-new Date(today))/(1000*60*60*24));
+                return diff;
+              };
+
+              const sortGoals = (a,b) => {
+                if(goalSort==="échéance") {
+                  if(!a.deadline && !b.deadline) return 0;
+                  if(!a.deadline) return 1;
+                  if(!b.deadline) return -1;
+                  return a.deadline.localeCompare(b.deadline);
+                }
+                if(goalSort==="cat") return (a.cat||"zzz").localeCompare(b.cat||"zzz");
+                if(goalSort==="nom") return a.name.localeCompare(b.name);
+                return 0;
+              };
+              const active     = data.goals.filter(g=>!g.done && filterText(g.name)).sort(sortGoals);
+              const accomplished = data.goals.filter(g=>g.done && filterText(g.name));
+              const done  = accomplished.length;
+              const total = data.goals.length;
+              const pct   = total>0 ? Math.round((done/total)*100) : 0;
+
+              const GoalCard = (g) => (
+                <CardShell key={g.id} active={expandedId===g.id} onClick={()=>setExpId(expandedId===g.id?null:g.id)}>
+                  <div style={{ padding:"14px 18px",display:"flex",alignItems:"center",gap:12 }}>
+                    <div onClick={e=>{e.stopPropagation();upd(d=>{ const f=d.goals.find(x=>x.id===g.id); f.done=!f.done; f.doneAt=f.done?today:null; });}}
+                      style={{ width:24,height:24,borderRadius:"50%",border:g.done?"none":`2px solid ${C.border}`,background:g.done?C.sage:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"white",flexShrink:0,cursor:"pointer",transition:"all 0.2s" }}>
+                      {g.done&&"✓"}
+                    </div>
+                    <div style={{ flex:1,minWidth:0 }}>
+                      <div style={{ fontSize:14,fontWeight:600,color:g.done?C.muted:C.dark,textDecoration:g.done?"line-through":"none" }}>{g.name}</div>
+                      <div style={{ display:"flex",gap:5,marginTop:3,flexWrap:"wrap",alignItems:"center" }}>
+                        {g.cat && <span style={{ fontSize:10,background:CAT_COLORS[g.cat]||C.cream,color:CAT_TEXT[g.cat]||C.muted,borderRadius:10,padding:"1px 7px",fontWeight:600 }}>{g.cat}</span>}
+                        {g.done && g.doneAt && <span style={{ fontSize:10,color:C.sage }}>✓ {g.doneAt}</span>}
+                        {!g.done && g.deadline && (()=>{
+                          const d = daysLeft(g);
+                          const over = isOverdue(g);
+                          return <span style={{ fontSize:10,color:over?C.terra:d<=7?"#F97316":C.muted,fontWeight:over||d<=7?600:400 }}>
+                            {over ? `⚠️ ${Math.abs(d)}j de retard` : d===0 ? "⚠️ Aujourd'hui !" : `📅 ${d}j restants`}
+                          </span>;
+                        })()}
+                      </div>
+                    </div>
+                    <span style={{ fontSize:13,color:C.muted }}>›</span>
+                  </div>
+                  {expandedId===g.id && (
+                    <div style={{ borderTop:`1px solid ${C.cream}`,padding:"14px 18px",background:C.light }} onClick={e=>e.stopPropagation()}>
+                      {/* Catégorie pills */}
+                      <div style={{ display:"flex",gap:5,flexWrap:"wrap",marginBottom:10 }}>
+                        {GOAL_CATS.map(c=>(
+                          <button key={c} onClick={()=>upd(d=>{ d.goals.find(x=>x.id===g.id).cat=g.cat===c?"":c; })}
+                            style={{ border:`1.5px solid ${g.cat===c?(CAT_TEXT[c]||C.muted):C.border}`,background:g.cat===c?(CAT_COLORS[c]||C.cream):"white",borderRadius:16,padding:"3px 10px",fontSize:11,fontWeight:500,color:g.cat===c?(CAT_TEXT[c]||C.muted):C.muted,cursor:"pointer",fontFamily:"inherit" }}>
+                            {c}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Échéance */}
+                      <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:8 }}>
+                        <span style={{ fontSize:11,color:C.muted,flexShrink:0 }}>📅 Échéance :</span>
+                        <input type="date" value={g.deadline||""} onChange={e=>upd(d=>{ d.goals.find(x=>x.id===g.id).deadline=e.target.value; })}
+                          style={{ flex:1,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"7px 12px",fontFamily:"inherit",fontSize:12,color:C.dark,outline:"none",cursor:"pointer" }} />
+                        {g.deadline && <button onClick={()=>upd(d=>{ d.goals.find(x=>x.id===g.id).deadline=""; })}
+                          style={{ fontSize:11,color:C.muted,background:"none",border:"none",cursor:"pointer",padding:0 }}>✕</button>}
+                      </div>
+                      {/* Notes */}
+                      <textarea value={g.notes||""} onChange={e=>upd(d=>{ d.goals.find(x=>x.id===g.id).notes=e.target.value; })}
+                        placeholder="Pourquoi cet objectif ? Comment y arriver ? Étapes..."
+                        style={{ width:"100%",border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"10px 12px",fontFamily:"inherit",fontSize:13,color:C.dark,resize:"none",outline:"none",minHeight:80,lineHeight:1.6 }} />
+                      <button onClick={()=>upd(d=>{ d.goals=d.goals.filter(x=>x.id!==g.id); setExpId(null); })}
+                        style={{ marginTop:8,fontSize:11,color:C.terra,background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit" }}>Supprimer</button>
+                    </div>
+                  )}
+                </CardShell>
+              );
+
+              return (
+                <div>
+                  {/* Tri */}
+                  <div style={{ display:"flex",gap:6,marginBottom:14,alignItems:"center",flexWrap:"wrap" }}>
+                    <span style={{ fontSize:11,color:C.muted,flexShrink:0 }}>Trier :</span>
+                    {[["échéance","📅 Échéance"],["cat","Catégorie"],["nom","A→Z"]].map(([v,l])=>(
+                      <button key={v} onClick={()=>setGoalSort(v)}
+                        style={{ flexShrink:0,border:`1.5px solid ${goalSort===v?C.sage:C.border}`,background:goalSort===v?"#F0FDF4":"white",borderRadius:20,padding:"4px 10px",fontSize:11,fontWeight:600,color:goalSort===v?C.sage:C.muted,cursor:"pointer",fontFamily:"inherit" }}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Barre de progression */}
+                  <div style={{ background:"white",borderRadius:14,padding:"16px 20px",border:`1px solid ${C.border}`,marginBottom:20 }}>
+                    <div style={{ display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:13 }}>
+                      <span style={{ fontWeight:600 }}>Progression · {done}/{total}</span>
+                      <span style={{ color:C.sage,fontWeight:700 }}>{pct}%</span>
+                    </div>
+                    <div style={{ height:6,background:C.cream,borderRadius:3,overflow:"hidden" }}>
+                      <div style={{ height:"100%",background:`linear-gradient(90deg,${C.sage},${C.gold})`,borderRadius:3,width:`${pct}%`,transition:"width 0.5s" }}/>
+                    </div>
+                    <div style={{ fontSize:11,color:C.muted,marginTop:8,fontStyle:"italic" }}>
+                      {pct===100?"🎉 Tous les objectifs accomplis !":pct>=50?"Tu es à mi-chemin ✨":"Continue, chaque pas compte 🌱"}
+                    </div>
+                  </div>
+
+                  {/* En cours */}
+                  <div style={{ display:"flex",flexDirection:"column",gap:8,marginBottom: accomplished.length>0?24:0 }}>
+                    {active.length===0 && <div style={{ textAlign:"center",padding:"28px 20px",color:C.muted,fontSize:13 }}>🎯 Ajoute ton premier objectif</div>}
+                    {active.map(g=>GoalCard(g))}
+                  </div>
+
+                  {/* Accomplis */}
+                  {accomplished.length>0 && (
+                    <div>
+                      <div style={{ fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:1,marginBottom:8 }}>Accomplis · {accomplished.length}</div>
+                      <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+                        {accomplished.map(g=>GoalCard(g))}
+                      </div>
+                    </div>
+                  )}
+
+                  <AddRow placeholder="+ Nouvel objectif..." onAdd={name=>upd(d=>d.goals.push({ id:newId(),name,done:false,doneAt:null,cat:"",deadline:"",notes:"" }))} />
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ── NETTOYAGE ── */}
+        {tab==="nettoyage" && (()=>{
+          const today = new Date();
+          const diffDays = (lastDone) => {
+            if (!lastDone) return null;
+            return Math.floor((today - new Date(lastDone)) / (1000*60*60*24));
+          };
+          const isDue = (item) => {
+            if (!item.lastDone) return "retard";
+            const d = diffDays(item.lastDone);
+            if (d >= item.freqDays) return "retard";
+            if (d >= item.freqDays - 3) return "bientot";
+            return "ok";
+          };
+          const STATUS = {
+            retard:  { emoji:"🔴", label:"En retard", color:C.terra },
+            bientot: { emoji:"🟡", label:"Bientôt",   color:C.gold  },
+            ok:      { emoji:"🟢", label:"OK",         color:C.sage  },
+          };
+          const FREQS = [
+            { id:"quotidien",    label:"Quotidien",    emoji:"☀️" },
+            { id:"hebdo",        label:"Hebdomadaire", emoji:"📅" },
+            { id:"mensuel",      label:"Mensuel",      emoji:"🗓" },
+            { id:"trimestriel",  label:"Trimestriel",  emoji:"📆" },
+          ];
+          const retardCount = data.cleaning.filter(c=>isDue(c)==="retard").length;
+          const bientotCount = data.cleaning.filter(c=>isDue(c)==="bientot").length;
+          const formatLast = (lastDone) => {
+            if (!lastDone) return "jamais fait";
+            const d = diffDays(lastDone);
+            if (d === 0) return "aujourd'hui ✓";
+            if (d === 1) return "hier";
+            if (d < 7)  return `il y a ${d} jours`;
+            if (d < 30) return `il y a ${Math.floor(d/7)} sem.`;
+            return `il y a ${Math.floor(d/30)} mois`;
+          };
+          return (
+            <div>
+              {/* Résumé statut */}
+              {(retardCount > 0 || bientotCount > 0) && (
+                <div style={{ display:"flex",gap:10,marginBottom:16,flexWrap:"wrap" }}>
+                  {retardCount > 0 && (
+                    <div style={{ flex:1,minWidth:120,background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:12,padding:"12px 16px",display:"flex",alignItems:"center",gap:10 }}>
+                      <span style={{ fontSize:22 }}>🔴</span>
+                      <div>
+                        <div style={{ fontSize:16,fontWeight:700,color:C.terra }}>{retardCount}</div>
+                        <div style={{ fontSize:11,color:C.muted }}>en retard</div>
+                      </div>
+                    </div>
+                  )}
+                  {bientotCount > 0 && (
+                    <div style={{ flex:1,minWidth:120,background:"#FFFBEB",border:"1.5px solid #FDE68A",borderRadius:12,padding:"12px 16px",display:"flex",alignItems:"center",gap:10 }}>
+                      <span style={{ fontSize:22 }}>🟡</span>
+                      <div>
+                        <div style={{ fontSize:16,fontWeight:700,color:C.gold }}>{bientotCount}</div>
+                        <div style={{ fontSize:11,color:C.muted }}>à faire bientôt</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Sections par fréquence */}
+              {FREQS.map(freq => {
+                const URGENCY = { retard:0, bientot:1, ok:2 };
+                const items = data.cleaning
+                  .filter(c => c.freq === freq.id && (filterText(c.name) || filterText(c.notes||"")))
+                  .sort((a,b) => (URGENCY[isDue(a)]||2)-(URGENCY[isDue(b)]||2));
+                if (items.length === 0) return null;
+                const freqRetard = items.filter(c=>isDue(c)==="retard").length;
+                return (
+                  <div key={freq.id} style={{ marginBottom:20 }}>
+                    <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:10 }}>
+                      <span style={{ fontSize:14 }}>{freq.emoji}</span>
+                      <span style={{ fontSize:11,fontWeight:700,letterSpacing:"2px",textTransform:"uppercase",color:C.muted }}>{freq.label}</span>
+                      {freqRetard > 0 && <span style={{ fontSize:10,background:"#FEF2F2",color:C.terra,borderRadius:20,padding:"2px 8px",fontWeight:600 }}>{freqRetard} en retard</span>}
+                    </div>
+                    <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+                      {items.map(item => {
+                        const status = isDue(item);
+                        const st = STATUS[status];
+                        const daysAgo = diffDays(item.lastDone);
+                        const daysLeft = item.lastDone ? item.freqDays - daysAgo : 0;
+                        return (
+                          <div key={item.id} style={{ background:"white",borderRadius:14,border:`1.5px solid ${expandedId===item.id?C.dark:C.border}`,overflow:"hidden",transition:"border-color 0.15s" }}>
+                            <div style={{ padding:"13px 16px",display:"flex",alignItems:"center",gap:12 }}>
+                              <span style={{ fontSize:16,flexShrink:0 }}>{st.emoji}</span>
+                              <div style={{ flex:1,minWidth:0 }}>
+                                <div style={{ fontSize:13,fontWeight:600,color:C.dark }}>{item.name}</div>
+                                <div style={{ fontSize:11,color:C.muted,marginTop:2 }}>
+                                  {item.lastDone
+                                    ? <span>{formatLast(item.lastDone)}{status==="ok" && daysLeft > 0 ? <span style={{ color:C.sage,marginLeft:6 }}>· dans {daysLeft}j</span> : null}</span>
+                                    : <span style={{ color:C.terra }}>jamais fait</span>
+                                  }
+                                </div>
+                              </div>
+                              <div style={{ display:"flex",gap:6,alignItems:"center" }}>
+                                <button onClick={e=>{e.stopPropagation(); upd(d=>{ d.cleaning.find(x=>x.id===item.id).lastDone=new Date().toISOString().slice(0,10); }); }}
+                                  style={{ background:C.sage,border:"none",borderRadius:10,padding:"6px 12px",color:"white",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit",whiteSpace:"nowrap" }}>
+                                  Fait ✓
+                                </button>
+                                <button onClick={e=>{e.stopPropagation(); setExpId(expandedId===item.id?null:item.id);}}
+                                  style={{ fontSize:13,color:C.muted,background:"none",border:"none",cursor:"pointer",padding:"2px 4px" }}>✏️</button>
+                              </div>
+                            </div>
+                            {/* Barre de progression */}
+                            {item.lastDone && (
+                              <div style={{ height:3,background:C.cream }}>
+                                <div style={{ height:"100%",background:st.color,borderRadius:3,width:`${Math.min(100,Math.round((daysAgo/item.freqDays)*100))}%`,transition:"width 0.5s" }}/>
+                              </div>
+                            )}
+                            {/* Panneau édition */}
+                            {expandedId===item.id && (
+                              <div style={{ borderTop:`1px solid ${C.cream}`,padding:"12px 16px",background:C.light }} onClick={e=>e.stopPropagation()}>
+                                <div style={{ display:"flex",gap:8,marginBottom:8,flexWrap:"wrap" }}>
+                                  <input value={item.name} onChange={e=>upd(d=>{ d.cleaning.find(x=>x.id===item.id).name=e.target.value; })}
+                                    style={{ flex:1,minWidth:140,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"7px 12px",fontFamily:"inherit",fontSize:13,color:C.dark,outline:"none" }} />
+                                  <select value={item.freq} onChange={e=>upd(d=>{ d.cleaning.find(x=>x.id===item.id).freq=e.target.value; })}
+                                    style={{ border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"7px 12px",fontFamily:"inherit",fontSize:12,color:C.dark,outline:"none",cursor:"pointer" }}>
+                                    {FREQS.map(f=><option key={f.id} value={f.id}>{f.label}</option>)}
+                                  </select>
+                                </div>
+                                <div style={{ display:"flex",gap:8,marginBottom:8,flexWrap:"wrap",alignItems:"center" }}>
+                                  <label style={{ fontSize:11,color:C.muted,whiteSpace:"nowrap" }}>Tous les</label>
+                                  <input type="number" value={item.freqDays} onChange={e=>upd(d=>{ d.cleaning.find(x=>x.id===item.id).freqDays=parseInt(e.target.value)||1; })}
+                                    style={{ width:60,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"7px 10px",fontFamily:"inherit",fontSize:13,color:C.dark,outline:"none",textAlign:"center" }} />
+                                  <label style={{ fontSize:11,color:C.muted }}>jours</label>
+                                  <label style={{ fontSize:11,color:C.muted,marginLeft:8,whiteSpace:"nowrap" }}>Dernière fois :</label>
+                                  <input type="date" value={item.lastDone||""} onChange={e=>upd(d=>{ d.cleaning.find(x=>x.id===item.id).lastDone=e.target.value; })}
+                                    style={{ border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"7px 10px",fontFamily:"inherit",fontSize:12,color:C.dark,outline:"none" }} />
+                                </div>
+                                <input value={item.notes||""} onChange={e=>upd(d=>{ d.cleaning.find(x=>x.id===item.id).notes=e.target.value; })}
+                                  placeholder="Notes..."
+                                  style={{ width:"100%",border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"7px 12px",fontFamily:"inherit",fontSize:12,color:C.dark,outline:"none",marginBottom:8 }} />
+                                <button onClick={()=>{ upd(d=>{ d.cleaning=d.cleaning.filter(x=>x.id!==item.id); }); setExpId(null); }}
+                                  style={{ fontSize:11,color:C.terra,background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit" }}>Supprimer</button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Ajouter une tâche */}
+              <div style={{ background:C.cream,borderRadius:14,border:`1.5px solid ${C.border}`,padding:"14px 16px",marginTop:8 }}>
+                <div style={{ fontSize:10,fontWeight:700,letterSpacing:"1.5px",textTransform:"uppercase",color:C.muted,marginBottom:10 }}>Nouvelle tâche</div>
+                <div style={{ display:"flex",gap:8,marginBottom:8,flexWrap:"wrap" }}>
+                  <input value={newCleanName} onChange={e=>setNewCleanName(e.target.value)}
+                    placeholder="Nom de la tâche..."
+                    style={{ flex:1,minWidth:160,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"8px 12px",fontFamily:"inherit",fontSize:13,color:C.dark,outline:"none" }} />
+                  <select value={newCleanFreq} onChange={e=>setNewCleanFreq(e.target.value)}
+                    style={{ border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"8px 12px",fontFamily:"inherit",fontSize:12,color:C.dark,outline:"none",cursor:"pointer" }}>
+                    {FREQS.map(f=><option key={f.id} value={f.id}>{f.label}</option>)}
+                  </select>
+                </div>
+                <div style={{ display:"flex",gap:8,alignItems:"center" }}>
+                  <label style={{ fontSize:11,color:C.muted,whiteSpace:"nowrap" }}>Tous les</label>
+                  <input type="number" value={newCleanDays} min="1" onChange={e=>setNewCleanDays(parseInt(e.target.value)||1)}
+                    style={{ width:60,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"8px 10px",fontFamily:"inherit",fontSize:13,color:C.dark,outline:"none",textAlign:"center" }} />
+                  <label style={{ fontSize:11,color:C.muted }}>jours</label>
+                  <button onClick={()=>{
+                    if(!newCleanName.trim()) return;
+                    upd(d=>d.cleaning.push({ id:newId(),name:newCleanName.trim(),freq:newCleanFreq,freqDays:newCleanDays,lastDone:null,notes:"" }));
+                    setNewCleanName(""); setNewCleanDays(30);
+                  }}
+                    style={{ marginLeft:"auto",background:C.dark,border:"none",borderRadius:10,padding:"8px 16px",color:"white",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit",whiteSpace:"nowrap" }}>
+                    + Ajouter
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── DÉFIS ── */}
+        {tab==="defis" && (()=>{
+          const dynCats = ["all", ...new Set(data.defis.map(d=>d.cat).filter(Boolean))];
+          const CAT_EMOJIS = { all:"✨", mindset:"🧠", corps:"💪", cuisine:"🍳", social:"🤝", aventure:"🌍", perso:"🌸", digital:"📱" };
+          const today = new Date().toISOString().slice(0,10);
+          const doneCount = data.defis.filter(d=>d.done).length;
+          const total     = data.defis.length;
+          const pct       = total>0 ? Math.round((doneCount/total)*100) : 0;
+
+          const activeDefis = data.defis.filter(d=>!d.done&&(activeCat==="all"||d.cat===activeCat)&&filterText(d.name));
+          const doneDefis   = data.defis.filter(d=>d.done&&(activeCat==="all"||d.cat===activeCat)&&filterText(d.name));
+
+          const DefiCard = (defi) => (
+            <div key={defi.id}>
+              <div
+                onClick={()=>upd(d=>{ const f=d.defis.find(x=>x.id===defi.id); f.done=!f.done; f.doneAt=f.done?today:null; if(f.done) f.notes=f.notes||""; })}
+                style={{ background:defi.done?"#F0FDF4":"white",border:`1.5px solid ${defi.done?C.sage:expandedId===defi.id?C.dark:C.border}`,borderRadius:expandedId===defi.id?"14px 14px 0 0":14,padding:"14px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:12,transition:"all 0.2s" }}
+                onMouseEnter={e=>{ if(expandedId!==defi.id) e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,0.07)"; }}
+                onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}>
+                <div style={{ width:36,height:36,borderRadius:11,background:defi.done?"#D1FAE5":C.cream,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0 }}>{defi.emoji}</div>
+                <div style={{ flex:1,minWidth:0 }}>
+                  <div style={{ fontSize:13,fontWeight:500,color:defi.done?C.sage:C.dark,textDecoration:defi.done?"line-through":"none",lineHeight:1.4 }}>{defi.name}</div>
+                  <div style={{ fontSize:10,color:C.muted,marginTop:2,display:"flex",gap:8,flexWrap:"wrap" }}>
+                    <span>{CAT_EMOJIS[defi.cat]||"🏷"} {defi.cat}</span>
+                    {defi.doneAt && <span style={{ color:C.sage }}>✓ {defi.doneAt}</span>}
+                    {defi.notes && <span style={{ fontStyle:"italic",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160 }}>{defi.notes}</span>}
+                  </div>
+                </div>
+                <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                  <button onClick={e=>{e.stopPropagation(); setExpId(expandedId===defi.id?null:defi.id);}}
+                    style={{ fontSize:12,color:C.muted,background:"none",border:"none",cursor:"pointer",padding:"2px 6px" }}>
+                    {expandedId===defi.id?"▲":"✏️"}
+                  </button>
+                  <div style={{ width:22,height:22,borderRadius:"50%",border:defi.done?"none":`1.5px solid ${C.border}`,background:defi.done?C.sage:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"white",flexShrink:0,transition:"all 0.2s" }}>{defi.done&&"✓"}</div>
+                </div>
+              </div>
+              {expandedId===defi.id && (
+                <div style={{ background:C.light,border:`1.5px solid ${C.dark}`,borderTop:"none",borderRadius:"0 0 14px 14px",padding:"12px 16px" }} onClick={e=>e.stopPropagation()}>
+                  <div style={{ display:"flex",gap:8,marginBottom:8,flexWrap:"wrap" }}>
+                    <input value={defi.emoji} onChange={e=>upd(d=>{ d.defis.find(x=>x.id===defi.id).emoji=e.target.value; })}
+                      style={{ width:44,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"7px",fontFamily:"inherit",fontSize:18,textAlign:"center",outline:"none" }} />
+                    <input value={defi.name} onChange={e=>upd(d=>{ d.defis.find(x=>x.id===defi.id).name=e.target.value; })}
+                      placeholder="Nom du défi..."
+                      style={{ flex:1,minWidth:160,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"8px 12px",fontFamily:"inherit",fontSize:13,color:C.dark,outline:"none" }} />
+                  </div>
+                  <div style={{ marginBottom:8 }}>
+                    <datalist id={"cats-"+defi.id}>
+                      {dynCats.filter(c=>c!=="all").map(c=><option key={c} value={c}/>)}
+                    </datalist>
+                    <input list={"cats-"+defi.id} value={defi.cat||""} onChange={e=>upd(d=>{ d.defis.find(x=>x.id===defi.id).cat=e.target.value.toLowerCase().trim(); })}
+                      placeholder="Catégorie..."
+                      style={{ width:"100%",border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"8px 12px",fontFamily:"inherit",fontSize:13,color:C.dark,outline:"none" }} />
+                  </div>
+                  <textarea value={defi.notes||""} onChange={e=>upd(d=>{ d.defis.find(x=>x.id===defi.id).notes=e.target.value; })}
+                    placeholder="Comment tu l'as relevé ? Ce que ça t'a apporté..."
+                    style={{ width:"100%",border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"9px 12px",fontFamily:"inherit",fontSize:13,color:C.dark,resize:"none",outline:"none",minHeight:60,lineHeight:1.5,marginBottom:8 }} />
+                  {defi.done && (
+                    <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:8 }}>
+                      <span style={{ fontSize:11,color:C.muted }}>✓ Accompli le :</span>
+                      <input type="date" value={defi.doneAt||""} onChange={e=>upd(d=>{ d.defis.find(x=>x.id===defi.id).doneAt=e.target.value; })}
+                        style={{ flex:1,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"6px 10px",fontFamily:"inherit",fontSize:12,color:C.sage,outline:"none" }} />
+                    </div>
+                  )}
+                  <button onClick={()=>{ upd(d=>{ d.defis=d.defis.filter(x=>x.id!==defi.id); }); setExpId(null); }}
+                    style={{ fontSize:11,color:C.terra,background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit" }}>Supprimer</button>
+                </div>
+              )}
+            </div>
+          );
+
+          return (
+            <div>
+              {/* Progress */}
+              <div style={{ background:C.dark,borderRadius:16,padding:"18px 20px",border:`1px solid ${C.border}`,marginBottom:16,position:"relative",overflow:"hidden" }}>
+                <div style={{ position:"absolute",top:-20,right:-20,width:80,height:80,borderRadius:"50%",background:C.gold,opacity:0.15 }}/>
+                <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,position:"relative",zIndex:1 }}>
+                  <div>
+                    <span style={{ fontSize:22,fontWeight:700,color:C.gold,fontFamily:"Georgia,serif" }}>{doneCount}</span>
+                    <span style={{ fontSize:14,color:C.muted }}> / {total} défis accomplis</span>
+                  </div>
+                  <span style={{ fontSize:18,fontWeight:700,color:C.gold }}>{pct}%</span>
+                </div>
+                <div style={{ height:8,background:"rgba(255,255,255,0.08)",borderRadius:20,overflow:"hidden",position:"relative",zIndex:1 }}>
+                  <div style={{ height:"100%",background:`linear-gradient(90deg,${C.terra},${C.gold})`,borderRadius:20,width:`${pct}%`,transition:"width 0.5s" }}/>
+                </div>
+                <div style={{ fontSize:11,color:C.muted,marginTop:8,fontStyle:"italic",position:"relative",zIndex:1 }}>
+                  {pct===100?"🎉 Tous les défis accomplis !":pct>=50?"Tu es sur la bonne voie ✨":"Chaque défi accompli compte 🌿"}
+                </div>
+              </div>
+
+              {/* Filtres catégories */}
+              <div style={{ display:"flex",gap:6,marginBottom:14,overflowX:"auto",paddingBottom:4,scrollbarWidth:"none" }}>
+                {dynCats.map(c=>(
+                  <button key={c} onClick={()=>setActiveCat(c)}
+                    style={{ flexShrink:0,padding:"6px 12px",borderRadius:20,border:`1.5px solid ${activeCat===c?C.terra:C.border}`,background:activeCat===c?C.terra:"white",color:activeCat===c?"white":C.muted,fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap" }}>
+                    {CAT_EMOJIS[c]||"🏷"} {c==="all"?"Tout":c.charAt(0).toUpperCase()+c.slice(1)}
+                  </button>
+                ))}
+              </div>
+
+              {/* Défis actifs */}
+              <div style={{ display:"flex",flexDirection:"column",gap:8,marginBottom:doneDefis.length>0?24:12 }}>
+                {activeDefis.length===0 && doneDefis.length===0 && <div style={{ textAlign:"center",padding:"28px",color:C.muted,fontSize:13 }}>🏆 Ajoute ton premier défi</div>}
+                {activeDefis.map(d=>DefiCard(d))}
+              </div>
+
+              {/* Défis accomplis */}
+              {doneDefis.length>0 && (
+                <div style={{ marginBottom:16 }}>
+                  <div style={{ fontSize:11,fontWeight:700,color:C.sage,textTransform:"uppercase",letterSpacing:1,marginBottom:8 }}>Accomplis · {doneDefis.length} 🏆</div>
+                  <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+                    {doneDefis.map(d=>DefiCard(d))}
+                  </div>
+                </div>
+              )}
+
+              {/* Nouveau défi */}
+              <div style={{ background:C.cream,borderRadius:14,border:`1.5px solid ${C.border}`,padding:"14px 16px" }}>
+                <div style={{ fontSize:10,fontWeight:700,letterSpacing:"1.5px",textTransform:"uppercase",color:C.muted,marginBottom:10 }}>Nouveau défi</div>
+                <div style={{ display:"flex",gap:8,marginBottom:8,flexWrap:"wrap" }}>
+                  <input value={newDefiEmoji} onChange={e=>setNewDefiEmoji(e.target.value)}
+                    style={{ width:44,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"7px",fontFamily:"inherit",fontSize:18,textAlign:"center",outline:"none" }} />
+                  <input value={newDefiName} onChange={e=>setNewDefiName(e.target.value)}
+                    placeholder="Nom du défi..."
+                    onKeyDown={e=>{ if(e.key==="Enter"&&newDefiName.trim()){ upd(d=>d.defis.push({id:newId(),cat:newDefiCat||"perso",emoji:newDefiEmoji||"⭐",name:newDefiName.trim(),done:false,doneAt:null,notes:""})); setNewDefiName(""); setNewDefiEmoji("⭐"); }}}
+                    style={{ flex:1,minWidth:160,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"8px 12px",fontFamily:"inherit",fontSize:13,color:C.dark,outline:"none" }} />
+                </div>
+                <div style={{ display:"flex",gap:8 }}>
+                  <datalist id="new-defi-cats">
+                    {dynCats.filter(c=>c!=="all").map(c=><option key={c} value={c}/>)}
+                  </datalist>
+                  <input list="new-defi-cats" value={newDefiCat} onChange={e=>setNewDefiCat(e.target.value)}
+                    placeholder="Catégorie..."
+                    style={{ flex:1,border:`1.5px solid ${C.border}`,background:"white",borderRadius:10,padding:"8px 12px",fontFamily:"inherit",fontSize:13,color:C.dark,outline:"none" }} />
+                  <button onClick={()=>{
+                    if(!newDefiName.trim()) return;
+                    const cat = newDefiCat.trim().toLowerCase()||"perso";
+                    upd(d=>d.defis.push({id:newId(),cat,emoji:newDefiEmoji||"⭐",name:newDefiName.trim(),done:false,doneAt:null,notes:""}));
+                    setNewDefiName(""); setNewDefiEmoji("⭐"); setNewDefiCat("");
+                    setActiveCat(cat);
+                  }}
+                    style={{ background:C.dark,border:"none",borderRadius:10,padding:"8px 16px",color:"white",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit",whiteSpace:"nowrap" }}>
+                    + Ajouter
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </div>
+        {/* ── CITATIONS ── */}
+        {tab==="citations" && (() => {
+          const filtered = (data.citations||[]).filter(c => filterText(c.text+" "+(c.source||"")));
+          const addCit = () => {
+            if(!newCit.trim()) return;
+            upd(d=>{ if(!d.citations) d.citations=[]; d.citations.unshift({id:newId(),text:newCit.trim(),source:newSrc.trim(),date:new Date().toLocaleDateString("fr-FR")}); });
+            setNewCit(""); setNewSrc("");
+          };
+          return (
+            <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
+              <SectionTitle title="💬 Citations & Phrases qui parlent" />
+
+              {/* Formulaire ajout — citation + source sur 2 lignes liées */}
+              <div style={{ background:"white",borderRadius:14,border:`1.5px solid ${C.border}`,overflow:"hidden" }}>
+                <textarea value={newCit} onChange={e=>setNewCit(e.target.value)}
+                  placeholder="Une phrase qui te parle..."
+                  onKeyDown={e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); addCit(); }}}
+                  rows={2}
+                  style={{ width:"100%",border:"none",borderBottom:`1px solid ${C.cream}`,padding:"12px 14px",fontFamily:"Georgia,serif",fontSize:13,fontStyle:"italic",color:C.dark,outline:"none",resize:"none",lineHeight:1.6,background:"transparent" }} />
+                <div style={{ display:"flex",alignItems:"center",gap:8,padding:"8px 12px" }}>
+                  <span style={{ fontSize:12,color:C.muted,flexShrink:0 }}>—</span>
+                  <input value={newSrc} onChange={e=>setNewSrc(e.target.value)}
+                    placeholder="Source (livre, film, personne...)"
+                    style={{ flex:1,border:"none",fontFamily:"inherit",fontSize:12,color:C.muted,outline:"none",background:"transparent" }} />
+                  <button onClick={addCit}
+                    style={{ flexShrink:0,background:C.dark,border:"none",borderRadius:8,padding:"6px 14px",color:"white",fontSize:13,cursor:"pointer",fontWeight:700,fontFamily:"inherit" }}>+</button>
+                </div>
+              </div>
+
+              {filtered.length===0 && (
+                <div style={{ textAlign:"center",padding:"40px 20px",color:C.muted,fontSize:13 }}>
+                  <div style={{ fontSize:32,marginBottom:8 }}>💬</div>
+                  Aucune citation pour l'instant.<br/>Saisis une phrase qui te touche !
+                </div>
+              )}
+
+              {filtered.map(c=>(
+                <div key={c.id} style={{ background:"white",borderRadius:14,border:`1.5px solid ${expandedId===c.id?C.dark:C.border}`,overflow:"hidden" }}>
+                  {/* Vue normale */}
+                  {expandedId!==c.id ? (
+                    <div style={{ padding:"18px 20px",position:"relative" }}>
+                      <div style={{ fontSize:32,color:C.border,lineHeight:1,marginBottom:4,fontFamily:"Georgia,serif" }}>"</div>
+                      <div style={{ fontSize:14,color:C.dark,lineHeight:1.7,fontStyle:"italic",fontFamily:"Georgia,serif",marginBottom:c.source?8:0 }}>{c.text}</div>
+                      {c.source && <div style={{ fontSize:11,color:C.muted,fontWeight:600 }}>— {c.source}</div>}
+                      <div style={{ fontSize:10,color:C.border,marginTop:6 }}>{c.date}</div>
+                      <div style={{ position:"absolute",top:12,right:12,display:"flex",gap:6 }}>
+                        <button onClick={()=>setExpId(c.id)}
+                          style={{ fontSize:11,color:C.muted,background:"none",border:"none",cursor:"pointer",padding:"2px 6px" }}>✏️</button>
+                        <button onClick={()=>upd(d=>{ d.citations=d.citations.filter(x=>x.id!==c.id); })}
+                          style={{ fontSize:11,color:C.terra,background:"none",border:"none",cursor:"pointer",padding:"2px 4px" }}>✕</button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Mode édition */
+                    <div style={{ padding:"14px 16px" }}>
+                      <textarea value={c.text} onChange={e=>upd(d=>{ d.citations.find(x=>x.id===c.id).text=e.target.value; })}
+                        style={{ width:"100%",border:`1.5px solid ${C.border}`,background:C.light,borderRadius:10,padding:"10px 12px",fontFamily:"Georgia,serif",fontSize:13,fontStyle:"italic",color:C.dark,outline:"none",resize:"none",minHeight:80,lineHeight:1.6,marginBottom:8 }} />
+                      <input value={c.source||""} onChange={e=>upd(d=>{ d.citations.find(x=>x.id===c.id).source=e.target.value; })}
+                        placeholder="— Source..."
+                        style={{ width:"100%",border:`1.5px solid ${C.border}`,background:C.light,borderRadius:10,padding:"8px 12px",fontFamily:"inherit",fontSize:12,color:C.muted,outline:"none",marginBottom:10 }} />
+                      <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}>
+                        <button onClick={()=>upd(d=>{ d.citations=d.citations.filter(x=>x.id!==c.id); setExpId(null); })}
+                          style={{ fontSize:11,color:C.terra,background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit" }}>Supprimer</button>
+                        <button onClick={()=>setExpId(null)}
+                          style={{ fontSize:12,background:C.dark,color:"white",border:"none",borderRadius:8,padding:"6px 14px",cursor:"pointer",fontFamily:"inherit",fontWeight:600 }}>Fermer</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
+      {/* BOTTOM NAV mobile */}
+      <div className="carnet-tabs-mobile" style={{ position:"fixed",bottom:0,left:0,right:0,background:"white",borderTop:`1px solid ${C.border}`,display:"flex",zIndex:200,paddingBottom:"env(safe-area-inset-bottom,0px)" }}>
+        {TABS.map(t=>(
+          <button key={t.id} onClick={()=>{ setTab(t.id); setSearch(""); setExpId(null); setMediaCat("Tout"); setActiveCat("all"); }} style={{
+            flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+            padding:"7px 2px",border:"none",background:"none",fontFamily:"inherit",cursor:"pointer",
+            color:tab===t.id?C.gold:C.muted,transition:"color 0.15s",gap:2
+          }}>
+            <span style={{ fontSize:18 }}>{t.emoji}</span>
+            <span style={{ fontSize:8,fontWeight:tab===t.id?700:400,letterSpacing:"0.2px",textAlign:"center",lineHeight:1.2 }}>{t.label.split(" ")[0]}</span>
+          </button>
+        ))}
+      </div>
+
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Carnet />);
+
+</script></body></html>

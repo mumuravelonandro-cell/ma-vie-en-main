@@ -1,0 +1,2089 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Mon tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#F5F0E8;-webkit-font-smoothing:antialiased}textarea,input,select{font-family:'DM Sans',system-ui,sans-serif}::-webkit-scrollbar{display:none}</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+window.storage = {
+  get: async (key) => { try { const v = localStorage.getItem(key); return v ? { key, value: v } : null; } catch { return null; } },
+  set: async (key, value) => { try { localStorage.setItem(key, value); return { key, value }; } catch { return null; } },
+};
+
+// ── date helpers ───────────────────────────────────────────────────────────────
+const todayKey = () => new Date().toISOString().slice(0, 10);
+const fmtDate = (iso) => {
+  const d = new Date(iso + "T12:00:00");
+  const days = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
+  const months = ["jan","fév","mar","avr","mai","jun","jul","aoû","sep","oct","nov","déc"];
+  return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
+};
+const fmtFull = (iso) => {
+  const d = new Date(iso + "T12:00:00");
+  const days = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
+  const months = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+  return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+};
+const getMonday = (date = new Date()) => {
+  const d = new Date(date);
+  const day = d.getDay();
+  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  d.setHours(0,0,0,0);
+  return d;
+};
+const weekKey      = (monday) => monday.toISOString().slice(0,10);
+const todayDayIdx  = () => { const d = new Date().getDay(); return d === 0 ? 6 : d - 1; };
+const fmtWeekRange = (monday) => {
+  const sun = new Date(monday); sun.setDate(sun.getDate()+6);
+  const months = ["jan","fév","mar","avr","mai","jun","jul","aoû","sep","oct","nov","déc"];
+  if (monday.getMonth()===sun.getMonth()) return `${monday.getDate()} – ${sun.getDate()} ${months[sun.getMonth()]}`;
+  return `${monday.getDate()} ${months[monday.getMonth()]} – ${sun.getDate()} ${months[sun.getMonth()]}`;
+};
+
+// ── constants ──────────────────────────────────────────────────────────────────
+const DAYS_SHORT = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
+const DAYS_FULL  = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+
+const SPORT_TYPES = [
+  { key:"pilates", label:"Pilates",    emoji:"🧘‍♀️", color:"#7A9E7E", bg:"#F0FAF0" },
+  { key:"lagree",  label:"Lagree",     emoji:"🔩",   color:"#4A7FA5", bg:"#EBF4FB" },
+  { key:"muscu",   label:"Muscu bas",  emoji:"🏋️‍♀️", color:"#C4724A", bg:"#FEF3ED" },
+  { key:"running", label:"Running",    emoji:"🏃‍♀️", color:"#6B4F3A", bg:"#F5EDE8" },
+  { key:"yoga",    label:"Yoga",       emoji:"🌿",   color:"#5B8A72", bg:"#EDFAF3" },
+  { key:"cardio",  label:"Cardio",     emoji:"🔥",   color:"#E05252", bg:"#FEF0F0" },
+  { key:"stretch", label:"Stretching", emoji:"🤸‍♀️", color:"#9B7EC8", bg:"#F4F0FD" },
+  { key:"rest",    label:"Repos",      emoji:"😌",   color:"#94A3B8", bg:"#F4F6F9" },
+];
+const getSport = (key) => SPORT_TYPES.find(s => s.key === key) || SPORT_TYPES[0];
+
+// ── sub-types per activity ─────────────────────────────────────────────────────
+const SUBTYPES = {
+  running: [
+    { key:"easy",     label:"Easy run",   emoji:"🌿", desc:"Allure confortable" },
+    { key:"long",     label:"Long run",   emoji:"🛤️", desc:"Sortie longue" },
+    { key:"frac",     label:"Fractionné", emoji:"⚡", desc:"Intervalles / vitesse" },
+    { key:"tempo",    label:"Tempo",      emoji:"🎯", desc:"Allure soutenue" },
+    { key:"recovery", label:"Récup",      emoji:"💆‍♀️", desc:"Très facile" },
+  ],
+  pilates: [
+    { key:"mat",      label:"Mat",        emoji:"🟦", desc:"Au sol" },
+    { key:"reformer", label:"Reformer",   emoji:"🔧", desc:"Sur machine" },
+    { key:"cardio",   label:"Cardio",     emoji:"🔥", desc:"Pilates cardio" },
+    { key:"deep",     label:"Deep work",  emoji:"🧘‍♀️", desc:"Profond & lent" },
+  ],
+  lagree: [
+    { key:"full",     label:"Full body",  emoji:"💪", desc:"Corps entier" },
+    { key:"lower",    label:"Lower body", emoji:"🦵", desc:"Bas du corps" },
+    { key:"upper",    label:"Upper body", emoji:"💪", desc:"Haut du corps" },
+    { key:"core",     label:"Core",       emoji:"🎯", desc:"Gainage & centre" },
+  ],
+  muscu: [
+    { key:"legs",     label:"Jambes",     emoji:"🦵", desc:"Squats, fentes..." },
+    { key:"glutes",   label:"Fessiers",   emoji:"🍑", desc:"Hip thrust..." },
+    { key:"full",     label:"Full body",  emoji:"💪", desc:"Corps entier" },
+    { key:"hiit",     label:"HIIT",       emoji:"⚡", desc:"Circuit intensif" },
+  ],
+};
+const getSubtype = (type, key) => (SUBTYPES[type]||[]).find(s=>s.key===key)||null;
+
+const STATUS = {
+  planned: { label:"Planifié", color:"#C9A84C", bg:"#FEF9EC", icon:"📅" },
+  done:    { label:"Fait ✓",   color:"#7A9E7E", bg:"#F0FAF0", icon:"✅" },
+  missed:  { label:"Raté",     color:"#E05252", bg:"#FEF0F0", icon:"❌" },
+};
+
+const MOODS = [
+  { label:"Fatiguée",  emoji:"😴", color:"#94A3B8" },
+  { label:"Calme",     emoji:"😌", color:"#7A9E7E" },
+  { label:"Motivée",   emoji:"✨", color:"#C9A84C" },
+  { label:"En feu",    emoji:"💪", color:"#C4724A" },
+  { label:"Difficile", emoji:"😔", color:"#9B8B7E" },
+  { label:"En paix",   emoji:"🌸", color:"#C084A6" },
+];
+const DEFAULT_FOOD_INTENTIONS = [
+  { key:"varié",    emoji:"🌿", label:"Manger varié",             desc:"Légumes, couleurs, diversité" },
+  { key:"lent",     emoji:"🐢", label:"Manger lentement",         desc:"Sans écran, en savourant" },
+  { key:"faim",     emoji:"⚖️", label:"À l'écoute de ma faim",    desc:"Ni trop, ni trop peu" },
+  { key:"maison",   emoji:"🍳", label:"Cuisiner maison",           desc:"Savoir ce qu'il y a dans mon assiette" },
+  { key:"grigno",   emoji:"🌸", label:"Pas de grignotage compulsif", desc:"Distinguer vraie faim et ennui" },
+  { key:"leger",    emoji:"💤", label:"Dîner léger",               desc:"Pour mieux dormir" },
+];
+const DEFAULT_MORNING = [
+  { key:"eau",     emoji:"💧",  label:"Grand verre d'eau" },
+  { key:"nophone", emoji:"🚫",  label:"Pas de téléphone 30min" },
+  { key:"breath",  emoji:"🧘‍♀️", label:"5 min respiration" },
+  { key:"intent",  emoji:"📝",  label:"Intention du jour" },
+  { key:"move",    emoji:"🏃‍♀️", label:"Mouvement" },
+  { key:"sun",     emoji:"☀️",  label:"Lumière naturelle" },
+  { key:"pdj",     emoji:"🥣",  label:"Petit dej sans écran" },
+  { key:"vacuum",  emoji:"🫁",  label:"Stomach vacuum (à jeun)" },
+  { key:"vitamine",emoji:"💊",  label:"Vitamines" },
+];
+const DEFAULT_EVENING = [
+  { key:"phone",    emoji:"📵",  label:"Téléphone posé à 21h" },
+  { key:"shower",   emoji:"🛁",  label:"Douche / bain" },
+  { key:"skincare", emoji:"💆‍♀️", label:"Soin visage & corps" },
+  { key:"read",     emoji:"📖",  label:"Lecture" },
+  { key:"ambiance", emoji:"🕯️",  label:"Ambiance calme" },
+  { key:"journal",  emoji:"✍️",  label:"Journaling / gratitude" },
+  { key:"bureau",   emoji:"📋",  label:"Préparer le bureau pour demain" },
+  { key:"silence",  emoji:"🤫",  label:"10 min sans écran ni musique" },
+  { key:"sleep",    emoji:"😴",  label:"Au lit avant 23h" },
+];
+const DEFAULT_NOSCROLL_RULES = [
+  { key:"matin", emoji:"🌅", label:"Pas de scroll matin" },
+  { key:"repas", emoji:"🍽️", label:"Pas de phone au repas" },
+  { key:"soir",  emoji:"🌙", label:"Téléphone posé le soir" },
+  { key:"avion", emoji:"📵", label:"Mode avion la nuit" },
+];
+const NOSCROLL_QUOTES = [
+  "Le scroll tue l'ennui — mais l'ennui est fertile.",
+  "Ce matin t'appartient. Pas à ton feed.",
+  "Chaque fois que tu poses ton téléphone, tu reprends du pouvoir.",
+  "Ton attention est ta ressource la plus précieuse.",
+  "La vraie vie est hors écran.",
+  "Présente, pas connectée.",
+  "Ce que tu consommes le matin colore ta journée.",
+  "Un matin sans scroll, c'est un matin qui t'appartient.",
+];
+
+// ── sport template ─────────────────────────────────────────────────────────────
+const defaultTemplate = () => ({
+  0: [{ id:"t1", type:"pilates", hour:"6h15", subtype:"mat" }],
+  1: [],
+  2: [{ id:"t2", type:"muscu",   hour:"6h15", subtype:"legs" }],
+  3: [],
+  4: [{ id:"t4", type:"running", hour:"6h15", subtype:"easy", km:"" }],
+  5: [{ id:"t5", type:"pilates", hour:"9h00", subtype:"reformer" }],
+  6: [{ id:"t6", type:"rest",    hour:"" }],
+});
+const applyTemplate = (tpl) => {
+  const w = {};
+  for (let d = 0; d < 7; d++)
+    w[d] = (tpl[d]||[]).map(s => ({ ...s, id:`${Date.now()}-${Math.random()}`, status:"planned" }));
+  return w;
+};
+const newSession = (type="pilates", hour="6h15", subtype="", km="") => ({
+  id:`${Date.now()}-${Math.random()}`, type, hour, status:"planned",
+  ...(subtype ? { subtype } : {}),
+  ...(type==="running" && km ? { km } : {}),
+});
+
+// ── daily data ─────────────────────────────────────────────────────────────────
+const EMPTY_DAY = () => ({
+  mood:null, energy:null, intention:"", gratitude:["","",""], steps:0,
+  noscroll:{}, screenTime:null, scrollNote:"",
+  morning:{}, evening:{},
+  meals:{}, sos:{},
+});
+
+// ── storage ────────────────────────────────────────────────────────────────────
+const STORE_KEY = "tracker_v4";
+const loadAll = async () => {
+  try {
+    const r = await window.storage.get(STORE_KEY);
+    return r ? JSON.parse(r.value) : { days:{}, sport:{ weeks:{}, template:defaultTemplate() } };
+  } catch { return { days:{}, sport:{ weeks:{}, template:defaultTemplate() } }; }
+};
+const saveAll = async (d) => { try { await window.storage.set(STORE_KEY, JSON.stringify(d)); } catch {} };
+
+// ── streak calculator ──────────────────────────────────────────────────────────
+const calcStreak = (sportWeeks) => {
+  let streak = 0;
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  for (let i = 0; i < 365; i++) {
+    const iso = d.toISOString().slice(0,10);
+    const idx = (() => { const dd = new Date(iso+"T12:00:00").getDay(); return dd===0?6:dd-1; })();
+    const wk  = weekKey(getMonday(new Date(iso+"T12:00:00")));
+    const sessions = sportWeeks[wk]?.[idx] || [];
+    const active = sessions.some(s => s.status==="done" && s.type!=="rest");
+    if (active) { streak++; d.setDate(d.getDate()-1); }
+    else break;
+  }
+  const todayWk = weekKey(getMonday());
+  const todaySessions = sportWeeks[todayWk]?.[todayDayIdx()] || [];
+  if (todaySessions.some(s => s.status==="done" && s.type!=="rest")) streak++;
+  return streak;
+};
+
+// ── score ──────────────────────────────────────────────────────────────────────
+const calcScore = (day, sportWeek, dayIdx, store) => {
+  if (!day) return 0;
+  let done = 0, total = 0;
+
+  // Humeur (1pt)
+  total++; if (day.mood) done++;
+
+  // Énergie (1pt)
+  total++; if (day.energy) done++;
+
+  // No-scroll — ratio sur les règles actives
+  const noscrollRules = store?.noscrollRules || DEFAULT_NOSCROLL_RULES;
+  const noscroll = day.noscroll || {};
+  total += noscrollRules.length;
+  done  += noscrollRules.filter(r => noscroll[r.key]).length;
+
+  // Morning routine — ratio sur items actifs
+  const morningItems = store?.morningItems || DEFAULT_MORNING;
+  const mDone = morningItems.filter(it => (day.morning||{})[it.key]).length;
+  total += morningItems.length; done += mDone;
+
+  // Evening routine
+  const eveningItems = store?.eveningItems || DEFAULT_EVENING;
+  const eDone = eveningItems.filter(it => (day.evening||{})[it.key]).length;
+  total += eveningItems.length; done += eDone;
+
+  // Sport
+  if (sportWeek && sportWeek[dayIdx]) {
+    const sessions = sportWeek[dayIdx].filter(s => s.type !== "rest");
+    total += Math.max(sessions.length, 1);
+    done  += sessions.filter(s => s.status === "done").length;
+  } else { total += 1; }
+
+  return Math.round((done / total) * 100);
+};
+const scoreColor = (s) => s >= 75 ? "#7A9E7E" : s >= 45 ? "#C9A84C" : "#C4724A";
+const scoreLabel = (s) => s === 100 ? "Journée parfaite 🔥" : s >= 85 ? "Excellente journée 🌟" : s >= 70 ? "Très bonne journée ✨" : s >= 55 ? "Bonne journée 💚" : s >= 40 ? "En construction 💪" : s >= 20 ? "Petit pas en avant 🌱" : "On démarre 🫶";
+const scoreEmoji = (s, mood) => {
+  if (s === 100) return "🔥";
+  if (s >= 85) return "🌟";
+  if (s >= 70) return "✨";
+  if (s >= 55) return "💚";
+  if (s >= 40) return "💪";
+  return "🌱";
+};
+
+const last7 = () => Array.from({length:7},(_,i)=>{
+  const d = new Date(); d.setDate(d.getDate()-(6-i)); return d.toISOString().slice(0,10);
+});
+
+// ── SESSION MODAL ──────────────────────────────────────────────────────────────
+const SessionModal = ({ session, dayIdx, isTemplate, onSave, onDelete, onClose }) => {
+  const [type,    setType]    = useState(session?.type    || "pilates");
+  const [hour,    setHour]    = useState(session?.hour    || "6h15");
+  const [status,  setStatus]  = useState(session?.status  || "planned");
+  const [subtype, setSubtype] = useState(session?.subtype || "");
+  const [km,      setKm]      = useState(session?.km      || "");
+  const isNew = !session;
+  const subs  = SUBTYPES[type] || [];
+
+  return (
+    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:600,padding:16 }} onClick={onClose}>
+      <div style={{ background:"white",borderRadius:24,padding:26,width:"100%",maxWidth:390,maxHeight:"90vh",overflowY:"auto" }} onClick={e=>e.stopPropagation()}>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20 }}>
+          <h3 style={{ fontFamily:"Georgia,serif",fontSize:17 }}>{isNew?"Ajouter":"Modifier"} — {DAYS_FULL[dayIdx]}</h3>
+          <button onClick={onClose} style={{ background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#9B8B7E" }}>✕</button>
+        </div>
+
+        {/* Type */}
+        <div style={{ fontSize:11,fontWeight:600,letterSpacing:"1.5px",textTransform:"uppercase",color:"#9B8B7E",marginBottom:9 }}>Type de séance</div>
+        <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginBottom:subs.length?12:18 }}>
+          {SPORT_TYPES.map(s=>(
+            <div key={s.key} onClick={()=>{ setType(s.key); setSubtype(""); }}
+              style={{ background:type===s.key?s.color:s.bg,border:`1.5px solid ${type===s.key?s.color:"transparent"}`,borderRadius:11,padding:"9px 11px",cursor:"pointer",display:"flex",alignItems:"center",gap:7,transition:"all 0.15s" }}>
+              <span style={{ fontSize:17 }}>{s.emoji}</span>
+              <span style={{ fontSize:12,fontWeight:500,color:type===s.key?"white":s.color }}>{s.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Sub-types: accordion — slides open under selected type */}
+        {subs.length > 0 && (
+          <div style={{ marginBottom:18, background:getSport(type).bg, borderRadius:12, overflow:"hidden", border:`1px solid ${getSport(type).color}33` }}>
+            <div style={{ padding:"8px 12px 10px", borderBottom:`1px solid ${getSport(type).color}22` }}>
+              <div style={{ fontSize:10,fontWeight:600,letterSpacing:"1.5px",textTransform:"uppercase",color:getSport(type).color,marginBottom:8 }}>
+                {type==="running"?"Type de run":"Format"}
+              </div>
+              <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
+                {subs.map(r=>{
+                  const sp=getSport(type);
+                  const sel=subtype===r.key;
+                  return (
+                    <div key={r.key} onClick={()=>setSubtype(sel?"":r.key)}
+                      style={{ display:"flex",alignItems:"center",gap:5,padding:"5px 11px",borderRadius:20,background:sel?sp.color:"white",border:`1.5px solid ${sel?sp.color:sp.color+"44"}`,cursor:"pointer",transition:"all 0.15s" }}>
+                      <span style={{ fontSize:13 }}>{r.emoji}</span>
+                      <span style={{ fontSize:12,fontWeight:sel?600:500,color:sel?"white":sp.color }}>{r.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            {subtype && (
+              <div style={{ padding:"8px 12px",fontSize:11,color:getSport(type).color,fontStyle:"italic" }}>
+                {subs.find(s=>s.key===subtype)?.desc}
+              </div>
+            )}
+            {type==="running" && (
+              <div style={{ padding:"0 12px 12px",display:"flex",alignItems:"center",gap:8 }}>
+                <span style={{ fontSize:14 }}>📏</span>
+                <input value={km} onChange={e=>setKm(e.target.value)} placeholder="Distance (optionnel)  ex: 8 km"
+                  style={{ border:"none",background:"transparent",fontFamily:"inherit",fontSize:13,color:"#6B4F3A",outline:"none",flex:1 }} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Heure */}
+        <div style={{ fontSize:11,fontWeight:600,letterSpacing:"1.5px",textTransform:"uppercase",color:"#9B8B7E",marginBottom:9 }}>Heure prévue</div>
+        <div style={{ display:"flex",gap:7,flexWrap:"wrap",marginBottom:18 }}>
+          {["6h00","6h15","6h30","7h00","8h00","9h00","10h00","12h00","17h00","18h00","19h00"].map(h=>(
+            <div key={h} onClick={()=>setHour(h)}
+              style={{ padding:"6px 11px",borderRadius:20,border:`1.5px solid ${hour===h?"#1A1410":"#E8DDD0"}`,background:hour===h?"#1A1410":"white",color:hour===h?"white":"#1A1410",fontSize:12,cursor:"pointer",transition:"all 0.15s" }}>
+              {h}
+            </div>
+          ))}
+        </div>
+
+        {/* Statut */}
+        {!isNew && !isTemplate && (
+          <>
+            <div style={{ fontSize:11,fontWeight:600,letterSpacing:"1.5px",textTransform:"uppercase",color:"#9B8B7E",marginBottom:9 }}>Statut</div>
+            <div style={{ display:"flex",gap:7,flexWrap:"wrap",marginBottom:18 }}>
+              {Object.entries(STATUS).map(([k,v])=>(
+                <div key={k} onClick={()=>setStatus(k)}
+                  style={{ padding:"7px 13px",borderRadius:20,border:`1.5px solid ${status===k?v.color:"#E8DDD0"}`,background:status===k?v.bg:"white",color:status===k?v.color:"#9B8B7E",fontSize:12,cursor:"pointer",fontWeight:status===k?600:400,transition:"all 0.15s" }}>
+                  {v.icon} {v.label}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        <div style={{ display:"flex",gap:9 }}>
+          <button onClick={()=>onSave({ type, hour, status, subtype: subtype||undefined, km: type==="running"?km:undefined })}
+            style={{ flex:1,background:"#1A1410",border:"none",borderRadius:13,padding:"12px",color:"white",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"inherit" }}>
+            {isNew?"Ajouter":"Enregistrer"}
+          </button>
+          {!isNew && (
+            <button onClick={onDelete}
+              style={{ background:"#FEF0F0",border:"1.5px solid #FECACA",borderRadius:13,padding:"12px 15px",color:"#E05252",fontSize:12,cursor:"pointer",fontFamily:"inherit" }}>
+              Supprimer
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── SESSION ROW (list view) ────────────────────────────────────────────────────
+const SessionRow = ({ session, onClick, onQuickDone }) => {
+  const sport    = getSport(session.type);
+  const sub      = session.subtype ? getSubtype(session.type, session.subtype) : null;
+  const isDone   = session.status === "done";
+  const isMissed = session.status === "missed";
+  const statV    = STATUS[session.status] || STATUS.planned;
+  return (
+    <div style={{ display:"flex",alignItems:"center",gap:8,padding:"9px 12px",borderRadius:12,background:isDone?sport.bg:isMissed?"#F9F9F9":"white",border:`1.5px solid ${isDone?sport.color+"55":isMissed?"#E8DDD0":"#E8DDD0"}`,opacity:isMissed?0.65:1,transition:"all 0.15s" }}>
+      {/* Quick done button */}
+      <button
+        onClick={e=>{ e.stopPropagation(); onQuickDone && onQuickDone(); }}
+        title={isDone?"Marquer non fait":"Marquer fait"}
+        style={{ width:32,height:32,borderRadius:10,border:`1.5px solid ${isDone?sport.color:isMissed?"#E8DDD0":"#E8DDD0"}`,background:isDone?sport.color:"white",color:isDone?"white":"#C8BEB5",fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.15s" }}
+        onMouseEnter={e=>{ if(!isDone){ e.currentTarget.style.borderColor="#7A9E7E"; e.currentTarget.style.color="#7A9E7E"; }}}
+        onMouseLeave={e=>{ if(!isDone){ e.currentTarget.style.borderColor="#E8DDD0"; e.currentTarget.style.color="#C8BEB5"; }}}>
+        ✓
+      </button>
+      {/* Main info — click to open modal */}
+      <div onClick={onClick} style={{ flex:1,minWidth:0,cursor:"pointer" }}>
+        <div style={{ display:"flex",alignItems:"center",gap:7 }}>
+          <span style={{ fontSize:17 }}>{sub?.emoji || sport.emoji}</span>
+          <div>
+            <div style={{ fontSize:13,fontWeight:600,color:isDone?sport.color:"#1A1410" }}>
+              {sub ? sub.label : sport.label}
+              {session.km ? <span style={{ fontSize:11,color:"#9B8B7E",fontWeight:400,marginLeft:6 }}>{session.km} km</span> : null}
+            </div>
+            {session.hour && <div style={{ fontSize:11,color:"#9B8B7E",marginTop:1 }}>{session.hour}</div>}
+          </div>
+        </div>
+      </div>
+      {/* Status badge — click to cycle missed/planned */}
+      <div onClick={e=>{ e.stopPropagation(); onClick && onClick(); }}
+        style={{ fontSize:11,fontWeight:600,color:statV.color,background:statV.bg,padding:"3px 9px",borderRadius:20,whiteSpace:"nowrap",cursor:"pointer",flexShrink:0 }}>
+        {statV.icon} {statV.label}
+      </div>
+    </div>
+  );
+};
+
+// ── STREAK BADGE ───────────────────────────────────────────────────────────────
+const StreakBadge = ({ streak }) => {
+  if (streak === 0) return null;
+  const fire = streak >= 14 ? "🔥🔥" : streak >= 7 ? "🔥" : "⚡";
+  return (
+    <div style={{ display:"flex",flexDirection:"column",alignItems:"center",paddingBottom:4 }}>
+      <div style={{ background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:12,padding:"8px 14px",textAlign:"center",minWidth:58 }}>
+        <div style={{ fontSize:18,lineHeight:1 }}>{fire}</div>
+        <div style={{ fontSize:17,fontWeight:700,color:"#C9A84C",fontFamily:"Georgia,serif",lineHeight:1.2,marginTop:3 }}>{streak}</div>
+      </div>
+      <div style={{ fontSize:10,color:"#9B8B7E",marginTop:4 }}>{streak===1?"1 jour":`${streak} jours`}</div>
+    </div>
+  );
+};
+
+// ── ALIM TAB ───────────────────────────────────────────────────────────────────
+const AlimTab = ({ store, setStore, day, updDay, isToday, editMeals, setEditMeals, newMLabel, setNewMLabel, newMEmoji, setNewMEmoji }) => {
+  const intentions = store.foodIntentions || DEFAULT_FOOD_INTENTIONS;
+  const curWeekMon = weekKey(getMonday());
+  const [alimView,    setAlimView]    = React.useState("jour");   // "semaine" | "jour"
+  const [expandedDay, setExpandedDay] = React.useState(todayKey());
+
+  const updMenu = (dayIso, slot, val) => setStore(prev => {
+    const wkKey = weekKey(getMonday(new Date(dayIso+"T12:00:00")));
+    const next = JSON.parse(JSON.stringify(prev));
+    if(!next.weekMenus) next.weekMenus = {};
+    if(!next.weekMenus[wkKey]) next.weekMenus[wkKey] = {};
+    if(!next.weekMenus[wkKey][dayIso]) next.weekMenus[wkKey][dayIso] = {};
+    next.weekMenus[wkKey][dayIso][slot] = val;
+    return next;
+  });
+
+  const getMenu = (dayIso) => {
+    const wkKey = weekKey(getMonday(new Date(dayIso+"T12:00:00")));
+    return store.weekMenus?.[wkKey]?.[dayIso] || {};
+  };
+
+  const pastEntries = (slot) => {
+    const entries = Object.values(store.weekMenus||{})
+      .flatMap(w => Object.values(w)).filter(Boolean)
+      .map(d => d[slot]).filter(Boolean).map(s => s.trim()).filter(Boolean);
+    return [...new Set(entries)].slice(-20);
+  };
+
+  const saveIntentions = (r) => setStore(prev => ({...prev, foodIntentions: r}));
+  const addIntention   = () => {
+    if(!newMLabel.trim()) return;
+    saveIntentions([...intentions, {key:"fi_"+Date.now(), emoji:newMEmoji, label:newMLabel.trim(), desc:""}]);
+    setNewMLabel(""); setNewMEmoji("🌿");
+  };
+
+  // Bilan 80/20
+  const days80 = last7().map(iso => {
+    const dm = getMenu(iso);
+    const lb = dm.lunchBalance||null, db = dm.dinnerBalance||null;
+    if(!lb && !db) return null;
+    if(lb==="red"||db==="red") return "red";
+    if(lb==="yellow"||db==="yellow") return "yellow";
+    return "green";
+  });
+  const greens  = days80.filter(v=>v==="green").length;
+  const yellows = days80.filter(v=>v==="yellow").length;
+  const reds    = days80.filter(v=>v==="red").length;
+  const filled  = days80.filter(Boolean).length;
+  const ratio   = filled > 0 ? Math.round((greens/filled)*100) : null;
+  const colMap  = { green:"#7A9E7E", yellow:"#C9A84C", red:"#E05252" };
+  const balMap  = { green:"🟢", yellow:"🟡", red:"🔴" };
+
+  return (
+    <div>
+
+      {/* ── INTENTIONS repliables ── */}
+      {(() => {
+        const [open, setOpen] = React.useState(false);
+        return (
+          <div style={{ marginBottom:16 }}>
+            <button onClick={()=>setOpen(o=>!o)}
+              style={{ width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"13px 18px",background:open?"#1A1410":"white",border:"1.5px solid "+(open?"#1A1410":"#E8DDD0"),borderRadius:open?"14px 14px 0 0":14,cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s" }}>
+              <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+                <span style={{ fontSize:17 }}>🌿</span>
+                <div style={{ textAlign:"left" }}>
+                  <div style={{ fontSize:13,fontWeight:600,color:open?"#F5F0E8":"#1A1410" }}>Mes intentions</div>
+                  <div style={{ fontSize:11,color:"#9B8B7E",marginTop:1 }}>{intentions.length} intention{intentions.length>1?"s":""}</div>
+                </div>
+              </div>
+              <span style={{ fontSize:13,color:open?"#C4724A":"#9B8B7E" }}>{open?"▲":"▼"}</span>
+            </button>
+            {open && (
+              <div style={{ background:"white",border:"1.5px solid #1A1410",borderTop:"none",borderRadius:"0 0 14px 14px" }}>
+                {intentions.map((intent,idx) => (
+                  <div key={intent.key} style={{ padding:"11px 18px",borderBottom:idx<intentions.length-1?"1px solid #F5F0E8":"none",display:"flex",alignItems:"center",gap:10 }}>
+                    {editMeals && <button onClick={()=>saveIntentions(intentions.filter(x=>x.key!==intent.key))} style={{ background:"#FEF0F0",border:"1.5px solid #FECACA",borderRadius:7,padding:"3px 7px",color:"#E05252",fontSize:11,cursor:"pointer",flexShrink:0 }}>✕</button>}
+                    <span style={{ fontSize:17,flexShrink:0 }}>{intent.emoji}</span>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:13,fontWeight:600,color:"#1A1410" }}>{intent.label}</div>
+                      {intent.desc && <div style={{ fontSize:11,color:"#9B8B7E",fontStyle:"italic" }}>{intent.desc}</div>}
+                    </div>
+                  </div>
+                ))}
+                {editMeals && (
+                  <div style={{ display:"flex",gap:7,alignItems:"center",padding:"10px 18px",background:"#F5F0E8",borderRadius:"0 0 14px 14px" }}>
+                    <input value={newMEmoji} onChange={e=>setNewMEmoji(e.target.value)} style={{ width:34,border:"1.5px solid #E8DDD0",borderRadius:7,padding:"5px",fontSize:15,textAlign:"center",outline:"none",background:"white",fontFamily:"inherit" }} />
+                    <input value={newMLabel} onChange={e=>setNewMLabel(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addIntention()} placeholder="Nouvelle intention..." style={{ flex:1,border:"1.5px solid #E8DDD0",borderRadius:7,padding:"6px 10px",fontFamily:"inherit",fontSize:13,outline:"none",background:"white" }} />
+                    <button onClick={addIntention} style={{ background:"#1A1410",border:"none",borderRadius:8,padding:"6px 12px",color:"white",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:500 }}>+</button>
+                  </div>
+                )}
+                <div style={{ padding:"9px 18px",borderTop:"1px solid #F5F0E8",display:"flex",justifyContent:"flex-end" }}>
+                  <button onClick={()=>setEditMeals(!editMeals)} style={{ background:editMeals?"#1A1410":"#F5F0E8",border:"none",borderRadius:8,padding:"5px 12px",fontSize:11,cursor:"pointer",color:editMeals?"white":"#9B8B7E",fontFamily:"inherit",fontWeight:500 }}>
+                    {editMeals?"✓ OK":"✏️ Modifier"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ── CHECKLIST MANGER BIEN ── */}
+      {(() => {
+        const EAT_ITEMS = [
+          { key:"slow",   emoji:"🐢", label:"Mangé lentement (≥20 mastications)" },
+          { key:"noscreen", emoji:"🚫", label:"Sans écran pendant les repas" },
+          { key:"walk",   emoji:"🚶‍♀️", label:"Marche 10-15 min après le repas" },
+          { key:"nodrink", emoji:"💧", label:"Peu d'eau pendant le repas" },
+          { key:"relax",  emoji:"😮‍💨", label:"Repas détendu, sans stress" },
+        ];
+        const eatData = day.eatWell || {};
+        const eatDone = EAT_ITEMS.filter(it => eatData[it.key]).length;
+        const [open, setOpen] = React.useState(false);
+        return (
+          <div style={{ marginBottom:16 }}>
+            <button onClick={()=>setOpen(o=>!o)}
+              style={{ width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"13px 18px",background:open?"#1A1410":"white",border:"1.5px solid "+(open?"#1A1410":"#E8DDD0"),borderRadius:open?"14px 14px 0 0":14,cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s" }}>
+              <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+                <span style={{ fontSize:17 }}>🍽️</span>
+                <div style={{ textAlign:"left" }}>
+                  <div style={{ fontSize:13,fontWeight:600,color:open?"#F5F0E8":"#1A1410" }}>Comment j'ai mangé</div>
+                  <div style={{ fontSize:11,color:"#9B8B7E",marginTop:1 }}>Digestion & pleine conscience</div>
+                </div>
+              </div>
+              <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                {eatDone > 0 && <span style={{ fontSize:11,fontWeight:600,color:"#7A9E7E",background:"#F0FAF0",borderRadius:20,padding:"2px 8px" }}>{eatDone}/{EAT_ITEMS.length}</span>}
+                <span style={{ fontSize:16,color:open?"#C4724A":"#9B8B7E",transition:"transform 0.2s",display:"inline-block",transform:open?"rotate(180deg)":"rotate(0deg)" }}>›</span>
+              </div>
+            </button>
+            {open && (
+              <div style={{ background:"white",border:"1.5px solid #1A1410",borderTop:"none",borderRadius:"0 0 14px 14px",padding:"8px 0" }}>
+                {EAT_ITEMS.map((it,idx) => {
+                  const checked = !!eatData[it.key];
+                  return (
+                    <button key={it.key} onClick={()=>updDay(d=>{ if(!d.eatWell) d.eatWell={}; d.eatWell[it.key]=!checked; })}
+                      style={{ width:"100%",display:"flex",alignItems:"center",gap:12,padding:"11px 18px",background:checked?"#F0FAF0":"transparent",border:"none",borderBottom:idx<EAT_ITEMS.length-1?"1px solid #F5F0E8":"none",cursor:"pointer",fontFamily:"inherit",transition:"background 0.15s" }}>
+                      <span style={{ fontSize:18 }}>{it.emoji}</span>
+                      <span style={{ flex:1,fontSize:13,color:"#1A1410",textAlign:"left" }}>{it.label}</span>
+                      <span style={{ fontSize:16,color:checked?"#7A9E7E":"#E8DDD0" }}>{checked?"✓":"○"}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ── BILAN 80/20 compact ── */}
+      <div style={{ background:"white",borderRadius:14,border:"1px solid #E8DDD0",padding:"13px 18px",marginBottom:16 }}>
+        <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10 }}>
+          <div style={{ fontSize:12,fontWeight:700,color:"#1A1410" }}>Équilibre de la semaine</div>
+          {ratio!==null && (
+            <div style={{ fontSize:12,fontWeight:700,color:ratio>=75?"#7A9E7E":ratio>=50?"#C9A84C":"#C4724A",background:(ratio>=75?"#F0FAF0":ratio>=50?"#FEF9EC":"#FEF3ED"),borderRadius:20,padding:"3px 10px" }}>
+              {ratio}% équilibré
+            </div>
+          )}
+        </div>
+        <div style={{ display:"flex",gap:5,marginBottom:filled>0?8:0 }}>
+          {days80.map((v,i)=>{
+            const isT=last7()[i]===todayKey();
+            return (
+              <div key={i} style={{ flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3 }}>
+                <div style={{ width:"100%",height:6,borderRadius:3,background:v?colMap[v]:"#F5F0E8",opacity:isT?1:0.7 }}/>
+                <div style={{ fontSize:8,color:isT?"#C4724A":"#9B8B7E",fontWeight:isT?700:400 }}>{DAYS_SHORT[i]}</div>
+              </div>
+            );
+          })}
+        </div>
+        {filled===0 && <div style={{ fontSize:11,color:"#C8BEB5",fontStyle:"italic",textAlign:"center",marginTop:4 }}>Évalue tes repas pour voir l'équilibre</div>}
+        {filled>0 && (
+          <div style={{ display:"flex",gap:10,justifyContent:"center" }}>
+            {[{c:"#7A9E7E",n:greens,l:"🟢 équil."},{c:"#C9A84C",n:yellows,l:"🟡 mitigé"},{c:"#E05252",n:reds,l:"🔴 plaisir"}].filter(x=>x.n>0).map(x=>(
+              <span key={x.l} style={{ fontSize:11,color:"#9B8B7E" }}>{x.n}j {x.l}</span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── TOGGLE VUE ── */}
+      <div style={{ display:"flex",gap:8,marginBottom:14 }}>
+        {[
+          { id:"semaine", label:"🗓 Vue semaine", desc:"Planifier" },
+          { id:"jour",    label:"📋 Vue jour",    desc:"Suivre" },
+        ].map(v=>(
+          <button key={v.id} onClick={()=>setAlimView(v.id)}
+            style={{ flex:1,padding:"10px 12px",borderRadius:12,border:"1.5px solid "+(alimView===v.id?"#1A1410":"#E8DDD0"),background:alimView===v.id?"#1A1410":"white",cursor:"pointer",fontFamily:"inherit",transition:"all 0.15s",textAlign:"center" }}>
+            <div style={{ fontSize:12,fontWeight:600,color:alimView===v.id?"white":"#1A1410" }}>{v.label}</div>
+            <div style={{ fontSize:10,color:alimView===v.id?"#9B8B7E":"#C8BEB5",marginTop:2 }}>{v.desc}</div>
+          </button>
+        ))}
+      </div>
+
+      {/* ── VUE SEMAINE — grille compacte ── */}
+      {alimView==="semaine" && (
+        <div style={{ background:"white",borderRadius:14,border:"1px solid #E8DDD0",overflow:"hidden" }}>
+          <div style={{ display:"grid",gridTemplateColumns:"44px 1fr 1fr",background:"#FAFAF8",borderBottom:"1px solid #F0EBE3" }}>
+            <div/>
+            {["🍽 Déjeuner","🌙 Dîner"].map(h=>(
+              <div key={h} style={{ padding:"7px 10px",fontSize:10,fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",color:"#9B8B7E",borderLeft:"1px solid #F0EBE3" }}>{h}</div>
+            ))}
+          </div>
+          {DAYS_FULL.map((dayName,i)=>{
+            const d = new Date(curWeekMon+"T12:00:00"); d.setDate(d.getDate()+i);
+            const iso = d.toISOString().slice(0,10);
+            const dm  = getMenu(iso);
+            const isT = iso===todayKey();
+            const lunchSugg  = pastEntries("lunch");
+            const dinnerSugg = pastEntries("dinner");
+            return (
+              <div key={iso} style={{ display:"grid",gridTemplateColumns:"44px 1fr 1fr",borderBottom:i<6?"1px solid #F5F0E8":"none",background:isT?"#FFFBF7":"white" }}>
+                <div style={{ padding:"8px 4px 8px 12px",display:"flex",flexDirection:"column",justifyContent:"center" }}>
+                  <div style={{ fontSize:9,fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",color:isT?"#C4724A":"#9B8B7E" }}>{DAYS_SHORT[i]}</div>
+                  <div style={{ fontSize:13,fontWeight:600,color:isT?"#C4724A":"#1A1410" }}>{d.getDate()}</div>
+                </div>
+                {[["lunch",lunchSugg],["dinner",dinnerSugg]].map(([slot,sugg])=>{
+                  const val = dm[slot]||"";
+                  const bal = dm[slot==="lunch"?"lunchBalance":"dinnerBalance"]||null;
+                  const listId = "plan-"+iso+"-"+slot;
+                  return (
+                    <div key={slot} style={{ padding:"6px 10px",borderLeft:"1px solid #F5F0E8",display:"flex",alignItems:"center",gap:4 }}>
+                      <datalist id={listId}>{sugg.map((s,j)=><option key={j} value={s}/>)}</datalist>
+                      <input list={listId} value={val} onChange={e=>updMenu(iso,slot,e.target.value)} placeholder="..."
+                        style={{ flex:1,border:"none",background:"transparent",fontFamily:"inherit",fontSize:12,color:"#1A1410",outline:"none",padding:"2px 0",minWidth:0 }} />
+                      {bal && <span style={{ fontSize:11,flexShrink:0 }}>{balMap[bal]}</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── VUE JOUR — accordéon ── */}
+      {alimView==="jour" && (
+        <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+          {DAYS_FULL.map((dayName,i) => {
+            const d = new Date(curWeekMon+"T12:00:00"); d.setDate(d.getDate()+i);
+            const iso    = d.toISOString().slice(0,10);
+            const dm     = getMenu(iso);
+            const isT    = iso===todayKey();
+            const isOpen = expandedDay===iso;
+            const lunchSnap  = dm.lunch||"";
+            const dinnerSnap = dm.dinner||"";
+            const lunchBal   = dm.lunchBalance;
+            const dinnerBal  = dm.dinnerBalance;
+            const hasData    = lunchSnap||dinnerSnap||lunchBal||dinnerBal;
+
+            return (
+              <div key={iso} style={{ background:"white",borderRadius:14,border:isT?"2px solid #C4724A":"1px solid #E8DDD0",overflow:"hidden" }}>
+                <div onClick={()=>setExpandedDay(isOpen?null:iso)}
+                  style={{ padding:"12px 16px",display:"flex",alignItems:"center",gap:10,cursor:"pointer",background:isT?"#FFFBF7":"white" }}>
+                  <div style={{ width:40,height:40,borderRadius:11,background:isT?"#1A1410":"#F5F0E8",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+                    <div style={{ fontSize:8,fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",color:isT?"#C4724A":"#9B8B7E" }}>{DAYS_SHORT[i]}</div>
+                    <div style={{ fontSize:14,fontWeight:700,color:isT?"white":"#1A1410",lineHeight:1.2 }}>{d.getDate()}</div>
+                  </div>
+                  <div style={{ flex:1,minWidth:0 }}>
+                    {hasData ? (
+                      <div style={{ display:"flex",flexDirection:"column",gap:2 }}>
+                        {lunchSnap && <div style={{ fontSize:12,color:"#1A1410",display:"flex",alignItems:"center",gap:5 }}>
+                          <span style={{ fontSize:11 }}>🍽</span>
+                          <span style={{ overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1 }}>{lunchSnap}</span>
+                          {lunchBal && <span style={{ fontSize:11,flexShrink:0 }}>{balMap[lunchBal]}</span>}
+                        </div>}
+                        {dinnerSnap && <div style={{ fontSize:12,color:"#1A1410",display:"flex",alignItems:"center",gap:5 }}>
+                          <span style={{ fontSize:11 }}>🌙</span>
+                          <span style={{ overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1 }}>{dinnerSnap}</span>
+                          {dinnerBal && <span style={{ fontSize:11,flexShrink:0 }}>{balMap[dinnerBal]}</span>}
+                        </div>}
+                        {!lunchSnap && !dinnerSnap && <div style={{ fontSize:12,color:"#C8BEB5",fontStyle:"italic" }}>Repas à compléter</div>}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize:12,color:"#C8BEB5",fontStyle:"italic" }}>{isT?"Qu'est-ce que tu manges aujourd'hui ?":"Journée vide"}</div>
+                    )}
+                  </div>
+                  <span style={{ fontSize:13,color:"#C8BEB5",flexShrink:0 }}>{isOpen?"▲":"▼"}</span>
+                </div>
+
+                {isOpen && (
+                  <div style={{ borderTop:"1px solid #F5F0E8" }}>
+                    {[
+                      { slot:"lunch", realSlot:"lunchReal", balKey:"lunchBalance", emoji:"🍽", label:"Déjeuner" },
+                      { slot:"dinner", realSlot:"dinnerReal", balKey:"dinnerBalance", emoji:"🌙", label:"Dîner" },
+                    ].map(({slot,realSlot,balKey,emoji,label},ri) => {
+                      const planned   = dm[slot]||"";
+                      const realVal   = dm[realSlot]||"";
+                      const bal       = dm[balKey]||null;
+                      const asPlanned = dm[balKey+"_ok"]===true;
+                      const sugg      = pastEntries(slot);
+                      const realSugg  = pastEntries(realSlot);
+                      const listIdP   = "dlv-"+iso+"-"+slot;
+                      const listIdR   = "dlv-"+iso+"-"+realSlot;
+                      return (
+                        <div key={slot} style={{ padding:"12px 16px",borderTop:ri>0?"1px solid #F5F0E8":"none" }}>
+                          <div style={{ display:"flex",alignItems:"center",gap:6,marginBottom:8 }}>
+                            <span style={{ fontSize:14 }}>{emoji}</span>
+                            <span style={{ fontSize:11,fontWeight:700,color:"#6B4F3A",textTransform:"uppercase",letterSpacing:"1px" }}>{label}</span>
+                            {bal && <span style={{ marginLeft:"auto",fontSize:14 }}>{balMap[bal]}</span>}
+                          </div>
+                          <div style={{ marginBottom:8 }}>
+                            <div style={{ fontSize:9,color:"#B0A090",textTransform:"uppercase",letterSpacing:"1px",marginBottom:4 }}>Prévu</div>
+                            <datalist id={listIdP}>{sugg.map((s,j)=><option key={j} value={s}/>)}</datalist>
+                            <input list={listIdP} value={planned} onChange={e=>updMenu(iso,slot,e.target.value)}
+                              placeholder="Qu'est-ce que tu prévois ?"
+                              style={{ width:"100%",border:"none",borderBottom:"1px solid #EDE8E0",background:"transparent",fontFamily:"inherit",fontSize:13,color:"#1A1410",outline:"none",padding:"4px 0" }} />
+                          </div>
+                          <div>
+                            <div style={{ fontSize:9,color:"#B0A090",textTransform:"uppercase",letterSpacing:"1px",marginBottom:6 }}>Réel</div>
+                            <div style={{ display:"flex",gap:6,marginBottom:6 }}>
+                              <button onClick={()=>{ updMenu(iso,balKey+"_ok",true); if(realVal) updMenu(iso,realSlot,""); }}
+                                style={{ padding:"5px 14px",borderRadius:20,border:"1.5px solid "+(asPlanned?"#7A9E7E":"#E8DDD0"),background:asPlanned?"#7A9E7E":"white",color:asPlanned?"white":"#9B8B7E",fontSize:11,cursor:"pointer",fontFamily:"inherit",fontWeight:600,transition:"all 0.15s" }}>
+                                ✓ Comme prévu
+                              </button>
+                              <button onClick={()=>updMenu(iso,balKey+"_ok",false)}
+                                style={{ padding:"5px 14px",borderRadius:20,border:"1.5px solid "+(asPlanned===false?"#C4724A":"#E8DDD0"),background:asPlanned===false?"#C4724A":"white",color:asPlanned===false?"white":"#9B8B7E",fontSize:11,cursor:"pointer",fontFamily:"inherit",fontWeight:600,transition:"all 0.15s" }}>
+                                ✗ Autre chose
+                              </button>
+                            </div>
+                            {asPlanned===false && (
+                              <div style={{ marginBottom:6 }}>
+                                <datalist id={listIdR}>{realSugg.map((s,j)=><option key={j} value={s}/>)}</datalist>
+                                <input list={listIdR} value={realVal} onChange={e=>updMenu(iso,realSlot,e.target.value)}
+                                  placeholder="Qu'est-ce que tu as mangé ?"
+                                  style={{ width:"100%",border:"none",borderBottom:"1px solid #C4724A44",background:"transparent",fontFamily:"inherit",fontSize:13,color:"#C4724A",outline:"none",padding:"4px 0" }} />
+                              </div>
+                            )}
+                            {(asPlanned===true||asPlanned===false) && (
+                              <div style={{ display:"flex",gap:6,alignItems:"center",marginTop:4 }}>
+                                <span style={{ fontSize:10,color:"#9B8B7E" }}>Évaluation :</span>
+                                {["green","yellow","red"].map(v=>(
+                                  <button key={v} onClick={()=>updMenu(iso,balKey,bal===v?null:v)}
+                                    style={{ fontSize:15,padding:"2px 6px",borderRadius:20,border:"1.5px solid "+(bal===v?"#1A1410":"transparent"),background:bal===v?"#F5F0E8":"transparent",cursor:"pointer",opacity:bal&&bal!==v?0.4:1,transition:"all 0.15s" }}>
+                                    {balMap[v]}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+// ── SELFCARE TAB ──────────────────────────────────────────────────────────────
+const RoutineBlock = ({ title, emoji, routineKey, items, data, streakVal, saveKey, store, setStore, isToday, updDay, editKey, setEditKey, newEmoji, setNewEmoji, newLabel, setNewLabel }) => {
+  const done  = items.filter(it=>data[it.key]).length;
+  const total = items.length;
+  const pct   = total>0 ? Math.round((done/total)*100) : 0;
+  const col   = done===total&&total>0?"#7A9E7E":done>0?"#C9A84C":"#C4724A";
+  const streakEmoji = streakVal>=14?"🔥🔥":streakVal>=7?"🔥":streakVal>=1?"⚡":"";
+  const saveItems = (r) => setStore(prev=>({...prev,[saveKey]:r}));
+  const isEditing = editKey===saveKey;
+
+  return (
+    <div style={{ marginBottom:20 }}>
+      <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10 }}>
+        <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+          <span style={{ fontSize:18 }}>{emoji}</span>
+          <span style={{ fontSize:13,fontWeight:700,color:"#1A1410" }}>{title}</span>
+          {streakVal>0 && <span style={{ fontSize:11,color:"#C9A84C",fontWeight:600 }}>{streakEmoji} {streakVal}j</span>}
+        </div>
+        <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+          <span style={{ fontSize:12,fontWeight:700,color:col }}>{done}/{total}</span>
+          <button onClick={()=>setEditKey(isEditing?null:saveKey)}
+            style={{ background:isEditing?"#1A1410":"#F5F0E8",border:"none",borderRadius:8,padding:"4px 10px",fontSize:11,cursor:"pointer",color:isEditing?"white":"#9B8B7E",fontFamily:"inherit",fontWeight:500 }}>
+            {isEditing?"✓ OK":"✏️"}
+          </button>
+        </div>
+      </div>
+      <div style={{ height:4,background:"#F5F0E8",borderRadius:20,overflow:"hidden",marginBottom:10 }}>
+        <div style={{ height:"100%",width:pct+"%",background:col,borderRadius:20,transition:"width 0.4s" }} />
+      </div>
+      {/* Week history */}
+      <div style={{ display:"flex",gap:5,marginBottom:12,alignItems:"flex-end" }}>
+        {last7().map((iso,i)=>{
+          const d = store.days[iso];
+          const data2 = d ? (d[routineKey]||{}) : {};
+          const d2 = items.filter(it=>data2[it.key]).length;
+          const p2 = items.length>0 ? d2/items.length : 0;
+          const isT = iso===todayKey();
+          const c2 = p2>=0.8?"#7A9E7E":p2>0?"#C9A84C":"#E8DDD0";
+          return (
+            <div key={iso} style={{ flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3 }}>
+              <div style={{ width:"100%",height:24,display:"flex",alignItems:"flex-end" }}>
+                <div style={{ width:"100%",height:Math.max(p2*100,p2>0?15:6)+"%",minHeight:3,background:c2,borderRadius:3,opacity:isT?1:0.65,transition:"height 0.3s" }} />
+              </div>
+              <div style={{ fontSize:8,color:isT?"#C4724A":"#9B8B7E",fontWeight:isT?700:400 }}>{DAYS_SHORT[i]}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ background:"white",borderRadius:16,border:"1px solid #E8DDD0",padding:"4px 0" }}>
+        {items.map((it,idx)=>{
+          const checked=data[it.key];
+          return (
+            <div key={it.key} style={{ display:"flex",alignItems:"center",gap:8,borderBottom:idx<items.length-1?"1px solid #F5F0E8":"none" }}>
+              <div onClick={()=>isToday&&updDay(d=>{if(!d[routineKey])d[routineKey]={}; d[routineKey][it.key]=!d[routineKey][it.key];})}
+                style={{ flex:1,display:"flex",alignItems:"center",gap:10,padding:"10px 12px",cursor:isToday?"pointer":"default" }}
+                onMouseEnter={e=>{if(isToday)e.currentTarget.style.background="#F5F0E8";}}
+                onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
+                <span style={{ fontSize:17,flexShrink:0 }}>{it.emoji}</span>
+                <div style={{ width:18,height:18,borderRadius:5,border:checked?"none":"1.5px solid #E8DDD0",background:checked?"#7A9E7E":"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"white",flexShrink:0,transition:"all 0.2s" }}>{checked&&"✓"}</div>
+                <span style={{ fontSize:13,color:checked?"#9B8B7E":"#1A1410",textDecoration:checked?"line-through":"none" }}>{it.label}</span>
+              </div>
+              {isEditing && (
+                <button onClick={()=>saveItems(items.filter(x=>x.key!==it.key))}
+                  style={{ background:"#FEF0F0",border:"1.5px solid #FECACA",borderRadius:9,padding:"5px 9px",color:"#E05252",fontSize:12,cursor:"pointer",flexShrink:0,marginRight:10 }}>✕</button>
+              )}
+            </div>
+          );
+        })}
+        {isEditing && (
+          <div style={{ display:"flex",gap:7,alignItems:"center",padding:"10px 14px",background:"#F5F0E8",borderRadius:"0 0 16px 16px" }}>
+            <input value={newEmoji} onChange={e=>setNewEmoji(e.target.value)}
+              style={{ width:34,border:"1.5px solid #E8DDD0",borderRadius:7,padding:"5px",fontFamily:"inherit",fontSize:15,textAlign:"center",outline:"none",background:"white" }} />
+            <input value={newLabel} onChange={e=>setNewLabel(e.target.value)}
+              onKeyDown={e=>{ if(e.key==="Enter"&&newLabel.trim()){ saveItems([...items,{key:"c_"+Date.now(),emoji:newEmoji,label:newLabel.trim()}]); setNewLabel(""); setNewEmoji("✨"); }}}
+              placeholder="Nouveau rituel..."
+              style={{ flex:1,border:"1.5px solid #E8DDD0",borderRadius:7,padding:"6px 10px",fontFamily:"inherit",fontSize:13,outline:"none",background:"white" }} />
+            <button onClick={()=>{ if(!newLabel.trim()) return; saveItems([...items,{key:"c_"+Date.now(),emoji:newEmoji,label:newLabel.trim()}]); setNewLabel(""); setNewEmoji("✨"); }}
+              style={{ background:"#1A1410",border:"none",borderRadius:8,padding:"6px 12px",color:"white",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:500 }}>+</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const SelfCareTab = ({ store, setStore, day, updDay, isToday, editKey, setEditKey, newEmoji, setNewEmoji, newLabel, setNewLabel }) => {
+  const morningItems = store.morningItems || DEFAULT_MORNING;
+  const eveningItems = store.eveningItems || DEFAULT_EVENING;
+  const morning = day.morning || {};
+  const evening = day.evening || {};
+
+  const calcStreak = (routineKey, items) => {
+    let streak = 0;
+    const days = [...last7()].reverse();
+    for (const iso of days) {
+      const d = store.days[iso];
+      if (!d) break;
+      const data = d[routineKey] || {};
+      const done=items.filter(it=>data[it.key]).length; if(items.length>0&&done/items.length>=0.8) streak++; else break;
+    }
+    return streak;
+  };
+
+  return (
+    <div>
+      <RoutineBlock title="Morning routine" emoji="🌅" routineKey="morning" items={morningItems} data={morning}
+        streakVal={calcStreak("morning",morningItems)} saveKey="morningItems"
+        store={store} setStore={setStore} isToday={isToday} updDay={updDay}
+        editKey={editKey} setEditKey={setEditKey} newEmoji={newEmoji} setNewEmoji={setNewEmoji} newLabel={newLabel} setNewLabel={setNewLabel} />
+      <RoutineBlock title="Night routine" emoji="🌙" routineKey="evening" items={eveningItems} data={evening}
+        streakVal={calcStreak("evening",eveningItems)} saveKey="eveningItems"
+        store={store} setStore={setStore} isToday={isToday} updDay={updDay}
+        editKey={editKey} setEditKey={setEditKey} newEmoji={newEmoji} setNewEmoji={setNewEmoji} newLabel={newLabel} setNewLabel={setNewLabel} />
+
+      {/* SOS Calm Rituals */}
+      {(() => {
+        const SOS_ITEMS = [
+          { key:"dnd",      emoji:"📵", label:"Mode avion / DND" },
+          { key:"breath",   emoji:"🧘‍♀️", label:"5 min de respiration" },
+          { key:"walk",     emoji:"🚶‍♀️", label:"Marche 10 min dehors" },
+          { key:"tea",      emoji:"🍵", label:"Préparer un thé chaud" },
+          { key:"shower",   emoji:"🚿", label:"Longue douche" },
+          { key:"read",     emoji:"📖", label:"Lire quelques pages" },
+          { key:"call",     emoji:"📞", label:"Appeler une amie" },
+          { key:"dump",     emoji:"✍️", label:"Brain dump dans le carnet" },
+          { key:"noscreen", emoji:"🖥️", label:"Écrans éteints 30 min" },
+        ];
+        const sosData = day.sos || {};
+        const sosDone = SOS_ITEMS.filter(it => sosData[it.key]).length;
+        const [sosOpen, setSosOpen] = React.useState(false);
+
+        return (
+          <div style={{ marginTop:8 }}>
+            <button onClick={()=>setSosOpen(o=>!o)}
+              style={{ width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",background:sosOpen?"#1A1410":"white",border:"1.5px solid "+(sosOpen?"#1A1410":"#E8DDD0"),borderRadius:16,cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s" }}>
+              <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+                <span style={{ fontSize:20 }}>🆘</span>
+                <div style={{ textAlign:"left" }}>
+                  <div style={{ fontSize:13,fontWeight:700,color:sosOpen?"#F5F0E8":"#1A1410" }}>SOS calm rituals</div>
+                  <div style={{ fontSize:11,color:sosOpen?"#9B8B7E":"#9B8B7E",marginTop:1 }}>Pour quand ça déborde</div>
+                </div>
+              </div>
+              <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                {sosDone>0 && <span style={{ fontSize:11,fontWeight:600,color:"#7A9E7E",background:"#F0FAF0",borderRadius:20,padding:"2px 8px" }}>{sosDone} fait{sosDone>1?"s":""}</span>}
+                <span style={{ fontSize:16,color:sosOpen?"#C4724A":"#9B8B7E",transition:"transform 0.2s",display:"inline-block",transform:sosOpen?"rotate(180deg)":"rotate(0deg)" }}>›</span>
+              </div>
+            </button>
+
+            {sosOpen && (
+              <div style={{ background:"white",border:"1.5px solid #E8DDD0",borderTop:"none",borderRadius:"0 0 16px 16px",padding:"4px 0",marginTop:-2 }}>
+                <div style={{ padding:"10px 18px 8px",fontSize:12,color:"#9B8B7E",fontStyle:"italic",borderBottom:"1px solid #F5F0E8" }}>
+                  Coche ce que tu fais dans le moment 🌿
+                </div>
+                {SOS_ITEMS.map((it,idx)=>{
+                  const checked = sosData[it.key];
+                  return (
+                    <div key={it.key}
+                      onClick={()=>isToday&&updDay(d=>{ if(!d.sos)d.sos={}; d.sos[it.key]=!d.sos[it.key]; })}
+                      style={{ display:"flex",alignItems:"center",gap:10,padding:"11px 18px",borderBottom:idx<SOS_ITEMS.length-1?"1px solid #F5F0E8":"none",cursor:isToday?"pointer":"default",background:checked?"#F9FDF9":"transparent",transition:"background 0.15s" }}>
+                      <span style={{ fontSize:18,flexShrink:0 }}>{it.emoji}</span>
+                      <div style={{ width:18,height:18,borderRadius:5,border:checked?"none":"1.5px solid #E8DDD0",background:checked?"#7A9E7E":"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"white",flexShrink:0,transition:"all 0.2s" }}>{checked&&"✓"}</div>
+                      <span style={{ fontSize:13,color:checked?"#7A9E7E":"#1A1410",fontWeight:checked?500:400 }}>{it.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+    </div>
+  );
+};
+
+// ── SPORT TAB ──────────────────────────────────────────────────────────────────
+const SportTab = ({ store, setStore, day, updDay, isToday }) => {
+  const [monday,     setMonday]     = useState(getMonday());
+  const [modal,      setModal]      = useState(null);
+  const [subView,    setSubView]    = useState("week"); // "week" | "template"
+  const [editingDay, setEditingDay] = useState(null);
+  const [editGoals,  setEditGoals]  = useState(false);
+
+  const wKey          = weekKey(monday);
+  const isCurrentWeek = weekKey(getMonday()) === wKey;
+  const today         = todayDayIdx();
+
+  // NO auto-apply — show prompt instead
+  const weekExists = !!store?.sport?.weeks?.[wKey];
+
+  const weekData  = store?.sport?.weeks?.[wKey] || {};
+  const updSport  = (fn) => setStore(prev => { const next=JSON.parse(JSON.stringify(prev)); fn(next.sport); return next; });
+
+  const allSessions     = Object.values(weekData).flat();
+  const statDone        = allSessions.filter(s=>s.status==="done").length;
+  const statMissed      = allSessions.filter(s=>s.status==="missed").length;
+
+  // ── weekly goals ─────────────────────────────────────────────────────────────
+  const DEFAULT_GOALS   = { sessions:4, steps:70000 };
+  const weekGoals       = store?.sport?.weekGoals?.[wKey] || DEFAULT_GOALS;
+  const weekStepsTotal  = Array.from({length:7},(_,i)=>{
+    const d=new Date(monday); d.setDate(d.getDate()+i);
+    return store.days[d.toISOString().slice(0,10)]?.steps||0;
+  }).reduce((a,b)=>a+b,0);
+  const sessionsReached = statDone >= weekGoals.sessions;
+  const stepsReached    = weekStepsTotal >= weekGoals.steps;
+  const sessionsPct     = Math.min(statDone/(weekGoals.sessions||1),1);
+  const stepsPct        = Math.min(weekStepsTotal/(weekGoals.steps||1),1);
+  const updGoals = (vals) => setStore(prev=>{
+    const next=JSON.parse(JSON.stringify(prev));
+    if(!next.sport.weekGoals) next.sport.weekGoals={};
+    next.sport.weekGoals[wKey]={...DEFAULT_GOALS,...(next.sport.weekGoals[wKey]||{}),...vals};
+    return next;
+  });
+
+  const saveModal = (vals) => {
+    updSport(s=>{
+      if(modal.isTemplate){
+        if(!s.template[modal.dayIdx]) s.template[modal.dayIdx]=[];
+        if(modal.session){ const idx=s.template[modal.dayIdx].findIndex(x=>x.id===modal.session.id); if(idx>=0) s.template[modal.dayIdx][idx]={...modal.session,...vals}; }
+        else s.template[modal.dayIdx].push({id:`t${Date.now()}`,...vals});
+      } else {
+        if(!s.weeks[wKey]) s.weeks[wKey]={};
+        if(!s.weeks[wKey][modal.dayIdx]) s.weeks[wKey][modal.dayIdx]=[];
+        if(modal.session){ const idx=s.weeks[wKey][modal.dayIdx].findIndex(x=>x.id===modal.session.id); if(idx>=0) s.weeks[wKey][modal.dayIdx][idx]={...modal.session,...vals}; }
+        else s.weeks[wKey][modal.dayIdx].push(newSession(vals.type,vals.hour,vals.subtype,vals.km));
+      }
+    });
+    setModal(null);
+  };
+  const deleteModal = () => {
+    updSport(s=>{
+      if(modal.isTemplate) s.template[modal.dayIdx]=(s.template[modal.dayIdx]||[]).filter(x=>x.id!==modal.session.id);
+      else s.weeks[wKey][modal.dayIdx]=(s.weeks[wKey][modal.dayIdx]||[]).filter(x=>x.id!==modal.session.id);
+    });
+    setModal(null);
+  };
+
+  return (
+    <div>
+      {/* ── NAV ── */}
+      <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:10 }}>
+        <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+          <button onClick={()=>{const m=new Date(monday);m.setDate(m.getDate()-7);setMonday(m);}}
+            style={{ background:"white",border:"1.5px solid #E8DDD0",borderRadius:9,padding:"6px 11px",cursor:"pointer",fontSize:14,color:"#9B8B7E" }}>‹</button>
+          <span style={{ fontSize:13,fontWeight:500 }}>
+            {isCurrentWeek?<span style={{ color:"#C4724A" }}>Cette semaine</span>:null}
+            <span style={{ fontSize:11,color:"#9B8B7E" }}>{isCurrentWeek?" · ":""}{fmtWeekRange(monday)}</span>
+          </span>
+          <button onClick={()=>{const m=new Date(monday);m.setDate(m.getDate()+7);setMonday(m);}}
+            style={{ background:"white",border:"1.5px solid #E8DDD0",borderRadius:9,padding:"6px 11px",cursor:"pointer",fontSize:14,color:"#9B8B7E" }}>›</button>
+          {!isCurrentWeek&&<button onClick={()=>setMonday(getMonday())} style={{ background:"#C4724A",border:"none",borderRadius:9,padding:"6px 11px",color:"white",cursor:"pointer",fontSize:11,fontFamily:"inherit",fontWeight:500 }}>Auj.</button>}
+        </div>
+        <button onClick={()=>setSubView(subView==="week"?"template":"week")}
+          style={{ background:subView==="template"?"#FEF9EC":"white",border:`1.5px solid ${subView==="template"?"#C9A84C":"#E8DDD0"}`,borderRadius:9,padding:"6px 12px",cursor:"pointer",fontSize:12,fontFamily:"inherit",fontWeight:500,color:subView==="template"?"#C9A84C":"#9B8B7E" }}>
+          {subView==="template"?"← Planning":"🗂 Mon modèle"}
+        </button>
+      </div>
+
+      {/* ── EMPTY WEEK PROMPT (no auto-apply) ── */}
+      {subView==="week" && !weekExists && (
+        <div style={{ background:"#FEF9EC",border:"1.5px solid #F5D97A",borderRadius:14,padding:"18px 20px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap" }}>
+          <div>
+            <div style={{ fontSize:13,fontWeight:600,color:"#6B4F3A",marginBottom:3 }}>Nouvelle semaine 🌱</div>
+            <div style={{ fontSize:12,color:"#9B8B7E" }}>Appliquer ton modèle ou partir de zéro ?</div>
+          </div>
+          <div style={{ display:"flex",gap:8 }}>
+            <button onClick={()=>updSport(s=>{if(!s.weeks[wKey])s.weeks[wKey]=applyTemplate(s.template);})}
+              style={{ background:"#C9A84C",border:"none",borderRadius:10,padding:"8px 14px",color:"white",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:500 }}>
+              Appliquer le modèle
+            </button>
+            <button onClick={()=>updSport(s=>{if(!s.weeks[wKey])s.weeks[wKey]={0:[],1:[],2:[],3:[],4:[],5:[],6:[]};})}
+              style={{ background:"white",border:"1.5px solid #E8DDD0",borderRadius:10,padding:"8px 14px",color:"#9B8B7E",fontSize:12,cursor:"pointer",fontFamily:"inherit" }}>
+              Semaine vide
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── OBJECTIFS + STATS FUSIONNÉS ── */}
+      {subView==="week" && weekExists && (
+        <div style={{ background:"white",borderRadius:16,border:"1px solid #E8DDD0",padding:"14px 18px",marginBottom:16 }}>
+          <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12 }}>
+            <div style={{ display:"flex",alignItems:"center",gap:7 }}>
+              <span style={{ fontSize:15 }}>🎯</span>
+              <span style={{ fontSize:13,fontWeight:600 }}>Objectifs · semaine</span>
+            </div>
+            <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+              {/* mini stats */}
+              <span style={{ fontSize:11,color:"#9B8B7E" }}>{statDone} faites · {statMissed} ratées</span>
+              <button onClick={()=>setEditGoals(!editGoals)}
+                style={{ background:editGoals?"#1A1410":"#F5F0E8",border:"none",borderRadius:8,padding:"4px 10px",fontSize:11,cursor:"pointer",color:editGoals?"white":"#9B8B7E",fontFamily:"inherit",fontWeight:500,transition:"all 0.15s" }}>
+                {editGoals?"✓ OK":"✏️"}
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+            {/* Séances */}
+            <div>
+              <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5 }}>
+                <div style={{ display:"flex",alignItems:"center",gap:5 }}>
+                  <span style={{ fontSize:13 }}>💪</span>
+                  <span style={{ fontSize:12,fontWeight:500 }}>Séances</span>
+                </div>
+                <div style={{ display:"flex",alignItems:"center",gap:5 }}>
+                  <span style={{ fontSize:13,fontWeight:700,color:sessionsReached?"#7A9E7E":"#1A1410" }}>{statDone}</span>
+                  <span style={{ fontSize:11,color:"#9B8B7E" }}>/</span>
+                  {editGoals
+                    ? <input type="number" min="1" max="14" value={weekGoals.sessions} onChange={e=>updGoals({sessions:Math.max(1,parseInt(e.target.value)||1)})}
+                        style={{ width:36,border:"1.5px solid #E8DDD0",borderRadius:6,padding:"2px 6px",fontFamily:"inherit",fontSize:12,textAlign:"center",outline:"none" }} />
+                    : <span style={{ fontSize:11,color:"#9B8B7E" }}>{weekGoals.sessions}</span>
+                  }
+                  {sessionsReached&&<span>✅</span>}
+                </div>
+              </div>
+              <div style={{ height:5,background:"#F5F0E8",borderRadius:20,overflow:"hidden" }}>
+                <div style={{ height:"100%",width:`${sessionsPct*100}%`,background:sessionsReached?"#7A9E7E":"#C4724A",borderRadius:20,transition:"width 0.4s ease" }} />
+              </div>
+            </div>
+
+            {/* Pas */}
+            <div>
+              <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5 }}>
+                <div style={{ display:"flex",alignItems:"center",gap:5 }}>
+                  <span style={{ fontSize:13 }}>🚶‍♀️</span>
+                  <span style={{ fontSize:12,fontWeight:500 }}>Pas</span>
+                </div>
+                <div style={{ display:"flex",alignItems:"center",gap:5 }}>
+                  <span style={{ fontSize:13,fontWeight:700,color:stepsReached?"#7A9E7E":"#1A1410" }}>{weekStepsTotal.toLocaleString("fr-FR")}</span>
+                  <span style={{ fontSize:11,color:"#9B8B7E" }}>/</span>
+                  {editGoals
+                    ? <input type="number" min="1000" step="5000" value={weekGoals.steps} onChange={e=>updGoals({steps:Math.max(1000,parseInt(e.target.value)||1000)})}
+                        style={{ width:68,border:"1.5px solid #E8DDD0",borderRadius:6,padding:"2px 6px",fontFamily:"inherit",fontSize:12,textAlign:"center",outline:"none" }} />
+                    : <span style={{ fontSize:11,color:"#9B8B7E" }}>{weekGoals.steps.toLocaleString("fr-FR")}</span>
+                  }
+                  {stepsReached&&<span>✅</span>}
+                </div>
+              </div>
+              <div style={{ height:5,background:"#F5F0E8",borderRadius:20,overflow:"hidden" }}>
+                <div style={{ height:"100%",width:`${stepsPct*100}%`,background:stepsReached?"#7A9E7E":"#C9A84C",borderRadius:20,transition:"width 0.4s ease" }} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TEMPLATE VIEW ── */}
+      {subView==="template" && (
+        <div>
+          <div style={{ background:"#FEF9EC",border:"1.5px solid #F5D97A",borderRadius:12,padding:"11px 16px",marginBottom:16,fontSize:12,color:"#6B4F3A",display:"flex",gap:8 }}>
+            <span>💡</span><span>Ton modèle de base — appliqué à la demande chaque nouvelle semaine.</span>
+          </div>
+          <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+            {DAYS_FULL.map((dayName,i)=>(
+              <div key={i} style={{ background:"white",borderRadius:14,padding:"14px 18px",border:"1px solid #E8DDD0" }}>
+                <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:(store.sport.template[i]||[]).length>0?10:0 }}>
+                  <span style={{ fontSize:11,fontWeight:700,color:"#9B8B7E",width:32 }}>{DAYS_SHORT[i]}</span>
+                  <span style={{ flex:1,fontSize:13,fontWeight:500 }}>{dayName}</span>
+                  <button onClick={()=>setModal({dayIdx:i,session:null,isTemplate:true})}
+                    style={{ background:"#F5F0E8",border:"none",borderRadius:7,padding:"4px 9px",fontSize:11,cursor:"pointer",color:"#9B8B7E",fontFamily:"inherit" }}>+ Ajouter</button>
+                </div>
+                <div style={{ display:"flex",flexDirection:"column",gap:6 }}>
+                  {(store.sport.template[i]||[]).map(s=>(
+                    <SessionRow key={s.id} session={s} onClick={()=>setModal({dayIdx:i,session:s,isTemplate:true})} />
+                  ))}
+                  {(store.sport.template[i]||[]).length===0&&<span style={{ fontSize:12,color:"#E8DDD0",paddingLeft:4 }}>Repos</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── WEEK LIST VIEW ── */}
+      {subView==="week" && weekExists && (
+        <div>
+          <div style={{ display:"flex",justifyContent:"flex-end",marginBottom:10 }}>
+            <button onClick={()=>updSport(s=>{s.weeks[wKey]=applyTemplate(s.template);})}
+              style={{ background:"white",border:"1.5px solid #E8DDD0",borderRadius:9,padding:"6px 12px",fontSize:11,cursor:"pointer",color:"#9B8B7E",fontFamily:"inherit" }}>
+              ↺ Réappliquer le modèle
+            </button>
+          </div>
+
+          <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+            {DAYS_FULL.map((dayName,i)=>{
+              const sessions  = weekData[i]||[];
+              const isToday_  = isCurrentWeek && i===today;
+              const isPast    = isCurrentWeek && i<today;
+              const dateNum   = (()=>{ const d=new Date(monday); d.setDate(d.getDate()+i); return d.getDate(); })();
+              const hasDone   = sessions.some(s=>s.status==="done");
+              const allDone   = sessions.length>0 && sessions.filter(s=>s.type!=="rest").every(s=>s.status==="done");
+
+              const dayIso   = (()=>{ const d=new Date(monday); d.setDate(d.getDate()+i); return d.toISOString().slice(0,10); })();
+              const daySteps = store.days[dayIso]?.steps||0;
+              const GOAL     = 10000;
+              const stepsPct = Math.min(daySteps/GOAL,1);
+              const stepsCol = daySteps>=GOAL?"#7A9E7E":daySteps>=6000?"#C9A84C":daySteps>0?"#C4724A":"#E8DDD0";
+              const updStepsInline = (val) => setStore(prev=>{
+                const next=JSON.parse(JSON.stringify(prev));
+                if(!next.days[dayIso]) next.days[dayIso]=EMPTY_DAY();
+                next.days[dayIso].steps=Math.max(0,val);
+                return next;
+              });
+
+              return (
+                <div key={i} style={{ background:"white",borderRadius:16,border:isToday_?"2px solid #C4724A":"1.5px solid #E8DDD0",overflow:"hidden",opacity:isPast&&!hasDone&&!daySteps?0.7:1,transition:"all 0.15s" }}>
+                  {/* Day header */}
+                  <div style={{ padding:"12px 16px",display:"flex",alignItems:"center",gap:10,borderBottom:"1px solid #F5F0E8" }}>
+                    <div style={{ width:42,height:42,borderRadius:12,background:isToday_?"#1A1410":allDone?"#F0FAF0":"#F5F0E8",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+                      <div style={{ fontSize:9,fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",color:isToday_?"#C4724A":allDone?"#7A9E7E":"#9B8B7E" }}>{DAYS_SHORT[i]}</div>
+                      <div style={{ fontSize:15,fontWeight:700,color:isToday_?"white":allDone?"#7A9E7E":"#1A1410",lineHeight:1.2 }}>{dateNum}</div>
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:13,fontWeight:600,color:isToday_?"#C4724A":"#1A1410" }}>
+                        {dayName}
+                        {isToday_&&<span style={{ fontSize:10,background:"#C4724A",color:"white",borderRadius:20,padding:"1px 7px",marginLeft:7,fontWeight:600 }}>Aujourd'hui</span>}
+                      </div>
+                      <div style={{ fontSize:11,color:"#9B8B7E",marginTop:1 }}>
+                        {sessions.length===0?"Repos":sessions.length===1?"1 séance":`${sessions.length} séances`}
+                        {sessions.filter(s=>s.status==="done").length>0&&<span style={{ color:"#7A9E7E",marginLeft:5 }}>· {sessions.filter(s=>s.status==="done").length} faite{sessions.filter(s=>s.status==="done").length>1?"s":""}</span>}
+                      </div>
+                    </div>
+                    <button onClick={()=>setModal({dayIdx:i,session:null,isTemplate:false})}
+                      style={{ background:"#F5F0E8",border:"none",borderRadius:9,padding:"6px 12px",fontSize:12,cursor:"pointer",color:"#9B8B7E",fontFamily:"inherit",fontWeight:500,transition:"all 0.15s",flexShrink:0 }}
+                      onMouseEnter={e=>{e.currentTarget.style.background="#E8DDD0";}}
+                      onMouseLeave={e=>{e.currentTarget.style.background="#F5F0E8";}}>
+                      + Séance
+                    </button>
+                  </div>
+                  {/* Sessions list */}
+                  {sessions.length>0 && (
+                    <div style={{ padding:"8px 12px",display:"flex",flexDirection:"column",gap:6 }}>
+                      {sessions.map(s=>(
+                        <SessionRow key={s.id} session={s}
+                          onClick={()=>setModal({dayIdx:i,session:s,isTemplate:false})}
+                          onQuickDone={()=>updSport(sp=>{
+                            const w=sp.weeks[wKey]; if(!w||!w[i]) return;
+                            const idx=w[i].findIndex(x=>x.id===s.id);
+                            if(idx<0) return;
+                            w[i][idx].status = w[i][idx].status==="done" ? "planned" : "done";
+                          })}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {/* Steps inline */}
+                  <div style={{ padding:"10px 16px",borderTop:"1px solid #F5F0E8",display:"flex",alignItems:"center",gap:10 }}>
+                    <span style={{ fontSize:15 }}>🚶‍♀️</span>
+                    <div style={{ flex:1 }}>
+                      <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4 }}>
+                        <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+                          <input
+                            type="number" min="0" max="99999"
+                            value={daySteps||""}
+                            onChange={e=>updStepsInline(parseInt(e.target.value)||0)}
+                            placeholder="Pas du jour..."
+                            style={{ border:"none",background:"transparent",fontFamily:"inherit",fontSize:12,color:"#1A1410",outline:"none",width:90 }}
+                          />
+                          <span style={{ fontSize:11,color:"#9B8B7E" }}>/ 10 000</span>
+                        </div>
+                        <span style={{ fontSize:11,fontWeight:600,color:stepsCol }}>
+                          {daySteps>=GOAL?"🎉 Objectif !":daySteps>0?`${Math.round(stepsPct*100)}%`:"—"}
+                        </span>
+                      </div>
+                      <div style={{ height:4,background:"#F5F0E8",borderRadius:20,overflow:"hidden" }}>
+                        <div style={{ height:"100%",width:`${stepsPct*100}%`,background:daySteps>=GOAL?"#7A9E7E":daySteps>=6000?"#C9A84C":daySteps>0?"#C4724A":"transparent",borderRadius:20,transition:"width 0.3s" }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+
+        </div>
+      )}
+
+            {modal&&<SessionModal session={modal.session} dayIdx={modal.dayIdx} isTemplate={modal.isTemplate} onClose={()=>setModal(null)} onSave={saveModal} onDelete={deleteModal} />}
+    </div>
+  );
+};
+
+// ── BILAN TAB ──────────────────────────────────────────────────────────────────
+const BilanTab = ({ store }) => {
+  const [period, setPeriod] = React.useState(30); // 30 or 7
+
+  // Build last N days array
+  const days = Array.from({ length: period }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (period - 1 - i));
+    return d.toISOString().slice(0, 10);
+  });
+
+  // Score per day
+  const scores = days.map(k => {
+    const d   = store.days[k];
+    const idx = (() => { const dd = new Date(k+"T12:00:00").getDay(); return dd===0?6:dd-1; })();
+    const wk  = weekKey(getMonday(new Date(k+"T12:00:00")));
+    const s   = calcScore(d, store.sport?.weeks?.[wk], idx, store);
+    return { key:k, score:s, hasData:!!d };
+  });
+
+  const filled    = scores.filter(s => s.hasData);
+  const avgScore  = filled.length ? Math.round(filled.reduce((a,b)=>a+b.score,0)/filled.length) : 0;
+  const bestDay   = filled.length ? filled.reduce((a,b)=>a.score>b.score?a:b) : null;
+  const daysOver75= filled.filter(s=>s.score>=75).length;
+
+  // Sport stats
+  const sportSessions = days.flatMap(k => {
+    const idx = (() => { const dd=new Date(k+"T12:00:00").getDay(); return dd===0?6:dd-1; })();
+    const wk  = weekKey(getMonday(new Date(k+"T12:00:00")));
+    return (store.sport?.weeks?.[wk]?.[idx] || []).map(s=>({...s, date:k}));
+  });
+  const sportDone   = sportSessions.filter(s=>s.status==="done" && s.type!=="rest").length;
+  const sportTypes  = sportSessions.filter(s=>s.status==="done" && s.type!=="rest").reduce((acc,s)=>{
+    acc[s.type]=(acc[s.type]||0)+1; return acc;
+  },{});
+  const topSport    = Object.entries(sportTypes).sort((a,b)=>b[1]-a[1])[0];
+
+  // Mood distribution
+  const moodCounts = filled.reduce((acc, {key}) => {
+    const mood = store.days[key]?.mood;
+    if(mood) { acc[mood]=(acc[mood]||0)+1; }
+    return acc;
+  }, {});
+  const topMood = Object.entries(moodCounts).sort((a,b)=>b[1]-a[1])[0];
+
+  // Streak record (longest consecutive sport days in period)
+  let maxStreak=0, curStreak=0;
+  days.forEach(k=>{
+    const idx=(() => { const dd=new Date(k+"T12:00:00").getDay(); return dd===0?6:dd-1; })();
+    const wk=weekKey(getMonday(new Date(k+"T12:00:00")));
+    const sessions=store.sport?.weeks?.[wk]?.[idx]||[];
+    if(sessions.some(s=>s.status==="done"&&s.type!=="rest")){ curStreak++; maxStreak=Math.max(maxStreak,curStreak); }
+    else curStreak=0;
+  });
+
+  // Self-care streak record
+  const morningItems = store.morningItems || DEFAULT_MORNING;
+  let scMaxStreak=0, scCur=0;
+  days.forEach(k=>{
+    const d=store.days[k];
+    const morning=d?.morning||{};
+    const done=morningItems.filter(it=>morning[it.key]).length;
+    if(d && morningItems.length>0 && done/morningItems.length>=0.8){ scCur++; scMaxStreak=Math.max(scMaxStreak,scCur); }
+    else scCur=0;
+  });
+
+  // Scores by week for sparkline
+  const weekBuckets = [];
+  for(let i=0;i<Math.ceil(period/7);i++){
+    const wDays = days.slice(i*7,(i+1)*7);
+    const wScores = wDays.map(k=>scores.find(s=>s.key===k)).filter(s=>s.hasData);
+    if(wScores.length) weekBuckets.push(Math.round(wScores.reduce((a,b)=>a+b.score,0)/wScores.length));
+    else weekBuckets.push(0);
+  }
+
+  const sc = scoreColor(avgScore);
+
+  return (
+    <div>
+      {/* Period toggle */}
+      <div style={{ display:"flex",gap:8,marginBottom:20 }}>
+        {[7,30].map(p=>(
+          <button key={p} onClick={()=>setPeriod(p)}
+            style={{ flex:1,padding:"9px",borderRadius:12,border:"1.5px solid "+(period===p?"#1A1410":"#E8DDD0"),background:period===p?"#1A1410":"white",color:period===p?"white":"#9B8B7E",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all 0.15s" }}>
+            {p===7?"7 derniers jours":"30 derniers jours"}
+          </button>
+        ))}
+      </div>
+
+      {/* Score moyen hero */}
+      <div style={{ background:"#1A1410",borderRadius:20,padding:"22px 24px",marginBottom:16,position:"relative",overflow:"hidden" }}>
+        <div style={{ position:"absolute",top:-30,right:-30,width:120,height:120,borderRadius:"50%",background:"#C4724A",opacity:0.12 }}/>
+        <div style={{ fontSize:11,color:"#9B8B7E",letterSpacing:"2px",textTransform:"uppercase",marginBottom:12 }}>Score moyen sur {period} jours</div>
+        <div style={{ display:"flex",alignItems:"flex-end",gap:16 }}>
+          <div>
+            <span style={{ fontFamily:"Georgia,serif",fontSize:52,fontWeight:700,color:sc,lineHeight:1 }}>{avgScore}</span>
+            <span style={{ fontSize:16,color:"#9B8B7E",marginLeft:4 }}>%</span>
+          </div>
+          <div style={{ paddingBottom:8 }}>
+            <div style={{ fontSize:13,color:"#F5F0E8",fontWeight:500 }}>{scoreLabel(avgScore)}</div>
+            <div style={{ fontSize:11,color:"#9B8B7E",marginTop:3 }}>{filled.length} jour{filled.length>1?"s":""} enregistré{filled.length>1?"s":""}</div>
+          </div>
+        </div>
+
+        {/* Mini bar chart */}
+        <div style={{ display:"flex",gap:3,marginTop:18,alignItems:"flex-end",height:48 }}>
+          {scores.map(({key,score,hasData},i)=>{
+            const isT=key===todayKey();
+            const col=scoreColor(score);
+            const h=hasData?Math.max((score/100)*44,4):4;
+            return (
+              <div key={key} style={{ flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2 }}>
+                <div style={{ width:"100%",height:h,background:hasData?(isT?col:col+"77"):"rgba(255,255,255,0.08)",borderRadius:3,transition:"height 0.3s" }}/>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ display:"flex",justifyContent:"space-between",marginTop:4 }}>
+          <span style={{ fontSize:9,color:"#9B8B7E" }}>il y a {period-1}j</span>
+          <span style={{ fontSize:9,color:"#C4724A",fontWeight:700 }}>aujourd'hui</span>
+        </div>
+      </div>
+
+      {/* Stats grid */}
+      <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16 }}>
+        {[
+          { emoji:"🌟", label:"Jours ≥75%", val:daysOver75, sub:`sur ${filled.length} jours`, col:"#C9A84C" },
+          { emoji:"🔥", label:"Meilleur streak sport", val:maxStreak+"j", sub:maxStreak>=7?"Impressionnant !":"Continue !", col:"#C4724A" },
+          { emoji:"💪", label:"Séances sport", val:sportDone, sub:topSport?`surtout ${getSport(topSport[0]).label}`:"cette période", col:"#7A9E7E" },
+          { emoji:"🌅", label:"Streak routine", val:scMaxStreak+"j", sub:"morning ≥80%", col:"#9B7EC8" },
+        ].map(item=>(
+          <div key={item.label} style={{ background:"white",borderRadius:16,border:"1px solid #E8DDD0",padding:"14px 16px" }}>
+            <div style={{ fontSize:20,marginBottom:6 }}>{item.emoji}</div>
+            <div style={{ fontSize:22,fontWeight:700,color:item.col,fontFamily:"Georgia,serif",lineHeight:1 }}>{item.val}</div>
+            <div style={{ fontSize:11,fontWeight:600,color:"#1A1410",marginTop:4 }}>{item.label}</div>
+            <div style={{ fontSize:10,color:"#9B8B7E",marginTop:2 }}>{item.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Meilleure journée */}
+      {bestDay && (
+        <div style={{ background:"white",borderRadius:16,border:"1px solid #E8DDD0",padding:"14px 18px",marginBottom:16,display:"flex",alignItems:"center",gap:14 }}>
+          <div style={{ width:48,height:48,borderRadius:14,background:scoreColor(bestDay.score)+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+            <span style={{ fontSize:24 }}>🏆</span>
+          </div>
+          <div>
+            <div style={{ fontSize:11,color:"#9B8B7E",textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:3 }}>Meilleure journée</div>
+            <div style={{ fontSize:14,fontWeight:700,color:"#1A1410" }}>{fmtFull(bestDay.key)}</div>
+            <div style={{ fontSize:13,color:scoreColor(bestDay.score),fontWeight:600,marginTop:2 }}>{bestDay.score}% · {scoreLabel(bestDay.score)}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Humeur dominante */}
+      {topMood && (
+        <div style={{ background:"white",borderRadius:16,border:"1px solid #E8DDD0",padding:"14px 18px",marginBottom:16 }}>
+          <div style={{ fontSize:11,fontWeight:600,letterSpacing:"2px",textTransform:"uppercase",color:"#9B8B7E",marginBottom:12 }}>Humeurs sur {period} jours</div>
+          <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}>
+            {MOODS.map(m=>{
+              const cnt = moodCounts[m.label]||0;
+              const pct = filled.length>0 ? Math.round((cnt/filled.length)*100) : 0;
+              if(!cnt) return null;
+              return (
+                <div key={m.label} style={{ display:"flex",alignItems:"center",gap:6,background:m.color+"18",borderRadius:20,padding:"5px 12px" }}>
+                  <span style={{ fontSize:15 }}>{m.emoji}</span>
+                  <span style={{ fontSize:12,fontWeight:600,color:m.color }}>{cnt}×</span>
+                  <span style={{ fontSize:11,color:"#9B8B7E" }}>{pct}%</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Progression semaine par semaine */}
+      {weekBuckets.length > 1 && (
+        <div style={{ background:"white",borderRadius:16,border:"1px solid #E8DDD0",padding:"14px 18px" }}>
+          <div style={{ fontSize:11,fontWeight:600,letterSpacing:"2px",textTransform:"uppercase",color:"#9B8B7E",marginBottom:12 }}>Évolution semaine par semaine</div>
+          <div style={{ display:"flex",gap:8,alignItems:"flex-end",height:56 }}>
+            {weekBuckets.map((avg,i)=>{
+              const isLast=i===weekBuckets.length-1;
+              const col=scoreColor(avg);
+              return (
+                <div key={i} style={{ flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4 }}>
+                  <div style={{ fontSize:10,fontWeight:700,color:col }}>{avg||"·"}%</div>
+                  <div style={{ width:"100%",height:Math.max((avg/100)*40,4),background:isLast?col:col+"77",borderRadius:6,transition:"height 0.3s" }}/>
+                  <div style={{ fontSize:9,color:isLast?"#C4724A":"#9B8B7E",fontWeight:isLast?700:400 }}>S{i+1}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── MAIN TRACKER ───────────────────────────────────────────────────────────────
+function Tracker() {
+  const [store,      setStore]      = useState(null);
+  const [active,     setActive]     = useState("today");
+  const [section,    setSection]    = useState("selfcare");
+  const [editRules,  setEditRules]  = useState(false);
+  const [newLabel,   setNewLabel]   = useState("");
+  const [newEmoji,   setNewEmoji]   = useState("📵");
+  const [editMeals,  setEditMeals]  = useState(false);
+  const [newMLabel,  setNewMLabel]  = useState("");
+  const [newMEmoji,  setNewMEmoji]  = useState("🍽️");
+
+  useEffect(() => {
+    loadAll().then(data => {
+      if (!data.days[todayKey()]) data.days[todayKey()] = EMPTY_DAY();
+      setStore(data);
+    });
+  }, []);
+
+  useEffect(() => { if (store) saveAll(store); }, [store]);
+
+  const viewKey    = active === "today" ? todayKey() : active;
+  const day        = store?.days?.[viewKey];
+  const isToday    = viewKey === todayKey();
+  const week       = last7();
+  const streak     = store ? calcStreak(store.sport?.weeks || {}) : 0;
+
+  const updDay = (fn) => setStore(prev => {
+    const next = JSON.parse(JSON.stringify(prev));
+    if (!next.days[viewKey]) next.days[viewKey] = EMPTY_DAY();
+    fn(next.days[viewKey]);
+    return next;
+  });
+
+  if (!store || !day) return (
+    <div style={{ display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",fontFamily:"system-ui",color:"#9B8B7E",fontSize:14 }}>Chargement...</div>
+  );
+
+  const getDayScore = (k) => {
+    const d   = store.days[k];
+    const idx = (() => { const dd=new Date(k+"T12:00:00").getDay(); return dd===0?6:dd-1; })();
+    const wk  = weekKey(getMonday(new Date(k+"T12:00:00")));
+    return calcScore(d, store.sport?.weeks?.[wk], idx, store);
+  };
+  const weekScores = week.map(k => ({ key:k, score: getDayScore(k) }));
+  const todayScore = getDayScore(viewKey);
+
+  const SECTIONS = [
+    { id:"selfcare", label:"Self Care",    emoji:"🌅" },
+    { id:"sport",    label:"Sport",        emoji:"🏋️" },
+    { id:"humeur",   label:"Humeur",       emoji:"😊" },
+    { id:"alim",     label:"Alimentation", emoji:"🥗" },
+    { id:"noscroll", label:"No-Scroll",    emoji:"📵" },
+    { id:"bilan",    label:"Bilan",        emoji:"📊" },
+  ];
+
+  return (
+    <div style={{ fontFamily:"'DM Sans',system-ui,sans-serif",background:"#F5F0E8",minHeight:"100vh",color:"#1A1410" }}>
+      <style>{`
+        .tabs-desktop { display:flex; }
+        .tabs-mobile  { display:none; }
+        @media (max-width: 640px) {
+          .tabs-desktop { display:none !important; }
+          .tabs-mobile  { display:flex !important; }
+        }
+      `}</style>
+
+      {/* HEADER */}
+      <div style={{ background:"#1A1410",padding:"clamp(16px,4vw,24px) clamp(16px,4vw,32px) 0",position:"relative",overflow:"hidden" }}>
+        <div style={{ position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:"#C4724A",opacity:0.1 }} />
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12,position:"relative",zIndex:1 }}>
+          <div>
+            <h1 style={{ fontFamily:"Georgia,serif",fontSize:"clamp(20px,3.5vw,32px)",color:"#F5F0E8",fontStyle:"italic",letterSpacing:"-0.3px" }}>
+              Tracker <span style={{ color:"#C4724A" }}>quotidien</span>
+            </h1>
+            <div style={{ display:"flex",alignItems:"center",gap:8,marginTop:4 }}>
+              <button onClick={()=>{ const d=new Date(viewKey+"T12:00:00"); d.setDate(d.getDate()-1); setActive(d.toISOString().slice(0,10)); }}
+                style={{ background:"rgba(255,255,255,0.08)",border:"none",borderRadius:7,width:24,height:24,cursor:"pointer",color:"#9B8B7E",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>‹</button>
+              <p style={{ color:"#9B8B7E",fontSize:12,margin:0 }}>
+                {isToday ? fmtFull(todayKey()) : `📅 ${fmtFull(viewKey)}`}
+              </p>
+              <button onClick={()=>{ const d=new Date(viewKey+"T12:00:00"); d.setDate(d.getDate()+1); const next=d.toISOString().slice(0,10); setActive(next===todayKey()?"today":next); }}
+                disabled={isToday}
+                style={{ background:"rgba(255,255,255,0.08)",border:"none",borderRadius:7,width:24,height:24,cursor:isToday?"default":"pointer",color:isToday?"#3A3030":"#9B8B7E",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>›</button>
+            </div>
+          </div>
+          {/* Score + Streak */}
+          {(() => {
+            const yesterKey = (() => { const d=new Date(viewKey+"T12:00:00"); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); })();
+            const yesterScore = getDayScore(yesterKey);
+            const diff = yesterScore > 0 ? todayScore - yesterScore : null;
+            const sc = scoreColor(todayScore);
+            const emoji = scoreEmoji(todayScore);
+            // SVG arc
+            const r = 26, cx = 32, cy = 32, circ = 2*Math.PI*r;
+            const pct = todayScore/100;
+            const dash = circ * pct;
+            const gap  = circ - dash;
+            return (
+              <div style={{ display:"flex",gap:12,alignItems:"flex-start" }}>
+                <StreakBadge streak={streak} />
+                <div style={{ textAlign:"center",paddingBottom:4 }}>
+                  {/* Arc SVG */}
+                  <div style={{ position:"relative",width:64,height:64,margin:"0 auto" }}>
+                    <svg width="64" height="64" style={{ transform:"rotate(-90deg)" }}>
+                      <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="5"/>
+                      <circle cx={cx} cy={cy} r={r} fill="none" stroke={sc} strokeWidth="5"
+                        strokeDasharray={`${dash} ${gap}`} strokeLinecap="round"
+                        style={{ transition:"stroke-dasharray 0.6s ease" }}/>
+                    </svg>
+                    <div style={{ position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center" }}>
+                      <span style={{ fontSize:18,lineHeight:1 }}>{emoji}</span>
+                    </div>
+                  </div>
+                  {/* Chiffre + diff */}
+                  <div style={{ marginTop:4,display:"flex",alignItems:"baseline",justifyContent:"center",gap:4 }}>
+                    <span style={{ fontSize:18,fontWeight:700,color:sc,lineHeight:1 }}>{todayScore}</span>
+                    <span style={{ fontSize:9,color:"#9B8B7E" }}>%</span>
+                  </div>
+                  {diff !== null && (
+                    <div style={{ fontSize:9,color:diff>0?"#7A9E7E":diff<0?"#C4724A":"#9B8B7E",fontWeight:600,marginTop:2 }}>
+                      {diff>0?`↑ +${diff}`:diff<0?`↓ ${diff}`:"= égal"} vs hier
+                    </div>
+                  )}
+                  <div style={{ fontSize:9,color:"#9B8B7E",marginTop:2,maxWidth:72,lineHeight:1.3 }}>{scoreLabel(todayScore)}</div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Week bars */}
+        <div style={{ display:"flex",gap:5,marginTop:18,paddingBottom:0 }}>
+          {weekScores.map(({key,score})=>{
+            const isSel = viewKey===key;
+            const isT   = key===todayKey();
+            const sc    = scoreColor(score);
+            return (
+              <div key={key} onClick={()=>setActive(isT?"today":key)}
+                style={{ flex:1,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,paddingBottom:12 }}>
+                <div style={{ fontSize:9,color:isSel?"#F5F0E8":"#9B8B7E",fontWeight:isSel?600:400 }}>
+                  {isT?"auj.":fmtDate(key).split(" ")[0]}
+                </div>
+                <div style={{ width:"100%",height:36,background:"rgba(255,255,255,0.05)",borderRadius:5,overflow:"hidden",position:"relative" }}>
+                  <div style={{ position:"absolute",bottom:0,left:0,right:0,height:`${score||3}%`,background:isSel?sc:`${sc}88`,borderRadius:5,transition:"height 0.4s ease" }} />
+                </div>
+                <div style={{ fontSize:10,color:isSel?sc:`${sc}aa`,fontWeight:600 }}>{score||"·"}%</div>
+                <div style={{ width:isSel?16:0,height:2,background:"#C4724A",borderRadius:2,transition:"width 0.2s" }} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* TABS — desktop sticky top, hidden on mobile */}
+      <div style={{ background:"white",borderBottom:"1px solid #E8DDD0",padding:"0 24px",display:"flex",overflowX:"auto",scrollbarWidth:"none",position:"sticky",top:0,zIndex:99 }} className="tabs-desktop">
+        {SECTIONS.map(s=>(
+          <button key={s.id} onClick={()=>setSection(s.id)} style={{
+            padding:"13px 14px",border:"none",background:"none",fontFamily:"inherit",fontSize:12,fontWeight:500,cursor:"pointer",whiteSpace:"nowrap",
+            color:section===s.id?"#C4724A":"#9B8B7E",
+            borderBottom:section===s.id?"2px solid #C4724A":"2px solid transparent",
+            marginBottom:-1,display:"flex",alignItems:"center",gap:5,transition:"color 0.15s"
+          }}>
+            {s.emoji} {s.label}
+          </button>
+        ))}
+        {!isToday && (
+          <button onClick={()=>setActive("today")} style={{ marginLeft:"auto",padding:"13px 14px",border:"none",background:"none",fontFamily:"inherit",fontSize:12,color:"#C4724A",cursor:"pointer",whiteSpace:"nowrap",fontWeight:500 }}>
+            ← Aujourd'hui
+          </button>
+        )}
+      </div>
+
+      {/* CONTENT */}
+      <div style={{ padding:"clamp(16px,4vw,28px) clamp(16px,4vw,32px)",maxWidth:section==="sport"?900:700,margin:"0 auto",paddingBottom:80 }}>
+
+        {/* HUMEUR */}
+        {section==="humeur" && (() => {
+          const wkMoods = last7().map(iso => ({ iso, mood: store.days[iso]?.mood||null }));
+          const moodMap = Object.fromEntries(MOODS.map(m=>[m.label,m]));
+          const gratitude = day.gratitude || ["","",""];
+
+          return (
+            <div>
+              {/* Humeur */}
+              <div style={{ fontSize:11,fontWeight:600,letterSpacing:"2px",textTransform:"uppercase",color:"#9B8B7E",marginBottom:12 }}>Comment je me sens</div>
+              <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:20 }}>
+                {MOODS.map(m=>{
+                  const act=day.mood===m.label;
+                  return (
+                    <div key={m.label} onClick={()=>isToday&&updDay(d=>{d.mood=d.mood===m.label?null:m.label;})}
+                      style={{ background:act?m.color:"white",border:"1.5px solid "+(act?m.color:"#E8DDD0"),borderRadius:14,padding:"14px 10px",textAlign:"center",cursor:isToday?"pointer":"default",transition:"all 0.2s" }}>
+                      <div style={{ fontSize:24,marginBottom:5 }}>{m.emoji}</div>
+                      <div style={{ fontSize:12,fontWeight:500,color:act?"white":"#1A1410" }}>{m.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Énergie */}
+              <div style={{ fontSize:11,fontWeight:600,letterSpacing:"2px",textTransform:"uppercase",color:"#9B8B7E",marginBottom:12 }}>Niveau d'énergie</div>
+              <div style={{ display:"flex",gap:8,marginBottom:20 }}>
+                {[
+                  { val:"low",   emoji:"🪫", label:"Basse",   color:"#94A3B8" },
+                  { val:"mid",   emoji:"⚡", label:"Normale", color:"#C9A84C" },
+                  { val:"high",  emoji:"🔋", label:"Haute",   color:"#7A9E7E" },
+                ].map(e=>{
+                  const act=day.energy===e.val;
+                  return (
+                    <div key={e.val} onClick={()=>isToday&&updDay(d=>{d.energy=d.energy===e.val?null:e.val;})}
+                      style={{ flex:1,padding:"12px 8px",borderRadius:14,border:"1.5px solid "+(act?e.color:"#E8DDD0"),background:act?e.color:"white",textAlign:"center",cursor:isToday?"pointer":"default",transition:"all 0.2s" }}>
+                      <div style={{ fontSize:22,marginBottom:4 }}>{e.emoji}</div>
+                      <div style={{ fontSize:12,fontWeight:600,color:act?"white":"#1A1410" }}>{e.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Historique semaine */}
+              <div style={{ fontSize:11,fontWeight:600,letterSpacing:"2px",textTransform:"uppercase",color:"#9B8B7E",marginBottom:12 }}>Cette semaine</div>
+              <div style={{ background:"white",borderRadius:16,border:"1px solid #E8DDD0",padding:"14px 16px",marginBottom:20 }}>
+                <div style={{ display:"flex",gap:6,justifyContent:"space-between" }}>
+                  {wkMoods.map((d,i)=>{
+                    const m = d.mood ? moodMap[d.mood] : null;
+                    const isT = d.iso===todayKey();
+                    return (
+                      <div key={d.iso} style={{ flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4 }}>
+                        <div style={{ width:36,height:36,borderRadius:"50%",background:m?m.color:"#F5F0E8",border:isT?"2px solid #C4724A":"2px solid transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,transition:"all 0.2s" }}>
+                          {m?m.emoji:""}
+                        </div>
+                        <div style={{ fontSize:8,color:isT?"#C4724A":"#9B8B7E",fontWeight:isT?700:400,textAlign:"center" }}>{DAYS_SHORT[i]}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Intention */}
+              <div style={{ fontSize:11,fontWeight:600,letterSpacing:"2px",textTransform:"uppercase",color:"#9B8B7E",marginBottom:12 }}>Intention du jour</div>
+              <div style={{ background:"white",borderRadius:16,border:"1px solid #E8DDD0",padding:"14px 18px",marginBottom:20 }}>
+                <textarea disabled={!isToday} value={day.intention||""} onChange={e=>updDay(d=>{d.intention=e.target.value;})}
+                  placeholder="Ce que je veux porter aujourd'hui..."
+                  style={{ width:"100%",border:"none",background:"transparent",fontFamily:"Georgia,serif",fontSize:14,color:"#1A1410",resize:"none",outline:"none",minHeight:60,lineHeight:1.8,fontStyle:"italic" }} />
+              </div>
+
+              {/* Gratitude */}
+              <div style={{ fontSize:11,fontWeight:600,letterSpacing:"2px",textTransform:"uppercase",color:"#9B8B7E",marginBottom:12 }}>Gratitude</div>
+              <div style={{ background:"white",borderRadius:16,border:"1px solid #E8DDD0",padding:"14px 18px",marginBottom:20 }}>
+                <div style={{ fontSize:12,color:"#9B8B7E",fontStyle:"italic",marginBottom:12 }}>3 choses pour lesquelles je suis reconnaissante aujourd'hui</div>
+                {[0,1,2].map(i=>(
+                  <div key={i} style={{ display:"flex",alignItems:"center",gap:10,marginBottom:i<2?10:0 }}>
+                    <div style={{ width:22,height:22,borderRadius:"50%",background:"#F5F0E8",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#C4724A",flexShrink:0 }}>{i+1}</div>
+                    <input disabled={!isToday} value={gratitude[i]||""}
+                      onChange={e=>updDay(d=>{ const g=[...(d.gratitude||["","",""])]; g[i]=e.target.value; d.gratitude=g; })}
+                      placeholder={"Je suis reconnaissante pour..."}
+                      style={{ flex:1,border:"none",borderBottom:"1px solid #EDE8E0",background:"transparent",fontFamily:"inherit",fontSize:13,color:"#1A1410",outline:"none",padding:"4px 0",lineHeight:1.6 }} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Journal des 7 derniers jours */}
+              {(() => {
+                const [journalOpen, setJournalOpen] = React.useState(false);
+                const past = last7()
+                  .filter(iso => iso !== todayKey())
+                  .map(iso => ({
+                    iso,
+                    intention: store.days[iso]?.intention || "",
+                    gratitude: store.days[iso]?.gratitude || [],
+                    mood: store.days[iso]?.mood || null,
+                  }))
+                  .filter(d => d.intention || d.gratitude.some(g => g));
+
+                if (!past.length) return null;
+
+                return (
+                  <div>
+                    <button onClick={()=>setJournalOpen(o=>!o)}
+                      style={{ width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"13px 18px",background:journalOpen?"#1A1410":"white",border:"1.5px solid "+(journalOpen?"#1A1410":"#E8DDD0"),borderRadius:journalOpen?"14px 14px 0 0":14,cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s" }}>
+                      <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+                        <span style={{ fontSize:17 }}>📖</span>
+                        <div style={{ textAlign:"left" }}>
+                          <div style={{ fontSize:13,fontWeight:600,color:journalOpen?"#F5F0E8":"#1A1410" }}>Journal de la semaine</div>
+                          <div style={{ fontSize:11,color:"#9B8B7E",marginTop:1 }}>{past.length} entrée{past.length>1?"s":""} cette semaine</div>
+                        </div>
+                      </div>
+                      <span style={{ fontSize:13,color:journalOpen?"#C4724A":"#9B8B7E" }}>{journalOpen?"▲":"▼"}</span>
+                    </button>
+
+                    {journalOpen && (
+                      <div style={{ background:"white",border:"1.5px solid #1A1410",borderTop:"none",borderRadius:"0 0 14px 14px" }}>
+                        {past.map((entry, idx) => {
+                          const moodObj = MOODS.find(m=>m.label===entry.mood);
+                          const d = new Date(entry.iso+"T12:00:00");
+                          const dayNames = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
+                          const months   = ["jan","fév","mar","avr","mai","jun","jul","aoû","sep","oct","nov","déc"];
+                          const label    = `${dayNames[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
+
+                          return (
+                            <div key={entry.iso} style={{ padding:"14px 18px",borderBottom:idx<past.length-1?"1px solid #F5F0E8":"none" }}>
+                              {/* Entête : date + humeur */}
+                              <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:10 }}>
+                                <div style={{ fontSize:11,fontWeight:700,color:"#C4724A",letterSpacing:"0.5px" }}>{label}</div>
+                                {moodObj && (
+                                  <div style={{ display:"flex",alignItems:"center",gap:4,background:moodObj.color+"18",borderRadius:20,padding:"2px 8px" }}>
+                                    <span style={{ fontSize:13 }}>{moodObj.emoji}</span>
+                                    <span style={{ fontSize:10,fontWeight:600,color:moodObj.color }}>{moodObj.label}</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Intention */}
+                              {entry.intention && (
+                                <div style={{ marginBottom:entry.gratitude.some(g=>g)?10:0 }}>
+                                  <div style={{ fontSize:9,color:"#B0A090",textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:5 }}>Intention</div>
+                                  <div style={{ fontFamily:"Georgia,serif",fontStyle:"italic",fontSize:13,color:"#1A1410",lineHeight:1.7,background:"#FAFAF8",borderRadius:10,padding:"10px 14px",borderLeft:"3px solid #C4724A" }}>
+                                    "{entry.intention}"
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Gratitude */}
+                              {entry.gratitude.some(g=>g) && (
+                                <div style={{ marginTop:entry.intention?8:0 }}>
+                                  <div style={{ fontSize:9,color:"#B0A090",textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:6 }}>Gratitude</div>
+                                  <div style={{ display:"flex",flexDirection:"column",gap:4 }}>
+                                    {entry.gratitude.filter(g=>g).map((g,gi)=>(
+                                      <div key={gi} style={{ display:"flex",alignItems:"flex-start",gap:8 }}>
+                                        <span style={{ fontSize:11,color:"#C9A84C",fontWeight:700,marginTop:1,flexShrink:0 }}>{gi+1}.</span>
+                                        <span style={{ fontSize:13,color:"#1A1410",lineHeight:1.5 }}>{g}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+            </div>
+          );
+        })()}
+
+        {/* SPORT */}
+        {section==="sport" && <SportTab store={store} setStore={setStore} day={day} updDay={updDay} isToday={isToday} />}
+
+        {/* NO SCROLL */}
+        {section==="noscroll" && (() => {
+          // rules come from store, fallback to defaults
+          const rules = store.noscrollRules || DEFAULT_NOSCROLL_RULES;
+          const noscroll = day.noscroll || {};
+          const doneCnt  = rules.filter(r=>noscroll[r.key]).length;
+          const total    = rules.length;
+          const allDone  = doneCnt === total && total > 0;
+          const pct      = total > 0 ? Math.round((doneCnt/total)*100) : 0;
+          const scoreCol = allDone ? "#7A9E7E" : doneCnt >= total*0.5 ? "#C9A84C" : "#C4724A";
+
+          // streak: count consecutive days where all rules were done
+          const nsStreak = (() => {
+            let s = 0;
+            const d = new Date(); d.setDate(d.getDate()-1);
+            for(let i=0;i<365;i++){
+              const iso=d.toISOString().slice(0,10);
+              const dayRules=store.days[iso]?.noscroll||{};
+              const dayDone=rules.filter(r=>dayRules[r.key]).length;
+              if(dayDone===total && total>0){ s++; d.setDate(d.getDate()-1); } else break;
+            }
+            // count today if all done
+            if(doneCnt===total && total>0) s++;
+            return s;
+          })();
+
+          // week history (last 7 days)
+          const nsWeek = last7().map(iso=>{
+            const dayRules=store.days[iso]?.noscroll||{};
+            const cnt=rules.filter(r=>dayRules[r.key]).length;
+            return { iso, cnt, pct: total>0?cnt/total:0 };
+          });
+
+          // daily quote (deterministic by day)
+          const quoteIdx = new Date().getDate() % NOSCROLL_QUOTES.length;
+          const quote = NOSCROLL_QUOTES[quoteIdx];
+
+          // edit rules state — local
+          const saveRules = (r) => setStore(prev=>({ ...prev, noscrollRules: r }));
+          const addRule = () => {
+            if(!newLabel.trim()) return;
+            const key = `custom_${Date.now()}`;
+            saveRules([...rules, { key, emoji:newEmoji, label:newLabel.trim() }]);
+            setNewLabel(""); setNewEmoji("📵");
+          };
+          const removeRule = (key) => saveRules(rules.filter(r=>r.key!==key));
+
+          return (
+            <div>
+              {/* Quote */}
+              <div style={{ background:"#1A1410",borderRadius:16,padding:"18px 22px",marginBottom:22,position:"relative",overflow:"hidden" }}>
+                <div style={{ position:"absolute",top:-20,right:-20,width:80,height:80,borderRadius:"50%",background:"#C4724A",opacity:0.15 }} />
+                <div style={{ fontSize:11,color:"#9B8B7E",letterSpacing:"1.5px",textTransform:"uppercase",marginBottom:8 }}>Intention du jour</div>
+                <div style={{ fontFamily:"Georgia,serif",fontStyle:"italic",fontSize:15,color:"#F5F0E8",lineHeight:1.6 }}>"{quote}"</div>
+              </div>
+
+              {/* Score + streak row */}
+              <div style={{ display:"flex",gap:10,marginBottom:22 }}>
+                {/* Score */}
+                <div style={{ flex:1,background:"white",borderRadius:16,border:"1px solid #E8DDD0",padding:"16px 18px",display:"flex",alignItems:"center",gap:14 }}>
+                  <div style={{ position:"relative",width:52,height:52,flexShrink:0 }}>
+                    <svg width="52" height="52" style={{ transform:"rotate(-90deg)" }}>
+                      <circle cx="26" cy="26" r="22" fill="none" stroke="#F5F0E8" strokeWidth="4"/>
+                      <circle cx="26" cy="26" r="22" fill="none" stroke={scoreCol} strokeWidth="4"
+                        strokeDasharray={`${2*Math.PI*22}`}
+                        strokeDashoffset={`${2*Math.PI*22*(1-pct/100)}`}
+                        strokeLinecap="round" style={{ transition:"stroke-dashoffset 0.5s ease" }}/>
+                    </svg>
+                    <div style={{ position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:scoreCol }}>
+                      {doneCnt}/{total}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize:14,fontWeight:600 }}>
+                      {allDone ? "Journée parfaite 🎉" : doneCnt===0 ? "C'est parti !" : `${doneCnt} règle${doneCnt>1?"s":""} tenue${doneCnt>1?"s":""}`}
+                    </div>
+                    <div style={{ fontSize:11,color:"#9B8B7E",marginTop:2 }}>{pct}% des règles respectées</div>
+                  </div>
+                </div>
+                {/* Streak */}
+                <div style={{ background:nsStreak>0?"#1A1410":"white",borderRadius:16,border:"1px solid #E8DDD0",padding:"16px 18px",textAlign:"center",minWidth:80 }}>
+                  <div style={{ fontSize:20,lineHeight:1 }}>{nsStreak>=7?"🔥":nsStreak>=3?"⚡":"📵"}</div>
+                  <div style={{ fontSize:20,fontWeight:700,color:nsStreak>0?"#C9A84C":"#9B8B7E",fontFamily:"Georgia,serif",lineHeight:1.3 }}>{nsStreak}</div>
+                  <div style={{ fontSize:10,color:"#9B8B7E",marginTop:2 }}>jour{nsStreak>1?"s":""}</div>
+                </div>
+              </div>
+
+              {/* Week history */}
+              <div style={{ background:"white",borderRadius:16,border:"1px solid #E8DDD0",padding:"14px 18px",marginBottom:22 }}>
+                <div style={{ fontSize:11,fontWeight:600,letterSpacing:"1.5px",textTransform:"uppercase",color:"#9B8B7E",marginBottom:12 }}>Cette semaine</div>
+                <div style={{ display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6 }}>
+                  {nsWeek.map((d,i)=>{
+                    const isT=d.iso===todayKey();
+                    const col=d.pct>=1?"#7A9E7E":d.pct>=0.5?"#C9A84C":d.pct>0?"#C4724A":"#E8DDD0";
+                    return (
+                      <div key={d.iso} style={{ display:"flex",flexDirection:"column",alignItems:"center",gap:3 }}>
+                        <div style={{ fontSize:9,fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",color:isT?"#C4724A":"#9B8B7E" }}>{DAYS_SHORT[i]}</div>
+                        <div style={{ width:32,height:32,borderRadius:10,background:d.pct>0?col+"22":"#F5F0E8",border:`2px solid ${isT?"#C4724A":d.pct>0?col:"#E8DDD0"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14 }}>
+                          {d.pct>=1?"✅":d.pct>0?"·":""}
+                        </div>
+                        <div style={{ fontSize:9,color:col,fontWeight:600 }}>{d.cnt>0?`${d.cnt}/${total}`:""}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Rules list */}
+              <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12 }}>
+                <div style={{ fontSize:11,fontWeight:600,letterSpacing:"2px",textTransform:"uppercase",color:"#9B8B7E" }}>Mes règles</div>
+                <button onClick={()=>setEditRules(!editRules)}
+                  style={{ background:editRules?"#1A1410":"#F5F0E8",border:"none",borderRadius:8,padding:"4px 10px",fontSize:11,cursor:"pointer",color:editRules?"white":"#9B8B7E",fontFamily:"inherit",fontWeight:500,transition:"all 0.15s" }}>
+                  {editRules?"✓ OK":"✏️ Modifier"}
+                </button>
+              </div>
+              <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+                {rules.map(n=>{
+                  const done=noscroll[n.key];
+                  return (
+                    <div key={n.key} style={{ display:"flex",alignItems:"center",gap:10 }}>
+                      <div onClick={()=>isToday&&updDay(d=>{d.noscroll[n.key]=!d.noscroll[n.key];})}
+                        style={{ flex:1,background:done?"#1A1410":"white",border:`1.5px solid ${done?"#1A1410":"#E8DDD0"}`,borderRadius:14,padding:"14px 18px",cursor:isToday?"pointer":"default",display:"flex",alignItems:"center",gap:12,transition:"all 0.2s" }}>
+                        <span style={{ fontSize:20 }}>{n.emoji}</span>
+                        <span style={{ flex:1,fontSize:13,fontWeight:500,color:done?"#F5F0E8":"#1A1410" }}>{n.label}</span>
+                        <div style={{ width:22,height:22,borderRadius:"50%",background:done?"#7A9E7E":"transparent",border:`2px solid ${done?"#7A9E7E":"#C8BEB5"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"white",flexShrink:0,transition:"all 0.2s" }}>
+                          {done&&"✓"}
+                        </div>
+                      </div>
+                      {editRules && (
+                        <button onClick={()=>removeRule(n.key)}
+                          style={{ background:"#FEF0F0",border:"1.5px solid #FECACA",borderRadius:10,padding:"8px 10px",color:"#E05252",fontSize:13,cursor:"pointer",flexShrink:0 }}>✕</button>
+                      )}
+                    </div>
+                  );
+                })}
+                {/* Add rule */}
+                {editRules && (
+                  <div style={{ background:"#F5F0E8",borderRadius:14,padding:"12px 14px",display:"flex",gap:8,alignItems:"center",marginTop:4 }}>
+                    <input value={newEmoji} onChange={e=>setNewEmoji(e.target.value)}
+                      style={{ width:36,border:"1.5px solid #E8DDD0",borderRadius:8,padding:"6px",fontFamily:"inherit",fontSize:16,textAlign:"center",outline:"none",background:"white" }} />
+                    <input value={newLabel} onChange={e=>setNewLabel(e.target.value)}
+                      onKeyDown={e=>e.key==="Enter"&&addRule()}
+                      placeholder="Nouvelle règle..."
+                      style={{ flex:1,border:"1.5px solid #E8DDD0",borderRadius:8,padding:"7px 10px",fontFamily:"inherit",fontSize:13,outline:"none",background:"white" }} />
+                    <button onClick={addRule}
+                      style={{ background:"#1A1410",border:"none",borderRadius:9,padding:"7px 13px",color:"white",fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:500 }}>+ Ajouter</button>
+                  </div>
+                )}
+              </div>
+
+              {/* Screen time + note */}
+              <div style={{ marginTop:22 }}>
+                <div style={{ fontSize:11,fontWeight:600,letterSpacing:"2px",textTransform:"uppercase",color:"#9B8B7E",marginBottom:12 }}>Temps d'écran</div>
+                <div style={{ background:"white",borderRadius:16,border:"1px solid #E8DDD0",padding:"16px 18px",marginBottom:12 }}>
+                  <div style={{ display:"flex",alignItems:"center",gap:12,marginBottom:14 }}>
+                    <span style={{ fontSize:20 }}>📱</span>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:13,fontWeight:600,marginBottom:2 }}>Heures d'écran aujourd'hui</div>
+                      <div style={{ fontSize:11,color:"#9B8B7E" }}>Depuis les réglages de ton téléphone</div>
+                    </div>
+                    <div style={{ display:"flex",alignItems:"center",gap:6,background:"#F5F0E8",borderRadius:12,padding:"8px 14px" }}>
+                      <input
+                        type="number" min="0" max="24" step="0.5"
+                        value={day.screenTime ?? ""}
+                        onChange={e=>isToday&&updDay(d=>{d.screenTime=e.target.value===""?null:parseFloat(e.target.value);})}
+                        disabled={!isToday}
+                        placeholder="—"
+                        style={{ border:"none",background:"transparent",fontFamily:"inherit",fontSize:16,fontWeight:700,color:"#1A1410",outline:"none",width:40,textAlign:"center" }}
+                      />
+                      <span style={{ fontSize:12,color:"#9B8B7E",fontWeight:500 }}>h</span>
+                    </div>
+                  </div>
+                  {/* Visual bar */}
+                  {day.screenTime !== null && day.screenTime !== undefined && (
+                    <>
+                      <div style={{ height:6,background:"#F5F0E8",borderRadius:20,overflow:"hidden",marginBottom:6 }}>
+                        <div style={{
+                          height:"100%",
+                          width:`${Math.min((day.screenTime/6)*100,100)}%`,
+                          background: day.screenTime<=2?"#7A9E7E":day.screenTime<=4?"#C9A84C":"#E05252",
+                          borderRadius:20,transition:"width 0.4s ease"
+                        }} />
+                      </div>
+                      <div style={{ fontSize:11,color: day.screenTime<=2?"#7A9E7E":day.screenTime<=4?"#C9A84C":"#E05252",fontWeight:600 }}>
+                        {day.screenTime<=2?"🌟 Excellent — moins de 2h":day.screenTime<=3?"✨ Bien — dans l'objectif":day.screenTime<=4?"⚠️ Un peu beaucoup":"🔴 Journée d'écran intense"}
+                      </div>
+                    </>
+                  )}
+                  {/* Week sparkline */}
+                  {(() => {
+                    const wkScreen = last7().map(iso => store.days[iso]?.screenTime ?? null);
+                    const hasData  = wkScreen.some(v=>v!==null);
+                    if(!hasData) return null;
+                    return (
+                      <div style={{ marginTop:14,paddingTop:12,borderTop:"1px solid #F5F0E8" }}>
+                        <div style={{ fontSize:10,color:"#9B8B7E",marginBottom:8 }}>Cette semaine</div>
+                        <div style={{ display:"flex",gap:5,alignItems:"flex-end",height:32 }}>
+                          {wkScreen.map((v,i)=>{
+                            const h = v!==null ? Math.min((v/8)*100,100) : 0;
+                            const col = v===null?"#E8DDD0":v<=2?"#7A9E7E":v<=4?"#C9A84C":"#E05252";
+                            const isT = last7()[i]===todayKey();
+                            return (
+                              <div key={i} style={{ flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2 }}>
+                                <div style={{ width:"100%",height:28,display:"flex",alignItems:"flex-end",justifyContent:"center" }}>
+                                  <div style={{ width:"100%",height:`${h||4}%`,minHeight:3,background:col,borderRadius:4,opacity:isT?1:0.6,transition:"height 0.3s" }} />
+                                </div>
+                                <div style={{ fontSize:8,color:isT?"#C4724A":"#9B8B7E",fontWeight:isT?700:400 }}>{DAYS_SHORT[i]}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Scroll note */}
+                <div style={{ background:"white",borderRadius:16,border:"1px solid #E8DDD0",padding:"14px 18px" }}>
+                  <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:10 }}>
+                    <span style={{ fontSize:16 }}>📝</span>
+                    <span style={{ fontSize:13,fontWeight:600 }}>Note du jour</span>
+                    <span style={{ fontSize:11,color:"#9B8B7E",marginLeft:"auto",fontStyle:"italic" }}>optionnel</span>
+                  </div>
+                  <textarea
+                    disabled={!isToday}
+                    value={day.scrollNote||""}
+                    onChange={e=>updDay(d=>{d.scrollNote=e.target.value;})}
+                    placeholder="Quand as-tu craqué ? Dans quel contexte ? Ce que tu ressens..."
+                    style={{ width:"100%",border:"none",background:"transparent",fontFamily:"inherit",fontSize:13,color:"#1A1410",resize:"none",outline:"none",minHeight:60,lineHeight:1.7,color:"#1A1410" }}
+                  />
+                </div>
+              </div>
+
+            </div>
+          );
+        })()}
+
+        {/* ALIM & EAU */}
+        {section==="alim" && <AlimTab store={store} setStore={setStore} day={day} updDay={updDay} isToday={isToday} editMeals={editMeals} setEditMeals={setEditMeals} newMLabel={newMLabel} setNewMLabel={setNewMLabel} newMEmoji={newMEmoji} setNewMEmoji={setNewMEmoji} />}
+
+                {/* SELF CARE */}
+        {section==="selfcare" && <SelfCareTab store={store} setStore={setStore} day={day} updDay={updDay} isToday={isToday} editKey={editMeals} setEditKey={setEditMeals} newEmoji={newMEmoji} setNewEmoji={setNewMEmoji} newLabel={newMLabel} setNewLabel={setNewMLabel} />}
+
+        {/* BILAN */}
+        {section==="bilan" && <BilanTab store={store} />}
+
+      </div>
+
+      {/* BOTTOM NAV — mobile only */}
+      <div className="tabs-mobile" style={{ position:"fixed",bottom:0,left:0,right:0,background:"white",borderTop:"1px solid #E8DDD0",display:"flex",zIndex:200,paddingBottom:"env(safe-area-inset-bottom,0px)" }}>
+        {SECTIONS.map(s=>(
+          <button key={s.id} onClick={()=>setSection(s.id)} style={{
+            flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+            padding:"8px 4px",border:"none",background:"none",fontFamily:"inherit",cursor:"pointer",
+            color:section===s.id?"#C4724A":"#9B8B7E",transition:"color 0.15s",gap:2
+          }}>
+            <span style={{ fontSize:20 }}>{s.emoji}</span>
+            <span style={{ fontSize:9,fontWeight:section===s.id?700:400,letterSpacing:"0.3px" }}>{s.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Tracker />);
+
+</script>
+</body>
+</html>
