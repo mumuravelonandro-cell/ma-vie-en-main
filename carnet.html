@@ -72,17 +72,17 @@
       { id: 4, name: "\xC9pargner ce mois-ci", done: false, doneAt: null }
     ],
     cleaning: [
-      { id: 101, name: "Lave-vaisselle", freq: "Hebdo", freqDays: 7, lastDone: null, notes: "En profondeur 1x/mois" },
-      { id: 102, name: "Lave-vaisselle (profondeur)", freq: "Mensuel", freqDays: 30, lastDone: null, notes: "" },
-      { id: 103, name: "Frigo", freq: "Mensuel", freqDays: 30, lastDone: null, notes: "Vider + d\xE9sinfecter" },
-      { id: 104, name: "Aspirateur + lavage sol", freq: "Mensuel", freqDays: 30, lastDone: null, notes: "" },
-      { id: 105, name: "Brosse \xE0 dents", freq: "Trimestriel", freqDays: 75, lastDone: null, notes: "Changer la t\xEAte" },
-      { id: 106, name: "Toilette (lingette)", freq: "Quotidien", freqDays: 1, lastDone: null, notes: "1 \xE0 2x/jour" },
-      { id: 107, name: "Toilette (profondeur)", freq: "Hebdo", freqDays: 7, lastDone: null, notes: "" },
-      { id: 108, name: "Brosse \xE0 cheveux", freq: "Hebdo", freqDays: 10, lastDone: null, notes: "Toutes les 1-2 semaines" },
-      { id: 109, name: "Machine \xE0 laver", freq: "Mensuel", freqDays: 30, lastDone: null, notes: "Cycle tambour vide" },
-      { id: 110, name: "Interrupteurs", freq: "Mensuel", freqDays: 30, lastDone: null, notes: "" },
-      { id: 111, name: "Plinthes", freq: "Mensuel", freqDays: 30, lastDone: null, notes: "\xC0 l'\xE9ponge mouill\xE9e" }
+      { id: 101, name: "Lave-vaisselle", freq: "hebdo", freqDays: 7, lastDone: null, notes: "En profondeur 1x/mois" },
+      { id: 102, name: "Lave-vaisselle (profondeur)", freq: "mensuel", freqDays: 30, lastDone: null, notes: "" },
+      { id: 103, name: "Frigo", freq: "mensuel", freqDays: 30, lastDone: null, notes: "Vider + d\xE9sinfecter" },
+      { id: 104, name: "Aspirateur + lavage sol", freq: "mensuel", freqDays: 30, lastDone: null, notes: "" },
+      { id: 105, name: "Brosse \xE0 dents", freq: "trimestriel", freqDays: 75, lastDone: null, notes: "Changer la t\xEAte" },
+      { id: 106, name: "Toilette (lingette)", freq: "quotidien", freqDays: 1, lastDone: null, notes: "1 \xE0 2x/jour" },
+      { id: 107, name: "Toilette (profondeur)", freq: "hebdo", freqDays: 7, lastDone: null, notes: "" },
+      { id: 108, name: "Brosse \xE0 cheveux", freq: "hebdo", freqDays: 10, lastDone: null, notes: "Toutes les 1-2 semaines" },
+      { id: 109, name: "Machine \xE0 laver", freq: "mensuel", freqDays: 30, lastDone: null, notes: "Cycle tambour vide" },
+      { id: 110, name: "Interrupteurs", freq: "mensuel", freqDays: 30, lastDone: null, notes: "" },
+      { id: 111, name: "Plinthes", freq: "mensuel", freqDays: 30, lastDone: null, notes: "\xC0 l'\xE9ponge mouill\xE9e" }
     ],
     defis: [
       { id: 1, cat: "mindset", emoji: "\u{1F4DD}", name: "\xC9crire une page 'qui je suis dans 12 mois'", done: false, doneAt: null },
@@ -320,15 +320,15 @@
     if (!data) return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", fontFamily: "system-ui", color: C.muted, fontSize: 14 } }, "Chargement...");
     const TABS = [
       { id: "cuisine", emoji: "\u{1F373}", label: "Cuisine" },
+      { id: "restaurants", emoji: "\u{1F37D}\uFE0F", label: "Restaurants" },
+      { id: "wishlist", emoji: "\u2728", label: "Wishlist" },
       { id: "livres", emoji: "\u{1F4DA}", label: "Livres" },
       { id: "podcasts", emoji: "\u{1F399}\uFE0F", label: "Podcasts" },
       { id: "films", emoji: "\u{1F3AC}", label: "Films & S\xE9ries" },
-      { id: "wishlist", emoji: "\u2728", label: "Wishlist" },
       { id: "objectifs", emoji: "\u{1F3AF}", label: "Objectifs" },
-      { id: "nettoyage", emoji: "\u{1F9F9}", label: "Nettoyage" },
       { id: "defis", emoji: "\u{1F3C6}", label: "D\xE9fis" },
       { id: "citations", emoji: "\u{1F4AC}", label: "Citations" },
-      { id: "restaurants", emoji: "\u{1F37D}\uFE0F", label: "Restaurants" }
+      { id: "nettoyage", emoji: "\u{1F9F9}", label: "M\xE9nage" }
     ];
     const reading = data.books.filter((b) => b.status === "en cours").length;
     const watching = data.movies.filter((m) => m.status === "en cours").length;
