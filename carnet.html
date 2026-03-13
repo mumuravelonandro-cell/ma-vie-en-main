@@ -13,6 +13,8 @@
 <script>window.storage={get:async(k)=>{try{const v=localStorage.getItem(k);return v?{key:k,value:v}:null;}catch{return null;}},set:async(k,v)=>{try{localStorage.setItem(k,typeof v==='string'?v:JSON.stringify(v));return{key:k,value:v};}catch{return null;}}};</script>
 <script>(() => {
   var __defProp = Object.defineProperty;
+  var __defProps = Object.defineProperties;
+  var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
   var __getOwnPropSymbols = Object.getOwnPropertySymbols;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
   var __propIsEnum = Object.prototype.propertyIsEnumerable;
@@ -28,6 +30,7 @@
       }
     return a;
   };
+  var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   const React = window.React;
   const ReactDOM = window.ReactDOM;
   const { useState, useEffect } = React;
@@ -157,7 +160,11 @@
     try {
       const r1 = await window.storage.get("carnet_v1");
       const r2 = await window.storage.get(STORE_KEY);
-      if (r2) return __spreadValues(__spreadValues({}, DEFAULT_DATA), JSON.parse(r2.value));
+      if (r2) {
+        const d = __spreadValues(__spreadValues({}, DEFAULT_DATA), JSON.parse(r2.value));
+        if (d.cleaning) d.cleaning = d.cleaning.map((c) => __spreadProps(__spreadValues({}, c), { freq: (c.freq || "").toLowerCase() }));
+        return d;
+      }
       if (r1) {
         const old = JSON.parse(r1.value);
         if (old.movies) old.movies = old.movies.map((m) => __spreadValues({ cat: "film", status: m.done ? "vu" : "\xE0 voir", notes: "" }, m));
