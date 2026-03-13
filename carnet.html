@@ -299,9 +299,9 @@
     const [newCleanFreq, setNewCleanFreq] = useState("Mensuel");
     const [newCleanDays, setNewCleanDays] = useState(30);
     const [newDefiEmoji, setNewDefiEmoji] = useState("\u2B50");
-    const [restoFilter, setRestoFilter] = useState("tous");
     const [restoCuisine, setRestoCuisine] = useState("Tout");
     const [restoSort, setRestoSort] = useState("ajout");
+    const [restoFilter, setRestoFilter] = useState("Tout");
     const [newDefiName, setNewDefiName] = useState("");
     const [newDefiCat, setNewDefiCat] = useState("");
     const [rCat, setRCat] = useState("Tout");
@@ -327,8 +327,8 @@
     if (!data) return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", fontFamily: "system-ui", color: C.muted, fontSize: 14 } }, "Chargement...");
     const TABS = [
       { id: "cuisine", emoji: "\u{1F373}", label: "Cuisine" },
-      { id: "restaurants", emoji: "\u{1F37D}\uFE0F", label: "Restaurants" },
       { id: "wishlist", emoji: "\u2728", label: "Wishlist" },
+      { id: "restaurants", emoji: "\u{1F37D}\uFE0F", label: "Restaurants" },
       { id: "livres", emoji: "\u{1F4DA}", label: "Livres" },
       { id: "podcasts", emoji: "\u{1F399}\uFE0F", label: "Podcasts" },
       { id: "films", emoji: "\u{1F3AC}", label: "Films & S\xE9ries" },
@@ -348,7 +348,7 @@
           .carnet-tabs-desktop { display:none !important; }
           .carnet-tabs-mobile  { display:flex !important; }
         }
-      `), /* @__PURE__ */ React.createElement("div", { style: { background: C.dark, padding: "clamp(16px,4vw,28px) clamp(16px,4vw,32px) 0", position: "relative", overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: C.gold, opacity: 0.1 } }), /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", bottom: -30, left: -30, width: 100, height: 100, borderRadius: "50%", background: C.terra, opacity: 0.08 } }), /* @__PURE__ */ React.createElement("div", { style: { position: "relative", zIndex: 1 } }, /* @__PURE__ */ React.createElement("h1", { style: { fontFamily: "Georgia,serif", fontSize: "clamp(20px,3.5vw,30px)", color: "#F5F0E8", fontStyle: "italic", letterSpacing: "-0.3px", marginBottom: 4 } }, "Mon ", /* @__PURE__ */ React.createElement("span", { style: { color: C.gold } }, "carnet")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, flexWrap: "wrap", paddingBottom: 18, marginTop: 10 } }, [
+      `), /* @__PURE__ */ React.createElement("div", { style: { background: C.dark, padding: `clamp(16px,4vw,28px) clamp(16px,4vw,32px) ${reading > 0 || watching > 0 || goalsDone > 0 || defisDone > 0 ? 0 : "18px"}`, position: "relative", overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: C.gold, opacity: 0.1 } }), /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", bottom: -30, left: -30, width: 100, height: 100, borderRadius: "50%", background: C.terra, opacity: 0.08 } }), /* @__PURE__ */ React.createElement("div", { style: { position: "relative", zIndex: 1 } }, /* @__PURE__ */ React.createElement("h1", { style: { fontFamily: "Georgia,serif", fontSize: "clamp(20px,3.5vw,30px)", color: "#F5F0E8", fontStyle: "italic", letterSpacing: "-0.3px", marginBottom: 4 } }, "Mon ", /* @__PURE__ */ React.createElement("span", { style: { color: C.gold } }, "carnet")), (reading > 0 || watching > 0 || goalsDone > 0 || defisDone > 0) && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, flexWrap: "wrap", paddingBottom: 18, marginTop: 10 } }, [
       reading > 0 && { emoji: "\u{1F4D6}", val: reading, label: `livre${reading > 1 ? "s" : ""} en cours` },
       watching > 0 && { emoji: "\u25B6\uFE0F", val: watching, label: `en cours` },
       goalsDone > 0 && { emoji: "\u{1F3AF}", val: goalsDone, label: `objectif${goalsDone > 1 ? "s" : ""} accompli${goalsDone > 1 ? "s" : ""}` },
@@ -490,7 +490,7 @@
         },
         "Supprimer"
       )));
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 16 } }, [[toTest, "\u{1F9EA}", "\xE0 tester", "#3B82F6"], [tested, "\u2713", "test\xE9es", "#C4724A"], [adopted, "\u{1F31F}", "adopt\xE9es", "#7A9E7E"]].map(([n, e, l, c]) => /* @__PURE__ */ React.createElement("div", { key: l, style: { flex: 1, background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, padding: "10px 8px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: c } }, n), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, e, " ", l)))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 8 } }, R_CATS.map((c) => /* @__PURE__ */ React.createElement(
+      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SectionTitle, { title: "\u{1F37D}\uFE0F Restaurants" }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 16 } }, [[toTest, "\u{1F9EA}", "\xE0 tester", "#3B82F6"], [tested, "\u2713", "test\xE9es", "#C4724A"], [adopted, "\u{1F31F}", "adopt\xE9es", "#7A9E7E"]].map(([n, e, l, c]) => /* @__PURE__ */ React.createElement("div", { key: l, style: { flex: 1, background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, padding: "10px 8px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: c } }, n), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, e, " ", l)))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 8 } }, R_CATS.map((c) => /* @__PURE__ */ React.createElement(
         "button",
         {
           key: c,
@@ -883,6 +883,130 @@
         },
         l
       ))), showRestants && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: restants.length > 0 && showAcquis ? 28 : 0 } }, showAcquis && restants.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "\xC0 avoir \xB7 ", restants.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, restants.length === 0 && wFilter !== "acquis" && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "28px 20px", color: C.muted, fontSize: 13 } }, "\u2728 Wishlist vide !"), restants.map((w) => WishCard(w)))), showAcquis && acquis.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "Acquis \xB7 ", acquis.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, acquis.map((w) => WishCard(w)))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Ajouter \xE0 ma wishlist...", onAdd: (name) => upd((d) => d.wishlist.push({ id: newId(), name, price: "", cat: "Autre", priority: "moyenne", url: "", notes: "", done: false })) }));
+    })()), tab === "restaurants" && /* @__PURE__ */ React.createElement("div", null, (() => {
+      const CUISINE_BASE = ["Japonais", "Italien", "Fran\xE7ais", "Tha\xEF", "Indien", "Mexicain", "Libanais", "Am\xE9ricain", "M\xE9diterran\xE9en", "Autre"];
+      const customCuisines = [...new Set((data.restaurants || []).map((r) => r.cuisine).filter((c) => c && !CUISINE_BASE.includes(c)))];
+      const ALL_CUISINES = [...CUISINE_BASE, ...customCuisines];
+      const CUISINES_FILTER = ["Tout", ...ALL_CUISINES];
+      const sortFn = (a, b) => {
+        if (restoSort === "note") return (b.rating || 0) - (a.rating || 0);
+        if (restoSort === "nom") return a.name.localeCompare(b.name);
+        return 0;
+      };
+      const base = (data.restaurants || []).filter(
+        (r) => filterText(r.name) && (restoCuisine === "Tout" || (r.cuisine || "") === restoCuisine)
+      );
+      const atester = base.filter((r) => r.status !== "visit\xE9").sort(sortFn);
+      const visites = base.filter((r) => r.status === "visit\xE9").sort(sortFn);
+      const showTester = restoFilter !== "visit\xE9";
+      const showVisites = restoFilter !== "\xE0 tester";
+      const RestoCard = (r) => /* @__PURE__ */ React.createElement(CardShell, { key: r.id, active: expandedId === r.id, onClick: () => setExpId(expandedId === r.id ? null : r.id) }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, padding: "14px 18px" } }, /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          onClick: (e) => {
+            e.stopPropagation();
+            upd((d) => {
+              const f = (d.restaurants || []).find((x) => x.id === r.id);
+              if (f) f.status = f.status === "visit\xE9" ? "\xE0 tester" : "visit\xE9";
+            });
+          },
+          style: { width: 24, height: 24, borderRadius: "50%", border: r.status === "visit\xE9" ? "none" : `2px solid ${C.border}`, background: r.status === "visit\xE9" ? C.sage : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "white", flexShrink: 0, cursor: "pointer", transition: "all 0.2s" }
+        },
+        r.status === "visit\xE9" && "\u2713"
+      ), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: r.status === "visit\xE9" ? C.muted : C.dark, textDecoration: r.status === "visit\xE9" ? "line-through" : "none" } }, r.name), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginTop: 3, flexWrap: "wrap" } }, r.cuisine && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.muted, background: C.cream, borderRadius: 10, padding: "1px 7px" } }, r.cuisine), r.quartier && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.muted } }, "\u{1F4CD} ", r.quartier), r.status === "visit\xE9" && r.rating > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10 } }, "\u2605".repeat(r.rating) + "\u2606".repeat(5 - r.rating)))), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.muted } }, "\u203A")), expandedId === r.id && /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.cream}`, padding: "14px 18px", background: C.light }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          value: r.quartier || "",
+          onChange: (e) => upd((d) => {
+            (d.restaurants || []).find((x) => x.id === r.id).quartier = e.target.value;
+          }),
+          placeholder: "\u{1F4CD} Quartier / ville",
+          style: { flex: 1, minWidth: 120, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none" }
+        }
+      ), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 110 } }, /* @__PURE__ */ React.createElement("datalist", { id: "rc-" + r.id }, ALL_CUISINES.map((c) => /* @__PURE__ */ React.createElement("option", { key: c, value: c }))), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          list: "rc-" + r.id,
+          value: r.cuisine || "",
+          onChange: (e) => upd((d) => {
+            (d.restaurants || []).find((x) => x.id === r.id).cuisine = e.target.value;
+          }),
+          placeholder: "Type de cuisine...",
+          style: { width: "100%", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none" }
+        }
+      ))), r.status === "visit\xE9" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted } }, "Note :"), /* @__PURE__ */ React.createElement(Stars, { value: r.rating || 0, onChange: (v) => upd((d) => {
+        (d.restaurants || []).find((x) => x.id === r.id).rating = v;
+      }) })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, alignItems: "center", marginBottom: 8 } }, /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          value: r.url || "",
+          onChange: (e) => upd((d) => {
+            (d.restaurants || []).find((x) => x.id === r.id).url = e.target.value;
+          }),
+          placeholder: "\u{1F517} Google Maps ou site",
+          style: { flex: 1, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none" }
+        }
+      ), r.url && /* @__PURE__ */ React.createElement(
+        "a",
+        {
+          href: r.url,
+          target: "_blank",
+          rel: "noopener noreferrer",
+          style: { flexShrink: 0, background: C.dark, borderRadius: 8, padding: "7px 10px", color: "white", fontSize: 11, textDecoration: "none", fontWeight: 600 },
+          onClick: (e) => e.stopPropagation()
+        },
+        "\u2197"
+      )), /* @__PURE__ */ React.createElement(
+        "textarea",
+        {
+          value: r.notes || "",
+          onChange: (e) => upd((d) => {
+            (d.restaurants || []).find((x) => x.id === r.id).notes = e.target.value;
+          }),
+          placeholder: r.status === "visit\xE9" ? "Ce que tu as mang\xE9, ce qui \xE9tait bon..." : "Pourquoi tu veux y aller...",
+          style: { width: "100%", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "9px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, resize: "none", outline: "none", minHeight: 60, lineHeight: 1.5 }
+        }
+      ), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: () => {
+            upd((d) => {
+              d.restaurants = (d.restaurants || []).filter((x) => x.id !== r.id);
+            });
+            setExpId(null);
+          },
+          style: { marginTop: 8, fontSize: 11, color: C.terra, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }
+        },
+        "Supprimer"
+      )));
+      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 100, background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, padding: "10px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.sage } }, (data.restaurants || []).filter((r) => r.status === "visit\xE9").length), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, "visit\xE9s \u2713")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 100, background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, padding: "10px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.terra } }, (data.restaurants || []).filter((r) => r.status !== "visit\xE9").length), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, "\xE0 tester"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 8 } }, CUISINES_FILTER.map((c) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: c,
+          onClick: () => setRestoCuisine(c),
+          style: { flexShrink: 0, border: `1.5px solid ${restoCuisine === c ? C.dark : C.border}`, background: restoCuisine === c ? C.dark : "white", borderRadius: 20, padding: "5px 12px", fontSize: 11, fontWeight: 600, color: restoCuisine === c ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
+        },
+        c
+      ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap", alignItems: "center" } }, [["Tout", "Tout"], ["\xE0 tester", "\u{1F4CD} \xC0 tester"], ["visit\xE9", "\u2713 Visit\xE9s"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: v,
+          onClick: () => setRestoFilter(v),
+          style: { border: `1.5px solid ${restoFilter === v ? C.gold : C.border}`, background: restoFilter === v ? "#FEF9EC" : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: restoFilter === v ? C.gold : C.muted, cursor: "pointer", fontFamily: "inherit" }
+        },
+        l
+      )), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted, marginLeft: 4 } }, "Trier :"), [["ajout", "Ajout"], ["note", "\u2B50"], ["nom", "A\u2192Z"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: v,
+          onClick: () => setRestoSort(v),
+          style: { flexShrink: 0, border: `1.5px solid ${restoSort === v ? C.terra : C.border}`, background: restoSort === v ? "#FEF3ED" : "white", borderRadius: 20, padding: "4px 9px", fontSize: 11, fontWeight: 600, color: restoSort === v ? C.terra : C.muted, cursor: "pointer", fontFamily: "inherit" }
+        },
+        l
+      ))), showTester && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: atester.length > 0 && showVisites ? 28 : 0 } }, showVisites && atester.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "\u{1F4CD} \xC0 tester \xB7 ", atester.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, atester.length === 0 && restoFilter !== "visit\xE9" && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "28px 20px", color: C.muted, fontSize: 13 } }, "\u{1F37D}\uFE0F Aucun resto \xE0 tester !"), atester.map((r) => RestoCard(r)))), showVisites && visites.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "\u2713 Visit\xE9s \xB7 ", visites.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, visites.map((r) => RestoCard(r)))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Resto \xE0 tester...", onAdd: (name) => upd((d) => {
+        if (!d.restaurants) d.restaurants = [];
+        d.restaurants.push({ id: newId(), name, quartier: "", cuisine: "", url: "", notes: "", rating: 0, status: "\xE0 tester" });
+      }) }));
     })()), tab === "objectifs" && /* @__PURE__ */ React.createElement("div", null, (() => {
       const GOAL_CATS = ["Perso", "Sant\xE9", "Pro", "Finances", "Relations", "Cr\xE9ativit\xE9", "Autre"];
       const CAT_COLORS = { Perso: "#FEF3ED", Sant\u00E9: "#F0FDF4", Pro: "#EFF6FF", Finances: "#FEF9EC", Relations: "#FDF4FF", Cr\u00E9ativit\u00E9: "#FFF7ED", Autre: C.cream };
@@ -1409,113 +1533,7 @@
           "Fermer"
         )))
       ))));
-    })(), tab === "restaurants" && /* @__PURE__ */ React.createElement("div", null, (() => {
-      const CUISINE_BASE = ["Japonais", "Italien", "Fran\xE7ais", "Tha\xEF", "Indien", "Mexicain", "Libanais", "Am\xE9ricain", "M\xE9diterran\xE9en", "Autre"];
-      const customCuisines = [...new Set((data.restaurants || []).map((r) => r.cuisine).filter((c) => c && !CUISINE_BASE.includes(c)))];
-      const ALL_CUISINES = [...CUISINE_BASE, ...customCuisines];
-      const CUISINES_FILTER = ["Tout", ...ALL_CUISINES];
-      const REST_STATUS = [
-        { value: "\xE0 tester", label: "\xC0 tester", emoji: "\u{1F4CD}", bg: "#EFF6FF", border: "#BFDBFE", color: "#3B82F6" },
-        { value: "visit\xE9", label: "Visit\xE9", emoji: "\u2713", bg: "#F0FDF4", border: "#BBF7D0", color: "#7A9E7E" }
-      ];
-      const parseNote = (r) => r.rating || 0;
-      const sortFn = (a, b) => {
-        if (restoSort === "note") return parseNote(b) - parseNote(a);
-        if (restoSort === "nom") return a.name.localeCompare(b.name);
-        return 0;
-      };
-      const pipeline = (data.restaurants || []).filter((r) => r.status !== "visit\xE9" && (filterText(r.name) || filterText(r.quartier || "")) && (restoCuisine === "Tout" || (r.cuisine || "") === restoCuisine)).sort(sortFn);
-      const visites = (data.restaurants || []).filter((r) => r.status === "visit\xE9" && (filterText(r.name) || filterText(r.quartier || "")) && (restoCuisine === "Tout" || (r.cuisine || "") === restoCuisine)).sort(sortFn);
-      const total = (data.restaurants || []).length;
-      const nVisites = (data.restaurants || []).filter((r) => r.status === "visit\xE9").length;
-      const RestoCard = (r) => /* @__PURE__ */ React.createElement(CardShell, { key: r.id, active: expandedId === r.id, onClick: () => toggle(r.id) }, /* @__PURE__ */ React.createElement("div", { style: { padding: "13px 16px", display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: r.status === "visit\xE9" ? C.sage : C.dark } }, r.name), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginTop: 3, flexWrap: "wrap", alignItems: "center" } }, r.cuisine && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, background: C.cream, borderRadius: 10, padding: "1px 7px", color: C.muted } }, r.cuisine), r.quartier && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.muted } }, "\u{1F4CD} ", r.quartier), r.status === "visit\xE9" && r.rating > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12 } }, "\u2605".repeat(r.rating) + "\u2606".repeat(5 - r.rating)))), /* @__PURE__ */ React.createElement(StatusPill, { value: r.status || "\xE0 tester", options: REST_STATUS, onChange: (v) => upd((d) => {
-        const f = (d.restaurants || []).find((x) => x.id === r.id);
-        if (f) f.status = v;
-      }) })), expandedId === r.id && /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.cream}`, padding: "12px 16px", background: C.light }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          value: r.quartier || "",
-          onChange: (e) => upd((d) => {
-            (d.restaurants || []).find((x) => x.id === r.id).quartier = e.target.value;
-          }),
-          placeholder: "\u{1F4CD} Quartier / ville",
-          style: { flex: 1, minWidth: 120, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none" }
-        }
-      ), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 110 } }, /* @__PURE__ */ React.createElement("datalist", { id: "resto-cuisine-" + r.id }, ALL_CUISINES.map((c) => /* @__PURE__ */ React.createElement("option", { key: c, value: c }))), /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          list: "resto-cuisine-" + r.id,
-          value: r.cuisine || "",
-          onChange: (e) => upd((d) => {
-            (d.restaurants || []).find((x) => x.id === r.id).cuisine = e.target.value;
-          }),
-          placeholder: "Type de cuisine...",
-          style: { width: "100%", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none" }
-        }
-      ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, alignItems: "center", marginBottom: 8 } }, /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          value: r.url || "",
-          onChange: (e) => upd((d) => {
-            (d.restaurants || []).find((x) => x.id === r.id).url = e.target.value;
-          }),
-          placeholder: "\u{1F517} Google Maps ou site",
-          style: { flex: 1, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none" }
-        }
-      ), r.url && /* @__PURE__ */ React.createElement(
-        "a",
-        {
-          href: r.url,
-          target: "_blank",
-          rel: "noopener noreferrer",
-          style: { flexShrink: 0, background: C.dark, borderRadius: 8, padding: "7px 10px", color: "white", fontSize: 11, textDecoration: "none", fontWeight: 600 },
-          onClick: (e) => e.stopPropagation()
-        },
-        "\u2197"
-      )), r.status === "visit\xE9" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted } }, "Note :"), /* @__PURE__ */ React.createElement(Stars, { value: r.rating || 0, onChange: (v) => upd((d) => {
-        (d.restaurants || []).find((x) => x.id === r.id).rating = v;
-      }) })), /* @__PURE__ */ React.createElement(
-        "textarea",
-        {
-          value: r.notes || "",
-          onChange: (e) => upd((d) => {
-            (d.restaurants || []).find((x) => x.id === r.id).notes = e.target.value;
-          }),
-          placeholder: r.status === "visit\xE9" ? "Ce que tu as mang\xE9, ce qui \xE9tait bon, \xE0 retenir..." : "Pourquoi tu veux y aller, ce qu'on t'en a dit...",
-          style: { width: "100%", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "9px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, resize: "none", outline: "none", minHeight: 60, lineHeight: 1.5 }
-        }
-      ), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: () => upd((d) => {
-            d.restaurants = (d.restaurants || []).filter((x) => x.id !== r.id);
-            setExpId(null);
-          }),
-          style: { marginTop: 8, fontSize: 11, color: C.terra, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }
-        },
-        "Supprimer"
-      )));
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 16 } }, [[total - nVisites, "\u{1F4CD}", "\xE0 tester", "#3B82F6"], [nVisites, "\u2713", "visit\xE9s", "#7A9E7E"]].map(([n, e, l, c]) => /* @__PURE__ */ React.createElement("div", { key: l, style: { flex: 1, background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, padding: "10px 8px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: c } }, n), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, e, " ", l)))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 8 } }, CUISINES_FILTER.map((c) => /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          key: c,
-          onClick: () => setRestoCuisine(c),
-          style: { flexShrink: 0, border: `1.5px solid ${restoCuisine === c ? C.dark : C.border}`, background: restoCuisine === c ? C.dark : "white", borderRadius: 20, padding: "5px 12px", fontSize: 11, fontWeight: 600, color: restoCuisine === c ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
-        },
-        c
-      ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 16, alignItems: "center" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted, flexShrink: 0 } }, "Trier :"), [["ajout", "Ajout"], ["note", "\u2B50 Note"], ["nom", "A\u2192Z"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          key: v,
-          onClick: () => setRestoSort(v),
-          style: { flexShrink: 0, border: `1.5px solid ${restoSort === v ? C.gold : C.border}`, background: restoSort === v ? "#FEF9EC" : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: restoSort === v ? C.gold : C.muted, cursor: "pointer", fontFamily: "inherit" }
-        },
-        l
-      ))), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 28 } }, /* @__PURE__ */ React.createElement(SectionTitle, { right: /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.muted } }, pipeline.length, " resto", pipeline.length > 1 ? "s" : "") }, "\u{1F4CD} \xC0 tester"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 } }, pipeline.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "24px", color: C.muted, fontSize: 13 } }, "Aucun resto dans la liste"), pipeline.map((r) => RestoCard(r))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Resto \xE0 tester...", onAdd: (name) => upd((d) => {
-        if (!d.restaurants) d.restaurants = [];
-        d.restaurants.push({ id: newId(), name, quartier: "", cuisine: "Autre", url: "", notes: "", rating: 0, status: "\xE0 tester" });
-      }) })), visites.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SectionTitle, { right: /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.sage } }, visites.length, " resto", visites.length > 1 ? "s" : "") }, "\u2713 D\xE9j\xE0 visit\xE9s"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, visites.map((r) => RestoCard(r)))));
-    })()), /* @__PURE__ */ React.createElement("div", { className: "carnet-tabs-mobile", style: { position: "fixed", bottom: 0, left: 0, right: 0, background: "white", borderTop: `1px solid ${C.border}`, display: "flex", zIndex: 200, paddingBottom: "env(safe-area-inset-bottom,0px)" } }, TABS.map((t) => /* @__PURE__ */ React.createElement("button", { key: t.id, onClick: () => {
+    })(), /* @__PURE__ */ React.createElement("div", { className: "carnet-tabs-mobile", style: { position: "fixed", bottom: 0, left: 0, right: 0, background: "white", borderTop: `1px solid ${C.border}`, display: "flex", zIndex: 200, paddingBottom: "env(safe-area-inset-bottom,0px)" } }, TABS.map((t) => /* @__PURE__ */ React.createElement("button", { key: t.id, onClick: () => {
       setTab(t.id);
       setSearch("");
       setExpId(null);
@@ -1527,15 +1545,15 @@
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      padding: "7px 2px",
+      padding: "5px 1px",
       border: "none",
       background: "none",
       fontFamily: "inherit",
       cursor: "pointer",
       color: tab === t.id ? C.gold : C.muted,
       transition: "color 0.15s",
-      gap: 2
-    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18 } }, t.emoji), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 8, fontWeight: tab === t.id ? 700 : 400, letterSpacing: "0.2px", textAlign: "center", lineHeight: 1.2 } }, t.label.split(" ")[0])))));
+      gap: 1
+    } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15 } }, t.emoji), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 7, fontWeight: tab === t.id ? 700 : 400, letterSpacing: "0", textAlign: "center", lineHeight: 1.2 } }, t.label.split(" ")[0])))));
   }
   ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(Carnet));
 })();

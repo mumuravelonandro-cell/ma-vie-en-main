@@ -3,7 +3,6 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 <title>Mon tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -11,12 +10,7 @@
 <style>*{box-sizing:border-box;margin:0;padding:0}body{background:#F5F0E8;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}textarea,input,select{font-family:'DM Sans',system-ui,sans-serif}::-webkit-scrollbar{display:none}</style>
 </head><body>
 <div id="root"></div>
-<script>
-window.storage = {
-  get: async (key) => { try { const v = localStorage.getItem(key); return v ? { key, value: v } : null; } catch { return null; } },
-  set: async (key, value) => { try { localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value)); return { key, value }; } catch { return null; } },
-};
-</script>
+<script>window.storage={get:async(k)=>{try{const v=localStorage.getItem(k);return v?{key:k,value:v}:null;}catch{return null;}},set:async(k,v)=>{try{localStorage.setItem(k,typeof v==='string'?v:JSON.stringify(v));return{key:k,value:v};}catch{return null;}}};</script>
 <script>(() => {
   var __defProp = Object.defineProperty;
   var __defProps = Object.defineProperties;
@@ -39,7 +33,7 @@ window.storage = {
   var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   const React = window.React;
   const ReactDOM = window.ReactDOM;
-  const { useState, useEffect, useCallback, useMemo } = React;
+  const { useState, useEffect } = React;
   const todayKey = () => (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
   const fmtDate = (iso) => {
     const d = /* @__PURE__ */ new Date(iso + "T12:00:00");
@@ -1143,7 +1137,7 @@ window.storage = {
     }))));
   };
   function Tracker() {
-    var _a, _b;
+    var _a, _b, _c;
     const [store, setStore] = useState(null);
     const [active, setActive] = useState("today");
     const [section, setSection] = useState("selfcare");
@@ -1163,17 +1157,26 @@ window.storage = {
       if (store) saveAll(store);
     }, [store]);
     const viewKey = active === "today" ? todayKey() : active;
-    const day = (_a = store == null ? void 0 : store.days) == null ? void 0 : _a[viewKey];
     const isToday = viewKey === todayKey();
     const week = last7();
-    const streak = store ? calcStreak(((_b = store.sport) == null ? void 0 : _b.weeks) || {}) : 0;
+    const streak = store ? calcStreak(((_a = store.sport) == null ? void 0 : _a.weeks) || {}) : 0;
+    useEffect(() => {
+      if (store && !store.days[viewKey]) {
+        setStore((prev) => {
+          const next = JSON.parse(JSON.stringify(prev));
+          next.days[viewKey] = EMPTY_DAY();
+          return next;
+        });
+      }
+    }, [viewKey, !!store]);
+    const day = (_c = (_b = store == null ? void 0 : store.days) == null ? void 0 : _b[viewKey]) != null ? _c : EMPTY_DAY();
     const updDay = (fn) => setStore((prev) => {
       const next = JSON.parse(JSON.stringify(prev));
       if (!next.days[viewKey]) next.days[viewKey] = EMPTY_DAY();
       fn(next.days[viewKey]);
       return next;
     });
-    if (!store || !day) return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", fontFamily: "system-ui", color: "#9B8B7E", fontSize: 14 } }, "Chargement...");
+    if (!store) return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", fontFamily: "system-ui", color: "#9B8B7E", fontSize: 14 } }, "Chargement...");
     const getDayScore = (k) => {
       var _a2, _b2;
       const d = store.days[k];
@@ -1355,12 +1358,12 @@ window.storage = {
       )))), (() => {
         const [journalOpen, setJournalOpen] = React.useState(false);
         const past = last7().filter((iso) => iso !== todayKey()).map((iso) => {
-          var _a2, _b2, _c;
+          var _a2, _b2, _c2;
           return {
             iso,
             intention: ((_a2 = store.days[iso]) == null ? void 0 : _a2.intention) || "",
             gratitude: ((_b2 = store.days[iso]) == null ? void 0 : _b2.gratitude) || [],
-            mood: ((_c = store.days[iso]) == null ? void 0 : _c.mood) || null
+            mood: ((_c2 = store.days[iso]) == null ? void 0 : _c2.mood) || null
           };
         }).filter((d) => d.intention || d.gratitude.some((g) => g));
         if (!past.length) return null;
@@ -1555,8 +1558,7 @@ window.storage = {
       gap: 2
     } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 20 } }, s.emoji), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 9, fontWeight: section === s.id ? 700 : 400, letterSpacing: "0.3px" } }, s.label)))));
   }
-  const AppComponent = typeof Tracker !== "undefined" ? Tracker : Carnet;
-  ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(AppComponent));
+  ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(Tracker));
 })();
 </script>
 </body></html>
