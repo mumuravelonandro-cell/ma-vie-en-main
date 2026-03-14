@@ -10,7 +10,6 @@
 <style>*{box-sizing:border-box;margin:0;padding:0}body{background:#F5F0E8;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}textarea,input,select{font-family:'DM Sans',system-ui,sans-serif}::-webkit-scrollbar{display:none}</style>
 </head><body>
 <div id="root"></div>
-<script>window.storage={get:async(k)=>{try{const v=localStorage.getItem(k);return v?{key:k,value:v}:null;}catch{return null;}},set:async(k,v)=>{try{localStorage.setItem(k,typeof v==='string'?v:JSON.stringify(v));return{key:k,value:v};}catch{return null;}}};</script>
 <script>(() => {
   var __defProp = Object.defineProperty;
   var __defProps = Object.defineProperties;
@@ -212,19 +211,57 @@
     sos: {}
   });
   const STORE_KEY = "tracker_v4";
+  const BIN_ID = "69b5db9cb7ec241ddc6ba14e";
+  const BIN_KEY = "$2a$10$o6vPV1rT15ZkKtURoEmYFuuT30W478STqXdsQnPM4qh32HstZyWri";
+  const BIN_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+  const HEADERS = { "Content-Type": "application/json", "X-Master-Key": BIN_KEY, "X-Bin-Meta": "false" };
+  const EMPTY_STORE = () => ({ days: {}, sport: { weeks: {}, template: defaultTemplate() } });
   const loadAll = async () => {
     try {
-      const r = await window.storage.get(STORE_KEY);
-      return r ? JSON.parse(r.value) : { days: {}, sport: { weeks: {}, template: defaultTemplate() } };
+      const res = await fetch(BIN_URL, { headers: HEADERS });
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.tracker) {
+          const d = json.tracker;
+          if (!d.days) d.days = {};
+          if (!d.sport) d.sport = { weeks: {}, template: defaultTemplate() };
+          try {
+            localStorage.setItem(STORE_KEY, JSON.stringify(d));
+          } catch (e) {
+          }
+          return d;
+        }
+      }
     } catch (e) {
-      return { days: {}, sport: { weeks: {}, template: defaultTemplate() } };
     }
+    try {
+      const v = localStorage.getItem(STORE_KEY);
+      if (v) return JSON.parse(v);
+    } catch (e) {
+    }
+    return EMPTY_STORE();
   };
+  let _saveBinTimer = null;
+  let _lastBinData = null;
   const saveAll = async (d) => {
     try {
-      await window.storage.set(STORE_KEY, JSON.stringify(d));
+      localStorage.setItem(STORE_KEY, JSON.stringify(d));
     } catch (e) {
     }
+    _lastBinData = d;
+    if (_saveBinTimer) clearTimeout(_saveBinTimer);
+    _saveBinTimer = setTimeout(async () => {
+      try {
+        const res = await fetch(BIN_URL, { headers: HEADERS });
+        const current = res.ok ? await res.json() : {};
+        await fetch(BIN_URL, {
+          method: "PUT",
+          headers: HEADERS,
+          body: JSON.stringify(__spreadProps(__spreadValues({}, current), { tracker: _lastBinData }))
+        });
+      } catch (e) {
+      }
+    }, 2e3);
   };
   const calcStreak = (sportWeeks) => {
     var _a, _b;

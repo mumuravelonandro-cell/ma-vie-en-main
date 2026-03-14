@@ -10,7 +10,6 @@
 <style>*{box-sizing:border-box;margin:0;padding:0}body{background:#F5F0E8;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}textarea,input,select{font-family:'DM Sans',system-ui,sans-serif}::-webkit-scrollbar{display:none}</style>
 </head><body>
 <div id="root"></div>
-<script>window.storage={get:async(k)=>{try{const v=localStorage.getItem(k);return v?{key:k,value:v}:null;}catch{return null;}},set:async(k,v)=>{try{localStorage.setItem(k,typeof v==='string'?v:JSON.stringify(v));return{key:k,value:v};}catch{return null;}}};</script>
 <script>(() => {
   var __defProp = Object.defineProperty;
   var __defProps = Object.defineProperties;
@@ -135,7 +134,9 @@
     citations: [],
     restaurants: [],
     activites: [],
-    activiteTypes: []
+    activiteTypes: [],
+    bookTypes: [],
+    podTypes: []
   };
   const TRACKER_KEY = "tracker_v4";
   const extractClassiques = async () => {
@@ -160,31 +161,57 @@
   };
   const load = async () => {
     try {
-      const r1 = await window.storage.get("carnet_v1");
-      const r2 = await window.storage.get(STORE_KEY);
-      if (r2) {
-        const d = __spreadValues(__spreadValues({}, DEFAULT_DATA), JSON.parse(r2.value));
+      const res = await fetch(BIN_URL, { headers: HEADERS });
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.carnet) {
+          const d = __spreadValues(__spreadValues({}, DEFAULT_DATA), json.carnet);
+          if (d.cleaning) d.cleaning = d.cleaning.map((c) => __spreadProps(__spreadValues({}, c), { freq: (c.freq || "").toLowerCase() }));
+          try {
+            localStorage.setItem(STORE_KEY, JSON.stringify(d));
+          } catch (e) {
+          }
+          return d;
+        }
+      }
+    } catch (e) {
+    }
+    try {
+      const v = localStorage.getItem(STORE_KEY);
+      if (v) {
+        const d = __spreadValues(__spreadValues({}, DEFAULT_DATA), JSON.parse(v));
         if (d.cleaning) d.cleaning = d.cleaning.map((c) => __spreadProps(__spreadValues({}, c), { freq: (c.freq || "").toLowerCase() }));
         return d;
       }
-      if (r1) {
-        const old = JSON.parse(r1.value);
-        if (old.movies) old.movies = old.movies.map((m) => __spreadValues({ cat: "film", status: m.done ? "vu" : "\xE0 voir", notes: "" }, m));
-        if (old.podcasts) old.podcasts = old.podcasts.map((p) => __spreadValues({ status: p.done ? "termin\xE9" : "\xE0 \xE9couter", notes: "" }, p));
-        if (old.books) old.books = old.books.map((b) => __spreadValues({ rating: 0 }, b));
-        if (old.goals) old.goals = old.goals.map((g) => __spreadValues({ doneAt: null }, g));
-        return __spreadValues(__spreadValues({}, DEFAULT_DATA), old);
-      }
-      return DEFAULT_DATA;
     } catch (e) {
-      return DEFAULT_DATA;
     }
+    return DEFAULT_DATA;
   };
+  const BIN_ID = "69b5db9cb7ec241ddc6ba14e";
+  const BIN_KEY = "$2a$10$o6vPV1rT15ZkKtURoEmYFuuT30W478STqXdsQnPM4qh32HstZyWri";
+  const BIN_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+  const HEADERS = { "Content-Type": "application/json", "X-Master-Key": BIN_KEY, "X-Bin-Meta": "false" };
+  let _saveBinTimer = null;
+  let _lastBinData = null;
   const save = async (data) => {
     try {
-      await window.storage.set(STORE_KEY, JSON.stringify(data));
+      localStorage.setItem(STORE_KEY, JSON.stringify(data));
     } catch (e) {
     }
+    _lastBinData = data;
+    if (_saveBinTimer) clearTimeout(_saveBinTimer);
+    _saveBinTimer = setTimeout(async () => {
+      try {
+        const res = await fetch(BIN_URL, { headers: HEADERS });
+        const current = res.ok ? await res.json() : {};
+        await fetch(BIN_URL, {
+          method: "PUT",
+          headers: HEADERS,
+          body: JSON.stringify(__spreadProps(__spreadValues({}, current), { carnet: _lastBinData }))
+        });
+      } catch (e) {
+      }
+    }, 2e3);
   };
   const newId = () => Date.now();
   const StatusPill = ({ value, options, onChange }) => {
@@ -317,6 +344,13 @@
     const [bookFilter, setBookFilter] = useState("tous");
     const [podFilter, setPodFilter] = useState("tous");
     const [movieFilter, setMovieFilter] = useState("tous");
+    const [movieGenre, setMovieGenre] = useState("Tout");
+    const [bookType, setBookType] = useState("Tout");
+    const [podType, setPodType] = useState("Tout");
+    const [newBookType, setNewBookType] = useState("");
+    const [newBookTypeEmoji, setNewBookTypeEmoji] = useState("");
+    const [newPodType, setNewPodType] = useState("");
+    const [newPodTypeEmoji, setNewPodTypeEmoji] = useState("");
     useEffect(() => {
       load().then(setData);
       extractClassiques().then(setClassiques);
@@ -586,6 +620,59 @@
       const total = data.books.length;
       const pct = total > 0 ? Math.round(lu / total * 100) : 0;
       return /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 14, padding: "14px 18px", border: `1px solid ${C.border}`, marginBottom: 16, display: "flex", alignItems: "center", gap: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 12 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.muted } }, lu, " lu", lu > 1 ? "s" : "", " \xB7 ", cours, " en cours \xB7 ", total - lu - cours, " \xE0 lire"), /* @__PURE__ */ React.createElement("span", { style: { fontWeight: 700, color: C.sage } }, pct, "%")), /* @__PURE__ */ React.createElement("div", { style: { height: 6, background: C.cream, borderRadius: 3, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { height: "100%", background: `linear-gradient(90deg,${C.sage},${C.gold})`, borderRadius: 3, width: `${pct}%`, transition: "width 0.5s" } }))));
+    })(), (() => {
+      const BOOK_TYPES_BASE = [
+        { key: "roman", label: "\u{1F4D6} Roman" },
+        { key: "essai", label: "\u{1F4A1} Essai" },
+        { key: "devperso", label: "\u{1F331} D\xE9v. perso" },
+        { key: "bio", label: "\u{1F464} Biographie" },
+        { key: "bd", label: "\u{1F3A8} BD/Manga" },
+        { key: "autre", label: "\u2726 Autre" }
+      ];
+      const customBookTypes = (data.bookTypes || []).map((t) => ({ key: t.key, label: (t.emoji || "\u2726") + " " + t.label, custom: true }));
+      const ALL_BOOK_TYPES = [...customBookTypes, ...BOOK_TYPES_BASE];
+      const addBookType = () => {
+        const trimmed = newBookType.trim();
+        if (!trimmed) return;
+        upd((d) => {
+          if (!d.bookTypes) d.bookTypes = [];
+          d.bookTypes.unshift({ key: "bt_" + Date.now(), label: trimmed, emoji: newBookTypeEmoji.trim() || "\u2726" });
+        });
+        setNewBookType("");
+        setNewBookTypeEmoji("");
+      };
+      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 10 } }, [{ key: "Tout", label: "Tout" }, ...ALL_BOOK_TYPES].map((t) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: t.key,
+          onClick: () => setBookType(t.key),
+          style: { flexShrink: 0, border: `1.5px solid ${bookType === t.key ? C.dark : C.border}`, background: bookType === t.key ? C.dark : "white", borderRadius: 20, padding: "5px 12px", fontSize: 11, fontWeight: 600, color: bookType === t.key ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
+        },
+        t.label,
+        t.custom && bookType !== t.key && /* @__PURE__ */ React.createElement("span", { onClick: (e) => {
+          e.stopPropagation();
+          upd((d) => {
+            d.bookTypes = (d.bookTypes || []).filter((x) => x.key !== t.key);
+          });
+        }, style: { marginLeft: 4, fontSize: 9, color: C.terra, cursor: "pointer" } }, "\u2715")
+      ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 10, alignItems: "center" } }, /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          value: newBookTypeEmoji,
+          onChange: (e) => setNewBookTypeEmoji(e.target.value),
+          placeholder: "\u{1F4D6}",
+          style: { width: 36, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "5px 7px", fontFamily: "inherit", fontSize: 14, textAlign: "center", outline: "none", flexShrink: 0 }
+        }
+      ), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          value: newBookType,
+          onChange: (e) => setNewBookType(e.target.value),
+          onKeyDown: (e) => e.key === "Enter" && addBookType(),
+          placeholder: "Nouveau type...",
+          style: { flex: 1, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 20, padding: "5px 12px", fontFamily: "inherit", fontSize: 11, color: C.dark, outline: "none" }
+        }
+      ), newBookType.trim() && /* @__PURE__ */ React.createElement("button", { onClick: addBookType, style: { background: C.dark, border: "none", borderRadius: 20, padding: "5px 12px", color: "white", fontSize: 11, cursor: "pointer", fontFamily: "inherit", fontWeight: 600 } }, "+")));
     })(), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" } }, [["tous", "Tous"], ["\xE0 lire", "\u{1F4DA} \xC0 lire"], ["en cours", "\u{1F4D6} En cours"], ["lu", "\u2713 Lus"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -594,7 +681,7 @@
         style: { flexShrink: 0, border: `1.5px solid ${bookFilter === v ? C.gold : C.border}`, background: bookFilter === v ? "#FEF9EC" : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: bookFilter === v ? C.gold : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
       },
       l
-    ))), /* @__PURE__ */ React.createElement(SectionTitle, null, data.books.length, " livres"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, data.books.filter((b) => (filterText(b.name) || filterText(b.author || "")) && (bookFilter === "tous" || b.status === bookFilter)).map((b) => /* @__PURE__ */ React.createElement(CardShell, { key: b.id, active: expandedId === b.id, accent: C.gold, onClick: () => toggle(b.id) }, /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 42, height: 54, borderRadius: 8, background: b.status === "lu" ? C.sage : b.status === "en cours" ? C.terra : C.warm, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 18 } }, b.status === "lu" ? "\u2713" : b.status === "en cours" ? "\u{1F4D6}" : "\u{1F4DA}"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: C.dark, marginBottom: 2 } }, b.name), b.author && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.muted } }, b.author), b.status === "lu" && b.rating > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, display: "flex", gap: 1 } }, "\u2605".repeat(b.rating) + "\u2606".repeat(5 - b.rating))), /* @__PURE__ */ React.createElement(StatusPill, { value: b.status, options: BOOK_STATUS, onChange: (v) => upd((d) => {
+    ))), /* @__PURE__ */ React.createElement(SectionTitle, null, data.books.filter((b) => bookType === "Tout" || b.type === bookType).length, " livres"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, data.books.filter((b) => (filterText(b.name) || filterText(b.author || "")) && (bookFilter === "tous" || b.status === bookFilter) && (bookType === "Tout" || b.type === bookType)).map((b) => /* @__PURE__ */ React.createElement(CardShell, { key: b.id, active: expandedId === b.id, accent: C.gold, onClick: () => toggle(b.id) }, /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 42, height: 54, borderRadius: 8, background: b.status === "lu" ? C.sage : b.status === "en cours" ? C.terra : C.warm, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 18 } }, b.status === "lu" ? "\u2713" : b.status === "en cours" ? "\u{1F4D6}" : "\u{1F4DA}"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: C.dark, marginBottom: 2 } }, b.name), b.author && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.muted } }, b.author), b.status === "lu" && b.rating > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, display: "flex", gap: 1 } }, "\u2605".repeat(b.rating) + "\u2606".repeat(5 - b.rating))), /* @__PURE__ */ React.createElement(StatusPill, { value: b.status, options: BOOK_STATUS, onChange: (v) => upd((d) => {
       d.books.find((x) => x.id === b.id).status = v;
     }) })), expandedId === b.id && /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.cream}`, padding: "14px 18px", background: C.light }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap", alignItems: "center" } }, /* @__PURE__ */ React.createElement(
       "input",
@@ -606,9 +693,19 @@
         placeholder: "Auteur...",
         style: { flex: 1, minWidth: 140, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none" }
       }
-    ), b.status === "lu" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted } }, "Note :"), /* @__PURE__ */ React.createElement(Stars, { value: b.rating || 0, onChange: (v) => upd((d) => {
+    )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10 } }, [{ key: "roman", label: "\u{1F4D6} Roman" }, { key: "essai", label: "\u{1F4A1} Essai" }, { key: "devperso", label: "\u{1F331} D\xE9v. perso" }, { key: "bio", label: "\u{1F464} Biographie" }, { key: "bd", label: "\u{1F3A8} BD/Manga" }, { key: "autre", label: "\u2726 Autre" }, ...(data.bookTypes || []).map((t) => ({ key: t.key, label: (t.emoji || "\u2726") + " " + t.label }))].map((t) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: t.key,
+        onClick: () => upd((d) => {
+          d.books.find((x) => x.id === b.id).type = t.key;
+        }),
+        style: { border: `1.5px solid ${b.type === t.key ? C.dark : C.border}`, background: b.type === t.key ? C.dark : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: b.type === t.key ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit" }
+      },
+      t.label
+    ))), b.status === "lu" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted } }, "Note :"), /* @__PURE__ */ React.createElement(Stars, { value: b.rating || 0, onChange: (v) => upd((d) => {
       d.books.find((x) => x.id === b.id).rating = v;
-    }) }))), /* @__PURE__ */ React.createElement(
+    }) })), /* @__PURE__ */ React.createElement(
       "textarea",
       {
         value: b.notes || "",
@@ -628,7 +725,61 @@
         style: { marginTop: 10, fontSize: 11, color: C.terra, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }
       },
       "Supprimer"
-    ))))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Nouveau livre...", extraField: "Auteur...", onAdd: (name, author) => upd((d) => d.books.push({ id: newId(), name, author, status: "\xE0 lire", notes: "", rating: 0 })) })), tab === "podcasts" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" } }, [["tous", "Tous"], ["\xE0 \xE9couter", "\u{1F3A7} \xC0 \xE9couter"], ["en cours", "\u25B6\uFE0F En cours"], ["termin\xE9", "\u2713 Termin\xE9s"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
+    ))))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Nouveau livre...", extraField: "Auteur...", onAdd: (name, author) => upd((d) => d.books.push({ id: newId(), name, author, status: "\xE0 lire", notes: "", rating: 0 })) })), tab === "podcasts" && /* @__PURE__ */ React.createElement("div", null, (() => {
+      const POD_TYPES_BASE = [
+        { key: "bienetre", label: "\u{1F33F} Bien-\xEAtre" },
+        { key: "culture", label: "\u{1F3AD} Culture" },
+        { key: "business", label: "\u{1F4BC} Business" },
+        { key: "truecrime", label: "\u{1F50D} True crime" },
+        { key: "science", label: "\u{1F52C} Science" },
+        { key: "sport", label: "\u{1F3C3} Sport" },
+        { key: "autre", label: "\u2726 Autre" }
+      ];
+      const customPodTypes = (data.podTypes || []).map((t) => ({ key: t.key, label: (t.emoji || "\u2726") + " " + t.label, custom: true }));
+      const ALL_POD_TYPES = [...customPodTypes, ...POD_TYPES_BASE];
+      const addPodType = () => {
+        const trimmed = newPodType.trim();
+        if (!trimmed) return;
+        upd((d) => {
+          if (!d.podTypes) d.podTypes = [];
+          d.podTypes.unshift({ key: "pt_" + Date.now(), label: trimmed, emoji: newPodTypeEmoji.trim() || "\u2726" });
+        });
+        setNewPodType("");
+        setNewPodTypeEmoji("");
+      };
+      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 10 } }, [{ key: "Tout", label: "Tout" }, ...ALL_POD_TYPES].map((t) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: t.key,
+          onClick: () => setPodType(t.key),
+          style: { flexShrink: 0, border: `1.5px solid ${podType === t.key ? C.dark : C.border}`, background: podType === t.key ? C.dark : "white", borderRadius: 20, padding: "5px 12px", fontSize: 11, fontWeight: 600, color: podType === t.key ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
+        },
+        t.label,
+        t.custom && podType !== t.key && /* @__PURE__ */ React.createElement("span", { onClick: (e) => {
+          e.stopPropagation();
+          upd((d) => {
+            d.podTypes = (d.podTypes || []).filter((x) => x.key !== t.key);
+          });
+        }, style: { marginLeft: 4, fontSize: 9, color: C.terra, cursor: "pointer" } }, "\u2715")
+      ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 10, alignItems: "center" } }, /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          value: newPodTypeEmoji,
+          onChange: (e) => setNewPodTypeEmoji(e.target.value),
+          placeholder: "\u{1F399}\uFE0F",
+          style: { width: 36, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "5px 7px", fontFamily: "inherit", fontSize: 14, textAlign: "center", outline: "none", flexShrink: 0 }
+        }
+      ), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          value: newPodType,
+          onChange: (e) => setNewPodType(e.target.value),
+          onKeyDown: (e) => e.key === "Enter" && addPodType(),
+          placeholder: "Nouveau type...",
+          style: { flex: 1, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 20, padding: "5px 12px", fontFamily: "inherit", fontSize: 11, color: C.dark, outline: "none" }
+        }
+      ), newPodType.trim() && /* @__PURE__ */ React.createElement("button", { onClick: addPodType, style: { background: C.dark, border: "none", borderRadius: 20, padding: "5px 12px", color: "white", fontSize: 11, cursor: "pointer", fontFamily: "inherit", fontWeight: 600 } }, "+")));
+    })(), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" } }, [["tous", "Tous"], ["\xE0 \xE9couter", "\u{1F3A7} \xC0 \xE9couter"], ["en cours", "\u25B6\uFE0F En cours"], ["termin\xE9", "\u2713 Termin\xE9s"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
       "button",
       {
         key: v,
@@ -636,9 +787,19 @@
         style: { flexShrink: 0, border: `1.5px solid ${podFilter === v ? C.terra : C.border}`, background: podFilter === v ? "#FEF3ED" : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: podFilter === v ? C.terra : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
       },
       l
-    ))), /* @__PURE__ */ React.createElement(SectionTitle, null, data.podcasts.length, " podcasts"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, data.podcasts.filter((p) => (filterText(p.name) || filterText(p.notes || "")) && (podFilter === "tous" || p.status === podFilter)).map((p) => /* @__PURE__ */ React.createElement(CardShell, { key: p.id, active: expandedId === p.id, onClick: () => toggle(p.id) }, /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 44, height: 44, borderRadius: 12, background: p.status === "termin\xE9" ? C.sage + "22" : p.status === "en cours" ? C.terra + "22" : C.warm, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 } }, "\u{1F399}\uFE0F"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: C.dark } }, p.name), p.notes && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, p.notes), p.status === "termin\xE9" && p.rating > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 3, display: "flex", gap: 1, fontSize: 12 } }, "\u2605".repeat(p.rating) + "\u2606".repeat(5 - p.rating))), /* @__PURE__ */ React.createElement(StatusPill, { value: p.status, options: POD_STATUS, onChange: (v) => upd((d) => {
+    ))), /* @__PURE__ */ React.createElement(SectionTitle, null, data.podcasts.filter((p) => podType === "Tout" || p.type === podType).length, " podcasts"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, data.podcasts.filter((p) => (filterText(p.name) || filterText(p.notes || "")) && (podFilter === "tous" || p.status === podFilter) && (podType === "Tout" || p.type === podType)).map((p) => /* @__PURE__ */ React.createElement(CardShell, { key: p.id, active: expandedId === p.id, onClick: () => toggle(p.id) }, /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 44, height: 44, borderRadius: 12, background: p.status === "termin\xE9" ? C.sage + "22" : p.status === "en cours" ? C.terra + "22" : C.warm, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 } }, "\u{1F399}\uFE0F"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: C.dark } }, p.name), p.notes && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, p.notes), p.status === "termin\xE9" && p.rating > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 3, display: "flex", gap: 1, fontSize: 12 } }, "\u2605".repeat(p.rating) + "\u2606".repeat(5 - p.rating))), /* @__PURE__ */ React.createElement(StatusPill, { value: p.status, options: POD_STATUS, onChange: (v) => upd((d) => {
       d.podcasts.find((x) => x.id === p.id).status = v;
-    }) })), expandedId === p.id && /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.cream}`, padding: "14px 18px", background: C.light }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement(
+    }) })), expandedId === p.id && /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.cream}`, padding: "14px 18px", background: C.light }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10 } }, [{ key: "bienetre", label: "\u{1F33F} Bien-\xEAtre" }, { key: "culture", label: "\u{1F3AD} Culture" }, { key: "business", label: "\u{1F4BC} Business" }, { key: "truecrime", label: "\u{1F50D} True crime" }, { key: "science", label: "\u{1F52C} Science" }, { key: "sport", label: "\u{1F3C3} Sport" }, { key: "autre", label: "\u2726 Autre" }, ...(data.podTypes || []).map((t) => ({ key: t.key, label: (t.emoji || "\u2726") + " " + t.label }))].map((t) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: t.key,
+        onClick: () => upd((d) => {
+          d.podcasts.find((x) => x.id === p.id).type = t.key;
+        }),
+        style: { border: `1.5px solid ${p.type === t.key ? C.dark : C.border}`, background: p.type === t.key ? C.dark : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: p.type === t.key ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit" }
+      },
+      t.label
+    ))), /* @__PURE__ */ React.createElement(
       "textarea",
       {
         value: p.notes || "",
@@ -681,14 +842,16 @@
       },
       "Supprimer"
     ))))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Nouveau podcast...", onAdd: (name) => upd((d) => d.podcasts.push({ id: newId(), name, status: "\xE0 \xE9couter", notes: "", url: "", rating: 0 })) })), tab === "films" && /* @__PURE__ */ React.createElement("div", null, (() => {
-      const MOVIE_GENRES = ["Drame", "Com\xE9die", "Thriller", "Action", "Horreur", "Sci-fi", "Romance", "Documentaire", "Animation"];
+      const MOVIE_GENRES_BASE = ["Drame", "Com\xE9die", "Thriller", "Action", "Horreur", "Sci-fi", "Romance", "Documentaire", "Animation", "Autre"];
+      const customMovieGenres = [...new Set((data.movies || []).map((m) => m.genre).filter((g) => g && !MOVIE_GENRES_BASE.includes(g)))];
+      const MOVIE_GENRES = [...MOVIE_GENRES_BASE, ...customMovieGenres];
       const cats = [
         { id: "Tout", label: "Tout" },
         { id: "film", label: "\u{1F3AC} Films" },
         { id: "s\xE9rie", label: "\u{1F4FA} S\xE9ries" }
       ];
       const filtered = data.movies.filter(
-        (m) => m.name && (mediaCat === "Tout" || m.cat === mediaCat) && (movieFilter === "tous" || m.status === movieFilter) && (filterText(m.name) || filterText(m.genre || ""))
+        (m) => m.name && (mediaCat === "Tout" || m.cat === mediaCat) && (movieFilter === "tous" || m.status === movieFilter) && (movieGenre === "Tout" || m.genre === movieGenre) && (filterText(m.name) || filterText(m.genre || ""))
       );
       const aVoir = data.movies.filter((m) => m.name && m.status === "\xE0 voir").length;
       const enCours = data.movies.filter((m) => m.name && m.status === "en cours").length;
@@ -700,7 +863,15 @@
           style: { padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${mediaCat === c.id ? C.dark : C.border}`, background: mediaCat === c.id ? C.dark : "white", color: mediaCat === c.id ? "white" : C.muted, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }
         },
         c.label
-      )), /* @__PURE__ */ React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" } }, aVoir > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted } }, aVoir, " \xE0 voir"), enCours > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.terra, fontWeight: 600 } }, enCours, " en cours"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" } }, [["tous", "Tous"], ["\xE0 voir", "\u{1F440} \xC0 voir"], ["en cours", "\u25B6\uFE0F En cours"], ["vu", "\u2713 Vus"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
+      )), /* @__PURE__ */ React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" } }, aVoir > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted } }, aVoir, " \xE0 voir"), enCours > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.terra, fontWeight: 600 } }, enCours, " en cours"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 10 } }, ["Tout", ...MOVIE_GENRES].map((g) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: g,
+          onClick: () => setMovieGenre(g),
+          style: { flexShrink: 0, border: `1.5px solid ${movieGenre === g ? C.brown : C.border}`, background: movieGenre === g ? C.brown : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: movieGenre === g ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
+        },
+        g
+      ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" } }, [["tous", "Tous"], ["\xE0 voir", "\u{1F440} \xC0 voir"], ["en cours", "\u25B6\uFE0F En cours"], ["vu", "\u2713 Vus"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
         "button",
         {
           key: v,
