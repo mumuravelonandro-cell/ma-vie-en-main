@@ -358,6 +358,7 @@
     useEffect(() => {
       if (data) save(data);
     }, [data]);
+    const [syncStatus, setSyncStatus] = useState(null);
     const forceSyncUp = async () => {
       if (!data) return;
       setSyncStatus("syncing");
