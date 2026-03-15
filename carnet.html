@@ -358,6 +358,23 @@
     useEffect(() => {
       if (data) save(data);
     }, [data]);
+    const forceSyncUp = async () => {
+      if (!data) return;
+      setSyncStatus("syncing");
+      try {
+        const res = await fetch(BIN_URL, { headers: HEADERS });
+        const current = res.ok ? await res.json() : {};
+        const r = await fetch(BIN_URL, {
+          method: "PUT",
+          headers: HEADERS,
+          body: JSON.stringify(__spreadProps(__spreadValues({}, current), { carnet: data }))
+        });
+        setSyncStatus(r.ok ? "ok" : "error");
+      } catch (e) {
+        setSyncStatus("error");
+      }
+      setTimeout(() => setSyncStatus(null), 3e3);
+    };
     const upd = (fn) => setData((prev) => {
       const next = JSON.parse(JSON.stringify(prev));
       fn(next);
@@ -390,7 +407,15 @@
           .carnet-tabs-desktop { display:none !important; }
           .carnet-tabs-mobile  { display:flex !important; }
         }
-      `), /* @__PURE__ */ React.createElement("div", { style: { background: C.dark, padding: `clamp(16px,4vw,28px) clamp(16px,4vw,32px) ${reading > 0 || watching > 0 || goalsDone > 0 || defisDone > 0 ? 0 : "18px"}`, position: "relative", overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: C.gold, opacity: 0.1 } }), /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", bottom: -30, left: -30, width: 100, height: 100, borderRadius: "50%", background: C.terra, opacity: 0.08 } }), /* @__PURE__ */ React.createElement("div", { style: { position: "relative", zIndex: 1 } }, /* @__PURE__ */ React.createElement("h1", { style: { fontFamily: "Georgia,serif", fontSize: "clamp(20px,3.5vw,30px)", color: "#F5F0E8", fontStyle: "italic", letterSpacing: "-0.3px", marginBottom: 4 } }, "Mon ", /* @__PURE__ */ React.createElement("span", { style: { color: C.gold } }, "carnet")), (reading > 0 || watching > 0 || goalsDone > 0 || defisDone > 0) && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, flexWrap: "wrap", paddingBottom: 18, marginTop: 10 } }, [
+      `), /* @__PURE__ */ React.createElement("div", { style: { background: C.dark, padding: `clamp(16px,4vw,28px) clamp(16px,4vw,32px) ${reading > 0 || watching > 0 || goalsDone > 0 || defisDone > 0 ? 0 : "18px"}`, position: "relative", overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: C.gold, opacity: 0.1 } }), /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", bottom: -30, left: -30, width: 100, height: 100, borderRadius: "50%", background: C.terra, opacity: 0.08 } }), /* @__PURE__ */ React.createElement("div", { style: { position: "relative", zIndex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 4 } }, /* @__PURE__ */ React.createElement("h1", { style: { fontFamily: "Georgia,serif", fontSize: "clamp(20px,3.5vw,30px)", color: "#F5F0E8", fontStyle: "italic", letterSpacing: "-0.3px" } }, "Mon ", /* @__PURE__ */ React.createElement("span", { style: { color: C.gold } }, "carnet")), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: forceSyncUp,
+        title: "Forcer la synchro vers le cloud",
+        style: { background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "4px 10px", cursor: "pointer", fontSize: 11, color: syncStatus === "ok" ? "#7A9E7E" : syncStatus === "error" ? "#E05252" : "#9B8B7E", fontFamily: "inherit", transition: "all 0.2s", flexShrink: 0 }
+      },
+      syncStatus === "syncing" ? "\u23F3" : syncStatus === "ok" ? "\u2713 Sync" : syncStatus === "error" ? "\u2717 Erreur" : "\u2601\uFE0F Sync"
+    )), (reading > 0 || watching > 0 || goalsDone > 0 || defisDone > 0) && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, flexWrap: "wrap", paddingBottom: 18, marginTop: 10 } }, [
       reading > 0 && { emoji: "\u{1F4D6}", val: reading, label: `livre${reading > 1 ? "s" : ""} en cours` },
       watching > 0 && { emoji: "\u25B6\uFE0F", val: watching, label: `en cours` },
       goalsDone > 0 && { emoji: "\u{1F3AF}", val: goalsDone, label: `objectif${goalsDone > 1 ? "s" : ""} accompli${goalsDone > 1 ? "s" : ""}` },

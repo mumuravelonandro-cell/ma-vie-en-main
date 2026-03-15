@@ -157,7 +157,8 @@
     { key: "journal", emoji: "\u270D\uFE0F", label: "Journaling / gratitude" },
     { key: "bureau", emoji: "\u{1F4CB}", label: "Pr\xE9parer le bureau pour demain" },
     { key: "silence", emoji: "\u{1F92B}", label: "10 min sans \xE9cran ni musique" },
-    { key: "sleep", emoji: "\u{1F634}", label: "Au lit avant 23h" }
+    { key: "sleep", emoji: "\u{1F634}", label: "Au lit avant 23h" },
+    { key: "walllegs", emoji: "\u{1F9B5}", label: "Pieds au mur 5-10 min" }
   ];
   const DEFAULT_NOSCROLL_RULES = [
     { key: "matin", emoji: "\u{1F305}", label: "Pas de scroll matin" },
@@ -1277,6 +1278,7 @@
     const [newEmoji, setNewEmoji] = useState("\u{1F4F5}");
     const [editMeals, setEditMeals] = useState(false);
     const [journalOpen, setJournalOpen] = useState(false);
+    const [syncStatus, setSyncStatus] = useState(null);
     const [newMLabel, setNewMLabel] = useState("");
     const [newMEmoji, setNewMEmoji] = useState("\u{1F37D}\uFE0F");
     useEffect(() => {
@@ -1288,6 +1290,23 @@
     useEffect(() => {
       if (store) saveAll(store);
     }, [store]);
+    const forceSyncUp = async () => {
+      if (!store) return;
+      setSyncStatus("syncing");
+      try {
+        const res = await fetch(BIN_URL, { headers: HEADERS });
+        const current = res.ok ? await res.json() : {};
+        const r = await fetch(BIN_URL, {
+          method: "PUT",
+          headers: HEADERS,
+          body: JSON.stringify(__spreadProps(__spreadValues({}, current), { tracker: store }))
+        });
+        setSyncStatus(r.ok ? "ok" : "error");
+      } catch (e) {
+        setSyncStatus("error");
+      }
+      setTimeout(() => setSyncStatus(null), 3e3);
+    };
     const viewKey = active === "today" ? todayKey() : active;
     const isToday = viewKey === todayKey();
     const week = last7();
@@ -1336,7 +1355,15 @@
           .tabs-desktop { display:none !important; }
           .tabs-mobile  { display:flex !important; }
         }
-      `), /* @__PURE__ */ React.createElement("div", { style: { background: "#1A1410", padding: "clamp(16px,4vw,24px) clamp(16px,4vw,32px) 0", position: "relative", overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "#C4724A", opacity: 0.1 } }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, position: "relative", zIndex: 1 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { style: { fontFamily: "Georgia,serif", fontSize: "clamp(20px,3.5vw,32px)", color: "#F5F0E8", fontStyle: "italic", letterSpacing: "-0.3px" } }, "Tracker ", /* @__PURE__ */ React.createElement("span", { style: { color: "#C4724A" } }, "quotidien")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginTop: 4 } }, /* @__PURE__ */ React.createElement(
+      `), /* @__PURE__ */ React.createElement("div", { style: { background: "#1A1410", padding: "clamp(16px,4vw,24px) clamp(16px,4vw,32px) 0", position: "relative", overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "#C4724A", opacity: 0.1 } }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, position: "relative", zIndex: 1 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10 } }, /* @__PURE__ */ React.createElement("h1", { style: { fontFamily: "Georgia,serif", fontSize: "clamp(20px,3.5vw,32px)", color: "#F5F0E8", fontStyle: "italic", letterSpacing: "-0.3px" } }, "Tracker ", /* @__PURE__ */ React.createElement("span", { style: { color: "#C4724A" } }, "quotidien")), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: forceSyncUp,
+        title: "Forcer la synchro vers le cloud",
+        style: { background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "4px 10px", cursor: "pointer", fontSize: 11, color: syncStatus === "ok" ? "#7A9E7E" : syncStatus === "error" ? "#E05252" : "#9B8B7E", fontFamily: "inherit", transition: "all 0.2s", flexShrink: 0 }
+      },
+      syncStatus === "syncing" ? "\u23F3" : syncStatus === "ok" ? "\u2713 Sync" : syncStatus === "error" ? "\u2717 Erreur" : "\u2601\uFE0F Sync"
+    )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginTop: 4 } }, /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => {
