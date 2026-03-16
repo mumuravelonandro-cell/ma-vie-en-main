@@ -141,9 +141,29 @@
   const TRACKER_KEY = "tracker_v4";
   const extractClassiques = async () => {
     try {
-      const r = await window.storage.get(TRACKER_KEY);
-      if (!r) return [];
-      const tracker = JSON.parse(r.value);
+      const res = await fetch(BIN_URL, { headers: HEADERS });
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.tracker) {
+          const menus = json.tracker.weekMenus || {};
+          const names = /* @__PURE__ */ new Set();
+          Object.values(menus).forEach((week) => {
+            Object.values(week).forEach((day) => {
+              if (day.lunch) names.add(day.lunch.trim());
+              if (day.lunchReal) names.add(day.lunchReal.trim());
+              if (day.dinner) names.add(day.dinner.trim());
+              if (day.dinnerReal) names.add(day.dinnerReal.trim());
+            });
+          });
+          return [...names].filter(Boolean).sort();
+        }
+      }
+    } catch (e) {
+    }
+    try {
+      const v = localStorage.getItem(TRACKER_KEY);
+      if (!v) return [];
+      const tracker = JSON.parse(v);
       const menus = tracker.weekMenus || {};
       const names = /* @__PURE__ */ new Set();
       Object.values(menus).forEach((week) => {
