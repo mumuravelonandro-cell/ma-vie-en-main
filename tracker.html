@@ -514,8 +514,17 @@
       setNewMLabel("");
       setNewMEmoji("\u{1F33F}");
     };
-    const days80 = last7().map((iso) => {
+    const weekIsos = Array.from({ length: 7 }, (_, i) => {
+      const d = /* @__PURE__ */ new Date(curWeekMon + "T12:00:00");
+      d.setDate(d.getDate() + i);
+      const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, "0"), dd = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${dd}`;
+    });
+    const days80 = weekIsos.map((iso) => {
+      var _a;
       const dm = getMenu(iso);
+      const db_override = ((_a = store.days[iso]) == null ? void 0 : _a.dayBalance) || null;
+      if (db_override) return db_override;
       const lb = dm.lunchBalance || null, db = dm.dinnerBalance || null;
       if (!lb && !db) return null;
       if (lb === "red" || db === "red") return "red";
@@ -589,9 +598,22 @@
         },
         eatDone === EAT_ITEMS.length && EAT_ITEMS.length > 0 ? "\u25CB Tout d\xE9cocher" : "\u2713 Tout cocher"
       ))));
-    })(), /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 14, border: "1px solid #E8DDD0", padding: "13px 18px", marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#1A1410" } }, "\xC9quilibre de la semaine"), ratio !== null && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: ratio >= 75 ? "#7A9E7E" : ratio >= 50 ? "#C9A84C" : "#C4724A", background: ratio >= 75 ? "#F0FAF0" : ratio >= 50 ? "#FEF9EC" : "#FEF3ED", borderRadius: 20, padding: "3px 10px" } }, ratio, "% \xE9quilibr\xE9")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, marginBottom: filled > 0 ? 8 : 0 } }, days80.map((v, i) => {
-      const isT = last7()[i] === todayKey();
-      return /* @__PURE__ */ React.createElement("div", { key: i, style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 } }, /* @__PURE__ */ React.createElement("div", { style: { width: "100%", height: 6, borderRadius: 3, background: v ? colMap[v] : "#F5F0E8", opacity: isT ? 1 : 0.7 } }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 8, color: isT ? "#C4724A" : "#9B8B7E", fontWeight: isT ? 700 : 400 } }, DAYS_SHORT[((/* @__PURE__ */ new Date(last7()[i] + "T12:00:00")).getDay() + 6) % 7]));
+    })(), isToday && /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 14, border: "1px solid #E8DDD0", padding: "13px 18px", marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#1A1410", marginBottom: 10 } }, "Journ\xE9e globale"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#9B8B7E", marginBottom: 10, fontStyle: "italic" } }, "Au-del\xE0 des repas planifi\xE9s, comment s'est pass\xE9e ta journ\xE9e alimentaire ?"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, [["green", "\u{1F7E2} Saine", "#F0FAF0", "#7A9E7E"], ["yellow", "\u{1F7E1} Mitig\xE9e", "#FEF9EC", "#C9A84C"], ["red", "\u{1F534} Plaisir", "#FEF3ED", "#E05252"]].map(([v, l, bg, col]) => {
+      const active = day.dayBalance === v;
+      return /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: v,
+          onClick: () => updDay((d) => {
+            d.dayBalance = d.dayBalance === v ? null : v;
+          }),
+          style: { flex: 1, padding: "9px 6px", borderRadius: 12, border: `1.5px solid ${active ? col : "#E8DDD0"}`, background: active ? bg : "white", fontSize: 12, fontWeight: active ? 700 : 400, color: active ? col : "#9B8B7E", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s", textAlign: "center" }
+        },
+        l
+      );
+    })), day.dayBalance && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#9B8B7E", marginTop: 8, textAlign: "center", fontStyle: "italic" } }, "Cette \xE9valuation remplace le calcul automatique dans le bilan")), /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 14, border: "1px solid #E8DDD0", padding: "13px 18px", marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: "#1A1410" } }, "\xC9quilibre ", isAlimCurrentWeek ? "cette semaine" : "sem. " + fmtWeekRange(alimMonday)), ratio !== null && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: ratio >= 75 ? "#7A9E7E" : ratio >= 50 ? "#C9A84C" : "#C4724A", background: ratio >= 75 ? "#F0FAF0" : ratio >= 50 ? "#FEF9EC" : "#FEF3ED", borderRadius: 20, padding: "3px 10px" } }, ratio, "% \xE9quilibr\xE9")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, marginBottom: filled > 0 ? 8 : 0 } }, days80.map((v, i) => {
+      const isT = weekIsos[i] === todayKey();
+      return /* @__PURE__ */ React.createElement("div", { key: i, style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 } }, /* @__PURE__ */ React.createElement("div", { style: { width: "100%", height: 6, borderRadius: 3, background: v ? colMap[v] : "#F5F0E8", opacity: isT ? 1 : 0.7 } }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 8, color: isT ? "#C4724A" : "#9B8B7E", fontWeight: isT ? 700 : 400 } }, DAYS_SHORT[((/* @__PURE__ */ new Date(weekIsos[i] + "T12:00:00")).getDay() + 6) % 7]));
     })), filled === 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "#C8BEB5", fontStyle: "italic", textAlign: "center", marginTop: 4 } }, "\xC9value tes repas pour voir l'\xE9quilibre"), filled > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, justifyContent: "center" } }, [{ c: "#7A9E7E", n: greens, l: "\u{1F7E2} \xE9quil." }, { c: "#C9A84C", n: yellows, l: "\u{1F7E1} mitig\xE9" }, { c: "#E05252", n: reds, l: "\u{1F534} plaisir" }].filter((x) => x.n > 0).map((x) => /* @__PURE__ */ React.createElement("span", { key: x.l, style: { fontSize: 11, color: "#9B8B7E" } }, x.n, "j ", x.l)))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 14 } }, [
       { id: "semaine", label: "\u{1F5D3} Vue semaine", desc: "Planifier" },
       { id: "jour", label: "\u{1F4CB} Vue jour", desc: "Suivre" }
