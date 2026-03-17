@@ -344,6 +344,8 @@
     const [goalSort, setGoalSort] = useState("\xE9ch\xE9ance");
     const [newCleanName, setNewCleanName] = useState("");
     const [cleanFilter, setCleanFilter] = useState("tous");
+    const [cleanPicker, setCleanPicker] = useState(null);
+    const [cleanPickerDate, setCleanPickerDate] = useState("");
     const [newCleanFreq, setNewCleanFreq] = useState("Mensuel");
     const [newCleanDays, setNewCleanDays] = useState(30);
     const [newDefiEmoji, setNewDefiEmoji] = useState("\u2B50");
@@ -1604,7 +1606,7 @@
           const d = /* @__PURE__ */ new Date();
           return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
         })();
-        const faitCount = data.cleaning.filter((c) => c.lastDone === todayStr).length;
+        const faitCount = data.cleaning.filter((c) => !!c.lastDone).length;
         return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
           "button",
           {
@@ -1628,15 +1630,11 @@
             style: { flex: 1, minWidth: 100, background: cleanFilter === "fait" ? "#F0FDF4" : "white", border: `1.5px solid ${cleanFilter === "fait" ? "#BBF7D0" : C.border}`, borderRadius: 12, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }
           },
           /* @__PURE__ */ React.createElement("span", { style: { fontSize: 20 } }, "\u{1F7E2}"),
-          /* @__PURE__ */ React.createElement("div", { style: { textAlign: "left" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, fontWeight: 700, color: C.sage } }, faitCount), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.muted } }, "fait aujourd'hui"))
+          /* @__PURE__ */ React.createElement("div", { style: { textAlign: "left" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, fontWeight: 700, color: C.sage } }, faitCount), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.muted } }, "fait"))
         ));
       })(), FREQS.map((freq) => {
         const URGENCY = { retard: 0, bientot: 1, ok: 2 };
-        const todayStr2 = (() => {
-          const d = /* @__PURE__ */ new Date();
-          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-        })();
-        const items = data.cleaning.filter((c) => c.freq === freq.id && (filterText(c.name) || filterText(c.notes || "")) && (cleanFilter === "tous" || cleanFilter === "retard" && isDue(c) === "retard" || cleanFilter === "bientot" && isDue(c) === "bientot" || cleanFilter === "fait" && c.lastDone === todayStr2)).sort((a, b) => (URGENCY[isDue(a)] || 2) - (URGENCY[isDue(b)] || 2));
+        const items = data.cleaning.filter((c) => c.freq === freq.id && (filterText(c.name) || filterText(c.notes || "")) && (cleanFilter === "tous" || cleanFilter === "retard" && isDue(c) === "retard" || cleanFilter === "bientot" && isDue(c) === "bientot" || cleanFilter === "fait" && !!c.lastDone)).sort((a, b) => (URGENCY[isDue(a)] || 2) - (URGENCY[isDue(b)] || 2));
         if (items.length === 0) return null;
         const freqRetard = items.filter((c) => isDue(c) === "retard").length;
         return /* @__PURE__ */ React.createElement("div", { key: freq.id, style: { marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14 } }, freq.emoji), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: C.muted } }, freq.label), freqRetard > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, background: "#FEF2F2", color: C.terra, borderRadius: 20, padding: "2px 8px", fontWeight: 600 } }, freqRetard, " en retard")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, items.map((item) => {
@@ -1650,19 +1648,64 @@
               return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
             })();
             const doneToday = item.lastDone === todayStr;
-            return /* @__PURE__ */ React.createElement(
+            const pickerOpen = cleanPicker === item.id;
+            return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 } }, item.lastDone && !pickerOpen && /* @__PURE__ */ React.createElement(
               "button",
               {
                 onClick: (e) => {
                   e.stopPropagation();
                   upd((d) => {
-                    d.cleaning.find((x) => x.id === item.id).lastDone = doneToday ? null : todayStr;
+                    d.cleaning.find((x) => x.id === item.id).lastDone = null;
                   });
                 },
-                style: { background: doneToday ? "#E8DDD0" : C.sage, border: "none", borderRadius: 10, padding: "6px 12px", color: doneToday ? C.muted : "white", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit", whiteSpace: "nowrap", transition: "all 0.2s" }
+                style: { background: "#E8DDD0", border: "none", borderRadius: 10, padding: "5px 10px", color: C.muted, cursor: "pointer", fontSize: 11, fontWeight: 600, fontFamily: "inherit", whiteSpace: "nowrap" }
               },
-              doneToday ? "Annuler \u2715" : "Fait \u2713"
-            );
+              "Annuler \u2715"
+            ), !pickerOpen && /* @__PURE__ */ React.createElement(
+              "button",
+              {
+                onClick: (e) => {
+                  e.stopPropagation();
+                  setCleanPicker(item.id);
+                  setCleanPickerDate(todayStr);
+                },
+                style: { background: item.lastDone ? C.sage + "99" : C.sage, border: "none", borderRadius: 10, padding: "6px 12px", color: "white", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit", whiteSpace: "nowrap", transition: "all 0.2s" }
+              },
+              item.lastDone ? "Refaire \u2713" : "Fait \u2713"
+            ), pickerOpen && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, alignItems: "center" }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement(
+              "input",
+              {
+                type: "date",
+                value: cleanPickerDate,
+                onChange: (e) => setCleanPickerDate(e.target.value),
+                style: { border: `1.5px solid ${C.border}`, background: "white", borderRadius: 8, padding: "4px 8px", fontFamily: "inherit", fontSize: 11, color: C.dark, outline: "none" }
+              }
+            ), /* @__PURE__ */ React.createElement(
+              "button",
+              {
+                onClick: (e) => {
+                  e.stopPropagation();
+                  if (cleanPickerDate) {
+                    upd((d) => {
+                      d.cleaning.find((x) => x.id === item.id).lastDone = cleanPickerDate;
+                    });
+                  }
+                  setCleanPicker(null);
+                },
+                style: { background: C.sage, border: "none", borderRadius: 8, padding: "5px 10px", color: "white", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }
+              },
+              "\u2713"
+            ), /* @__PURE__ */ React.createElement(
+              "button",
+              {
+                onClick: (e) => {
+                  e.stopPropagation();
+                  setCleanPicker(null);
+                },
+                style: { background: "#E8DDD0", border: "none", borderRadius: 8, padding: "5px 8px", color: C.muted, cursor: "pointer", fontSize: 12, fontFamily: "inherit" }
+              },
+              "\u2715"
+            )));
           })(), /* @__PURE__ */ React.createElement(
             "button",
             {
