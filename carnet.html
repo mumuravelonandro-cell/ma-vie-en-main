@@ -136,47 +136,6 @@
     bookTypes: [],
     podTypes: []
   };
-  const TRACKER_KEY = "tracker_v4";
-  const extractClassiques = async () => {
-    try {
-      const res = await fetch(BIN_URL, { headers: HEADERS });
-      if (res.ok) {
-        const json = await res.json();
-        if (json && json.tracker) {
-          const menus = json.tracker.weekMenus || {};
-          const names = /* @__PURE__ */ new Set();
-          Object.values(menus).forEach((week) => {
-            Object.values(week).forEach((day) => {
-              if (day.lunch) names.add(day.lunch.trim());
-              if (day.lunchReal) names.add(day.lunchReal.trim());
-              if (day.dinner) names.add(day.dinner.trim());
-              if (day.dinnerReal) names.add(day.dinnerReal.trim());
-            });
-          });
-          return [...names].filter(Boolean).sort();
-        }
-      }
-    } catch (e) {
-    }
-    try {
-      const v = localStorage.getItem(TRACKER_KEY);
-      if (!v) return [];
-      const tracker = JSON.parse(v);
-      const menus = tracker.weekMenus || {};
-      const names = /* @__PURE__ */ new Set();
-      Object.values(menus).forEach((week) => {
-        Object.values(week).forEach((day) => {
-          if (day.lunch) names.add(day.lunch.trim());
-          if (day.lunchReal) names.add(day.lunchReal.trim());
-          if (day.dinner) names.add(day.dinner.trim());
-          if (day.dinnerReal) names.add(day.dinnerReal.trim());
-        });
-      });
-      return [...names].filter(Boolean).sort();
-    } catch (e) {
-      return [];
-    }
-  };
   const load = async () => {
     try {
       const res = await fetch(BIN_URL, { headers: HEADERS });
@@ -328,12 +287,72 @@
       "+"
     ));
   };
+
+  /* ── AddPanel : drawer de saisie rapide ── */
+  const AddPanel = ({ open, onClose, title, emoji, fields, onSave }) => {
+    const [vals, setVals] = useState({});
+    const iStyle = { width: "100%", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 12, padding: "10px 14px", fontFamily: "inherit", fontSize: 14, color: C.dark, outline: "none", boxSizing: "border-box" };
+    const selStyle = { ...iStyle, cursor: "pointer" };
+    React.useEffect(() => { if (open) setVals({}); }, [open]);
+    if (!open) return null;
+    const handleSave = () => {
+      const name = (vals.name || "").trim();
+      if (!name) return;
+      onSave(vals);
+      onClose();
+    };
+    const set = (k, v) => setVals(prev => ({ ...prev, [k]: v }));
+    const renderField = (f) => {
+      if (f.type === "select") return React.createElement("div", { key: f.key, style: { marginBottom: 12 } },
+        React.createElement("label", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, display: "block", marginBottom: 6 } }, f.label),
+        React.createElement("select", { value: vals[f.key] || f.default || "", onChange: e => set(f.key, e.target.value), style: selStyle },
+          f.options.map(o => React.createElement("option", { key: o.v || o, value: o.v || o }, o.label || o)))
+      );
+      if (f.type === "pills") return React.createElement("div", { key: f.key, style: { marginBottom: 12 } },
+        React.createElement("label", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, display: "block", marginBottom: 8 } }, f.label),
+        React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } },
+          f.options.map(o => {
+            const v = o.v || o; const cur = vals[f.key] || f.default || v;
+            return React.createElement("button", { key: v, onClick: () => set(f.key, v), style: { border: `1.5px solid ${cur === v ? C.dark : C.border}`, background: cur === v ? C.dark : "white", borderRadius: 20, padding: "5px 13px", fontSize: 12, fontWeight: 600, color: cur === v ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit" } }, o.label || o);
+          }))
+      );
+      if (f.type === "textarea") return React.createElement("div", { key: f.key, style: { marginBottom: 12 } },
+        React.createElement("label", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, display: "block", marginBottom: 6 } }, f.label),
+        React.createElement("textarea", { value: vals[f.key] || "", onChange: e => set(f.key, e.target.value), placeholder: f.placeholder || "", rows: f.rows || 3, style: { ...iStyle, resize: "none", lineHeight: 1.6 } })
+      );
+      if (f.type === "number") return React.createElement("div", { key: f.key, style: { marginBottom: 12 } },
+        React.createElement("label", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, display: "block", marginBottom: 6 } }, f.label),
+        React.createElement("div", { style: { display: "flex", alignItems: "center", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 12, overflow: "hidden" } },
+          React.createElement("input", { type: "number", min: "0", value: vals[f.key] || "", onChange: e => set(f.key, e.target.value), placeholder: f.placeholder || "0", style: { flex: 1, border: "none", padding: "10px 14px", fontFamily: "inherit", fontSize: 14, color: C.dark, outline: "none", background: "transparent" } }),
+          f.suffix && React.createElement("span", { style: { paddingRight: 14, fontSize: 13, color: C.muted } }, f.suffix))
+      );
+      // default: text input
+      return React.createElement("div", { key: f.key, style: { marginBottom: 12 } },
+        React.createElement("label", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, display: "block", marginBottom: 6 } }, f.label),
+        React.createElement("input", { type: "text", value: vals[f.key] || "", onChange: e => set(f.key, e.target.value), placeholder: f.placeholder || "", onKeyDown: e => { if (e.key === "Enter") handleSave(); }, style: iStyle, autoFocus: f.autoFocus })
+      );
+    };
+    return React.createElement("div", { style: { position: "fixed", inset: 0, zIndex: 1000, display: "flex", flexDirection: "column", justifyContent: "flex-end" } },
+      React.createElement("div", { onClick: onClose, style: { position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(2px)" } }),
+      React.createElement("div", { style: { position: "relative", background: C.cream, borderRadius: "20px 20px 0 0", padding: "0 0 env(safe-area-inset-bottom,16px) 0", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 -8px 40px rgba(0,0,0,0.18)" } },
+        React.createElement("div", { style: { padding: "20px 20px 0" } },
+          React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 } },
+            React.createElement("div", { style: { fontSize: 16, fontWeight: 700, color: C.dark } }, emoji, " ", title),
+            React.createElement("button", { onClick: onClose, style: { background: C.warm, border: "none", borderRadius: 50, width: 30, height: 30, fontSize: 14, color: C.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" } }, "✕")),
+          React.createElement("div", { style: { overflowY: "auto", maxHeight: "60vh", paddingBottom: 16 } },
+            fields.map(renderField)),
+          React.createElement("div", { style: { paddingBottom: 16 } },
+            React.createElement("button", { onClick: handleSave, style: { width: "100%", background: C.dark, border: "none", borderRadius: 14, padding: "14px", color: "white", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" } }, "Ajouter")))));
+  };
+
+  const AddButton = ({ label, onClick }) => React.createElement("div", { style: { marginTop: 16, paddingTop: 12, borderTop: `1px solid ${C.border}` } },
+    React.createElement("button", { onClick, style: { width: "100%", background: "white", border: `1.5px dashed ${C.border}`, borderRadius: 12, padding: "11px", color: C.muted, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 } },
+      React.createElement("span", { style: { fontSize: 18, lineHeight: 1 } }, "+"), label));
   function Carnet() {
     const [data, setData] = useState(null);
     const [tab, setTab] = useState("cuisine");
     const [search, setSearch] = useState("");
     const [expandedId, setExpId] = useState(null);
-    const [classiques, setClassiques] = useState([]);
     const [mediaCat, setMediaCat] = useState("Tout");
     const [activeCat, setActiveCat] = useState("all");
     const [newCit, setNewCit] = useState("");
@@ -372,9 +391,10 @@
     const [newBookTypeEmoji, setNewBookTypeEmoji] = useState("");
     const [newPodType, setNewPodType] = useState("");
     const [newPodTypeEmoji, setNewPodTypeEmoji] = useState("");
+    const [movieAvec, setMovieAvec] = useState("tous");
+    const [addPanel, setAddPanel] = useState(null);
     useEffect(() => {
       load().then(setData);
-      extractClassiques().then(setClassiques);
     }, []);
     useEffect(() => {
       if (data) save(data);
@@ -404,6 +424,15 @@
     });
     const toggle = (id) => setExpId((prev) => prev === id ? null : id);
     const filterText = (str) => !search || (str || "").toLowerCase().includes(search.toLowerCase());
+  const SearchBar = () => /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      value: search,
+      onChange: (e) => setSearch(e.target.value),
+      placeholder: "\u{1F50D}  Rechercher...",
+      style: { width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", background: C.cream, marginBottom: 14, display: "block" }
+    }
+  );
     if (!data) return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", fontFamily: "system-ui", color: C.muted, fontSize: 14 } }, "Chargement...");
     const TABS = [
       { id: "cuisine", emoji: "\u{1F373}", label: "Cuisine" },
@@ -442,15 +471,7 @@
       watching > 0 && { emoji: "\u25B6\uFE0F", val: watching, label: `en cours` },
       goalsDone > 0 && { emoji: "\u{1F3AF}", val: goalsDone, label: `objectif${goalsDone > 1 ? "s" : ""} accompli${goalsDone > 1 ? "s" : ""}` },
       defisDone > 0 && { emoji: "\u{1F3C6}", val: defisDone, label: `d\xE9fi${defisDone > 1 ? "s" : ""} accompli${defisDone > 1 ? "s" : ""}` }
-    ].filter(Boolean).map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.07)", borderRadius: 20, padding: "4px 12px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, s.emoji), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: C.gold } }, s.val), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted } }, s.label)))))), /* @__PURE__ */ React.createElement("div", { className: "carnet-tabs-desktop", style: { background: "white", borderBottom: `1px solid ${C.border}`, padding: "0 clamp(16px,4vw,32px)", flexDirection: "column", position: "sticky", top: 0, zIndex: 99 } }, /* @__PURE__ */ React.createElement("div", { style: { padding: "10px 0 8px", borderBottom: `1px solid ${C.border}` } }, /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        value: search,
-        onChange: (e) => setSearch(e.target.value),
-        placeholder: "\u{1F50D}  Rechercher dans le carnet...",
-        style: { width: "100%", maxWidth: 420, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "7px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", background: C.cream }
-      }
-    )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", overflowX: "auto", scrollbarWidth: "none" } }, TABS.map((t) => /* @__PURE__ */ React.createElement("button", { key: t.id, onClick: () => {
+    ].filter(Boolean).map((s, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.07)", borderRadius: 20, padding: "4px 12px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, s.emoji), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: C.gold } }, s.val), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted } }, s.label)))))), /* @__PURE__ */ React.createElement("div", { className: "carnet-tabs-desktop", style: { background: "white", borderBottom: `1px solid ${C.border}`, padding: "0 clamp(16px,4vw,32px)", flexDirection: "column", position: "sticky", top: 0, zIndex: 99 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", overflowX: "auto", scrollbarWidth: "none" } }, TABS.map((t) => /* @__PURE__ */ React.createElement("button", { key: t.id, onClick: () => {
       setTab(t.id);
       setSearch("");
       setExpId(null);
@@ -472,15 +493,7 @@
       alignItems: "center",
       gap: 5,
       transition: "color 0.15s"
-    } }, t.emoji, " ", t.label)))), /* @__PURE__ */ React.createElement("div", { className: "carnet-tabs-mobile", style: { background: "white", borderBottom: `1px solid ${C.border}`, padding: "10px 16px" } }, /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        value: search,
-        onChange: (e) => setSearch(e.target.value),
-        placeholder: "\u{1F50D}  Rechercher...",
-        style: { width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "8px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", background: C.cream }
-      }
-    )), /* @__PURE__ */ React.createElement("div", { style: { padding: "clamp(16px,4vw,24px) clamp(16px,4vw,32px)", maxWidth: 800, margin: "0 auto", paddingBottom: 80 } }, tab === "cuisine" && /* @__PURE__ */ React.createElement("div", null, (() => {
+    } }, t.emoji, " ", t.label)))), /* @__PURE__ */ React.createElement("div", { className: "carnet-tabs-mobile", style: { background: "white", borderBottom: `1px solid ${C.border}`, padding: "10px 16px" } }), /* @__PURE__ */ React.createElement("div", { style: { padding: "clamp(16px,4vw,24px) clamp(16px,4vw,32px)", maxWidth: 800, margin: "0 auto", paddingBottom: 80 } }, tab === "cuisine" && /* @__PURE__ */ React.createElement("div", null, (() => {
       const R_CATS = ["Tout", "Petit d\xE9j", "Plat", "Dessert", "Snack", "Boisson"];
       const R_STATUS = [
         { value: "\xE0 tester", label: "\xC0 tester", emoji: "\u{1F9EA}", bg: "#EFF6FF", border: "#BFDBFE", color: "#3B82F6" },
@@ -603,64 +616,7 @@
           style: { flexShrink: 0, border: `1.5px solid ${rFilter === v ? C.terra : C.border}`, background: rFilter === v ? "#FEF3ED" : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: rFilter === v ? C.terra : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
         },
         l
-      ))), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 28 } }, /* @__PURE__ */ React.createElement(SectionTitle, { right: /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.muted } }, pipeline.length, " recette", pipeline.length > 1 ? "s" : "") }, "\u{1F9EA} Pipeline"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 } }, pipeline.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "24px", color: C.muted, fontSize: 13 } }, "Aucune recette dans le pipeline"), pipeline.map((r) => RecipeCard(r))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Recette \xE0 tester...", onAdd: (name) => upd((d) => d.recipes.push({ id: newId(), name, source: "", url: "", cat: "Plat", temps: "", notes: "", rating: 0, status: "\xE0 tester" })) })), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 28 } }, /* @__PURE__ */ React.createElement(SectionTitle, { right: /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.sage } }, adoptees.length, " recette", adoptees.length > 1 ? "s" : "") }, "\u{1F31F} Mes adopt\xE9es"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, adoptees.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "24px", color: C.muted, fontSize: 13 } }, "Tes recettes favorites appara\xEEtront ici"), adoptees.map((r) => RecipeCard(r)))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(SectionTitle, { right: /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted, fontStyle: "italic" } }, "tracker + ajouts manuels") }, "\u{1F3C6} Mes classiques"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, [
-        ...classiques.filter((c) => filterText(c)).map((name) => {
-          var _a, _b;
-          return {
-            id: "t_" + name,
-            name,
-            fromTracker: true,
-            cat: ((_a = (data.classiquesTrackerMeta || {})[name]) == null ? void 0 : _a.cat) || "",
-            notes: ((_b = (data.classiquesTrackerMeta || {})[name]) == null ? void 0 : _b.notes) || ""
-          };
-        }),
-        ...(data.classiquesManuel || []).filter((c) => filterText(c.name))
-      ].map((item) => /* @__PURE__ */ React.createElement(CardShell, { key: item.id, active: expandedId === item.id, onClick: () => setExpId(expandedId === item.id ? null : item.id) }, /* @__PURE__ */ React.createElement("div", { style: { padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16, flexShrink: 0 } }, item.fromTracker ? "\u{1F4C5}" : "\u2B50"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: C.dark } }, item.name), item.cat && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, background: C.cream, borderRadius: 10, padding: "1px 7px", color: C.muted } }, item.cat)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.muted } }, "\u203A")), expandedId === item.id && /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.cream}`, padding: "12px 16px", background: C.light }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 8 } }, /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          value: item.cat || "",
-          onChange: (e) => upd((d) => {
-            if (item.fromTracker) {
-              if (!d.classiquesTrackerMeta) d.classiquesTrackerMeta = {};
-              if (!d.classiquesTrackerMeta[item.name]) d.classiquesTrackerMeta[item.name] = {};
-              d.classiquesTrackerMeta[item.name].cat = e.target.value;
-            } else {
-              (d.classiquesManuel || []).find((x) => x.id === item.id).cat = e.target.value;
-            }
-          }),
-          placeholder: "Cat\xE9gorie (plat, dessert...)",
-          style: { flex: 1, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none" }
-        }
-      )), /* @__PURE__ */ React.createElement(
-        "textarea",
-        {
-          value: item.notes || "",
-          onChange: (e) => upd((d) => {
-            if (item.fromTracker) {
-              if (!d.classiquesTrackerMeta) d.classiquesTrackerMeta = {};
-              if (!d.classiquesTrackerMeta[item.name]) d.classiquesTrackerMeta[item.name] = {};
-              d.classiquesTrackerMeta[item.name].notes = e.target.value;
-            } else {
-              (d.classiquesManuel || []).find((x) => x.id === item.id).notes = e.target.value;
-            }
-          }),
-          placeholder: "Notes rapides (variantes, astuces...)",
-          style: { width: "100%", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "9px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, resize: "none", outline: "none", minHeight: 48, lineHeight: 1.5 }
-        }
-      ), !item.fromTracker && /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: () => upd((d) => {
-            d.classiquesManuel = (d.classiquesManuel || []).filter((x) => x.id !== item.id);
-            setExpId(null);
-          }),
-          style: { marginTop: 8, fontSize: 11, color: C.terra, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }
-        },
-        "Supprimer"
-      )))), classiques.length === 0 && !(data.classiquesManuel || []).length && /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 14, border: `1px solid ${C.border}`, padding: "28px 20px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 28, marginBottom: 8 } }, "\u{1F37D}"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, color: C.muted, fontStyle: "italic", lineHeight: 1.6 } }, "Tes classiques appara\xEEtront ici", /* @__PURE__ */ React.createElement("br", null), "depuis le tracker ou en les ajoutant manuellement"))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Ajouter un classique manuellement...", onAdd: (name) => upd((d) => {
-        if (!d.classiquesManuel) d.classiquesManuel = [];
-        d.classiquesManuel.push({ id: newId(), name, cat: "", notes: "" });
-      }) })));
+      ))), /* @__PURE__ */ React.createElement(SearchBar, null), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 28 } }, /* @__PURE__ */ React.createElement(SectionTitle, { right: /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.muted } }, pipeline.length, " recette", pipeline.length > 1 ? "s" : "") }, "\u{1F9EA} Pipeline"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 } }, pipeline.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "24px", color: C.muted, fontSize: 13 } }, "Aucune recette dans le pipeline"), pipeline.map((r) => RecipeCard(r))), AddButton({ label: "Nouvelle recette", onClick: () => setAddPanel("recipe") })), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 28 } }, /* @__PURE__ */ React.createElement(SectionTitle, { right: /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.sage } }, adoptees.length, " recette", adoptees.length > 1 ? "s" : "") }, "\u{1F31F} Mes adopt\xE9es"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, adoptees.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "24px", color: C.muted, fontSize: 13 } }, "Tes recettes favorites appara\xEEtront ici"), adoptees.map((r) => RecipeCard(r)))))
     })()), tab === "livres" && /* @__PURE__ */ React.createElement("div", null, (() => {
       const lu = data.books.filter((b) => b.status === "lu").length;
       const cours = data.books.filter((b) => b.status === "en cours").length;
@@ -728,7 +684,7 @@
         style: { flexShrink: 0, border: `1.5px solid ${bookFilter === v ? C.gold : C.border}`, background: bookFilter === v ? "#FEF9EC" : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: bookFilter === v ? C.gold : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
       },
       l
-    ))), /* @__PURE__ */ React.createElement(SectionTitle, null, data.books.filter((b) => bookType === "Tout" || b.type === bookType).length, " livres"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, data.books.filter((b) => (filterText(b.name) || filterText(b.author || "")) && (bookFilter === "tous" || b.status === bookFilter) && (bookType === "Tout" || b.type === bookType)).map((b) => /* @__PURE__ */ React.createElement(CardShell, { key: b.id, active: expandedId === b.id, accent: C.gold, onClick: () => toggle(b.id) }, /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 42, height: 54, borderRadius: 8, background: b.status === "lu" ? C.sage : b.status === "en cours" ? C.terra : C.warm, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 18 } }, b.status === "lu" ? "\u2713" : b.status === "en cours" ? "\u{1F4D6}" : "\u{1F4DA}"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: C.dark, marginBottom: 2 } }, b.name), b.author && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.muted } }, b.author), b.status === "lu" && b.rating > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, display: "flex", gap: 1 } }, "\u2605".repeat(b.rating) + "\u2606".repeat(5 - b.rating))), /* @__PURE__ */ React.createElement(StatusPill, { value: b.status, options: BOOK_STATUS, onChange: (v) => upd((d) => {
+    ))), /* @__PURE__ */ React.createElement(SearchBar, null), /* @__PURE__ */ React.createElement(SectionTitle, null, data.books.filter((b) => bookType === "Tout" || b.type === bookType).length, " livres"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, data.books.filter((b) => (filterText(b.name) || filterText(b.author || "")) && (bookFilter === "tous" || b.status === bookFilter) && (bookType === "Tout" || b.type === bookType)).map((b) => /* @__PURE__ */ React.createElement(CardShell, { key: b.id, active: expandedId === b.id, accent: C.gold, onClick: () => toggle(b.id) }, /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 42, height: 54, borderRadius: 8, background: b.status === "lu" ? C.sage : b.status === "en cours" ? C.terra : C.warm, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 18 } }, b.status === "lu" ? "\u2713" : b.status === "en cours" ? "\u{1F4D6}" : "\u{1F4DA}"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: C.dark, marginBottom: 2 } }, b.name), b.author && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.muted } }, b.author), b.status === "lu" && b.rating > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, display: "flex", gap: 1 } }, "\u2605".repeat(b.rating) + "\u2606".repeat(5 - b.rating))), /* @__PURE__ */ React.createElement(StatusPill, { value: b.status, options: BOOK_STATUS, onChange: (v) => upd((d) => {
       d.books.find((x) => x.id === b.id).status = v;
     }) })), expandedId === b.id && /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.cream}`, padding: "14px 18px", background: C.light }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap", alignItems: "center" } }, /* @__PURE__ */ React.createElement(
       "input",
@@ -772,7 +728,7 @@
         style: { marginTop: 10, fontSize: 11, color: C.terra, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }
       },
       "Supprimer"
-    ))))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Nouveau livre...", extraField: "Auteur...", onAdd: (name, author) => upd((d) => d.books.push({ id: newId(), name, author, status: "\xE0 lire", notes: "", rating: 0 })) })), tab === "podcasts" && /* @__PURE__ */ React.createElement("div", null, (() => {
+    ))))), AddButton({ label: "Nouveau livre", onClick: () => setAddPanel("book") })), tab === "podcasts" && /* @__PURE__ */ React.createElement("div", null, (() => {
       const POD_TYPES_BASE = [
         { key: "bienetre", label: "\u{1F33F} Bien-\xEAtre" },
         { key: "culture", label: "\u{1F3AD} Culture" },
@@ -834,7 +790,7 @@
         style: { flexShrink: 0, border: `1.5px solid ${podFilter === v ? C.terra : C.border}`, background: podFilter === v ? "#FEF3ED" : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: podFilter === v ? C.terra : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
       },
       l
-    ))), /* @__PURE__ */ React.createElement(SectionTitle, null, data.podcasts.filter((p) => podType === "Tout" || p.type === podType).length, " podcasts"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, data.podcasts.filter((p) => (filterText(p.name) || filterText(p.notes || "")) && (podFilter === "tous" || p.status === podFilter) && (podType === "Tout" || p.type === podType)).map((p) => /* @__PURE__ */ React.createElement(CardShell, { key: p.id, active: expandedId === p.id, onClick: () => toggle(p.id) }, /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 44, height: 44, borderRadius: 12, background: p.status === "termin\xE9" ? C.sage + "22" : p.status === "en cours" ? C.terra + "22" : C.warm, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 } }, "\u{1F399}\uFE0F"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: C.dark } }, p.name), p.notes && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, p.notes), p.status === "termin\xE9" && p.rating > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 3, display: "flex", gap: 1, fontSize: 12 } }, "\u2605".repeat(p.rating) + "\u2606".repeat(5 - p.rating))), /* @__PURE__ */ React.createElement(StatusPill, { value: p.status, options: POD_STATUS, onChange: (v) => upd((d) => {
+    ))), /* @__PURE__ */ React.createElement(SectionTitle, null, data.podcasts.filter((p) => podType === "Tout" || p.type === podType).length, " podcasts"), /* @__PURE__ */ React.createElement(SearchBar, null), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, data.podcasts.filter((p) => (filterText(p.name) || filterText(p.notes || "")) && (podFilter === "tous" || p.status === podFilter) && (podType === "Tout" || p.type === podType)).map((p) => /* @__PURE__ */ React.createElement(CardShell, { key: p.id, active: expandedId === p.id, onClick: () => toggle(p.id) }, /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 44, height: 44, borderRadius: 12, background: p.status === "termin\xE9" ? C.sage + "22" : p.status === "en cours" ? C.terra + "22" : C.warm, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 } }, "\u{1F399}\uFE0F"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: C.dark } }, p.name), p.notes && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, p.notes), p.status === "termin\xE9" && p.rating > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 3, display: "flex", gap: 1, fontSize: 12 } }, "\u2605".repeat(p.rating) + "\u2606".repeat(5 - p.rating))), /* @__PURE__ */ React.createElement(StatusPill, { value: p.status, options: POD_STATUS, onChange: (v) => upd((d) => {
       d.podcasts.find((x) => x.id === p.id).status = v;
     }) })), expandedId === p.id && /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.cream}`, padding: "14px 18px", background: C.light }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10 } }, [{ key: "bienetre", label: "\u{1F33F} Bien-\xEAtre" }, { key: "culture", label: "\u{1F3AD} Culture" }, { key: "business", label: "\u{1F4BC} Business" }, { key: "truecrime", label: "\u{1F50D} True crime" }, { key: "science", label: "\u{1F52C} Science" }, { key: "sport", label: "\u{1F3C3} Sport" }, { key: "autre", label: "\u2726 Autre" }, ...(data.podTypes || []).map((t) => ({ key: t.key, label: (t.emoji || "\u2726") + " " + t.label }))].map((t) => /* @__PURE__ */ React.createElement(
       "button",
@@ -888,7 +844,7 @@
         style: { marginTop: 2, fontSize: 11, color: C.terra, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }
       },
       "Supprimer"
-    ))))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Nouveau podcast...", onAdd: (name) => upd((d) => d.podcasts.push({ id: newId(), name, status: "\xE0 \xE9couter", notes: "", url: "", rating: 0 })) })), tab === "films" && /* @__PURE__ */ React.createElement("div", null, (() => {
+    ))))), AddButton({ label: "Nouveau podcast", onClick: () => setAddPanel("podcast") })), tab === "films" && /* @__PURE__ */ React.createElement("div", null, (() => {
       const MOVIE_GENRES_BASE = ["Drame", "Com\xE9die", "Thriller", "Action", "Horreur", "Sci-fi", "Romance", "Documentaire", "Animation", "Autre"];
       const customMovieGenres = [...new Set((data.movies || []).map((m) => m.genre).filter((g) => g && !MOVIE_GENRES_BASE.includes(g)))];
       const MOVIE_GENRES = [...MOVIE_GENRES_BASE, ...customMovieGenres];
@@ -898,7 +854,7 @@
         { id: "s\xE9rie", label: "\u{1F4FA} S\xE9ries" }
       ];
       const filtered = data.movies.filter(
-        (m) => m.name && (mediaCat === "Tout" || m.cat === mediaCat) && (movieFilter === "tous" || m.status === movieFilter) && (movieGenre === "Tout" || m.genre === movieGenre) && (filterText(m.name) || filterText(m.genre || ""))
+        (m) => m.name && (mediaCat === "Tout" || m.cat === mediaCat) && (movieFilter === "tous" || m.status === movieFilter) && (movieAvec === "tous" || (m.avec || "indiff\xE9rent") === movieAvec) && (filterText(m.name) || filterText(m.genre || ""))
       );
       const aVoir = data.movies.filter((m) => m.name && m.status === "\xE0 voir").length;
       const enCours = data.movies.filter((m) => m.name && m.status === "en cours").length;
@@ -910,15 +866,7 @@
           style: { padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${mediaCat === c.id ? C.dark : C.border}`, background: mediaCat === c.id ? C.dark : "white", color: mediaCat === c.id ? "white" : C.muted, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }
         },
         c.label
-      )), /* @__PURE__ */ React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" } }, aVoir > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted } }, aVoir, " \xE0 voir"), enCours > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.terra, fontWeight: 600 } }, enCours, " en cours"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 10 } }, ["Tout", ...MOVIE_GENRES].map((g) => /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          key: g,
-          onClick: () => setMovieGenre(g),
-          style: { flexShrink: 0, border: `1.5px solid ${movieGenre === g ? C.brown : C.border}`, background: movieGenre === g ? C.brown : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: movieGenre === g ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
-        },
-        g
-      ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" } }, [["tous", "Tous"], ["\xE0 voir", "\u{1F440} \xC0 voir"], ["en cours", "\u25B6\uFE0F En cours"], ["vu", "\u2713 Vus"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
+      )), /* @__PURE__ */ React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" } }, aVoir > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted } }, aVoir, " \xE0 voir"), enCours > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.terra, fontWeight: 600 } }, enCours, " en cours"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" } }, [["tous", "Tous"], ["\xE0 voir", "\u{1F440} \xC0 voir"], ["en cours", "\u25B6\uFE0F En cours"], ["vu", "\u2713 Vus"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
         "button",
         {
           key: v,
@@ -926,7 +874,15 @@
           style: { flexShrink: 0, border: `1.5px solid ${movieFilter === v ? C.terra : C.border}`, background: movieFilter === v ? "#FEF3ED" : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: movieFilter === v ? C.terra : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
         },
         l
-      ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, filtered.map((m) => /* @__PURE__ */ React.createElement(CardShell, { key: m.id, active: expandedId === m.id, onClick: () => toggle(m.id) }, /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 44, height: 44, borderRadius: 12, background: m.status === "vu" ? C.sage + "22" : m.status === "en cours" ? C.terra + "22" : C.warm, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 } }, m.cat === "s\xE9rie" ? "\u{1F4FA}" : "\u{1F3AC}"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: C.dark } }, m.name), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap", alignItems: "center" } }, m.genre && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, background: C.cream, borderRadius: 10, padding: "1px 7px", color: C.muted } }, m.genre), m.status === "vu" && m.rating > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12 } }, "\u2605".repeat(m.rating) + "\u2606".repeat(5 - m.rating)))), /* @__PURE__ */ React.createElement(StatusPill, { value: m.status, options: MEDIA_STATUS, onChange: (v) => upd((d) => {
+      ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap", alignItems: "center" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted, flexShrink: 0 } }, "Avec :"), [["tous", "Tous \uD83D\uDC65"], ["seule", "Seule \uD83D\uDC64"], ["\xE0 2", "\xC0 2 \uD83D\uDC91"], ["indiff\xE9rent", "Indiff\xE9rent"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: v,
+          onClick: () => setMovieAvec(v),
+          style: { flexShrink: 0, border: `1.5px solid ${movieAvec === v ? C.gold : C.border}`, background: movieAvec === v ? "#FEF9EC" : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: movieAvec === v ? C.gold : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
+        },
+        l
+      ))), /* @__PURE__ */ React.createElement(SearchBar, null), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, filtered.map((m) => /* @__PURE__ */ React.createElement(CardShell, { key: m.id, active: expandedId === m.id, onClick: () => toggle(m.id) }, /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 44, height: 44, borderRadius: 12, background: m.status === "vu" ? C.sage + "22" : m.status === "en cours" ? C.terra + "22" : C.warm, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 } }, m.cat === "s\xE9rie" ? "\u{1F4FA}" : "\u{1F3AC}"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: C.dark } }, m.name), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap", alignItems: "center" } }, m.genre && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, background: C.cream, borderRadius: 10, padding: "1px 7px", color: C.muted } }, m.genre), m.avec && m.avec !== "indiff\xE9rent" && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, background: m.avec === "seule" ? "#EFF6FF" : "#FDF4FF", borderRadius: 10, padding: "1px 7px", color: m.avec === "seule" ? "#3B82F6" : "#9333EA" } }, m.avec === "seule" ? "\u{1F464} Seule" : "\u{1F491} \xC0 2"), m.status === "vu" && m.rating > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12 } }, "\u2605".repeat(m.rating) + "\u2606".repeat(5 - m.rating)))), /* @__PURE__ */ React.createElement(StatusPill, { value: m.status, options: MEDIA_STATUS, onChange: (v) => upd((d) => {
         d.movies.find((x) => x.id === m.id).status = v;
       }) })), expandedId === m.id && /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.cream}`, padding: "14px 18px", background: C.light }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap", alignItems: "center" } }, /* @__PURE__ */ React.createElement(
         "select",
@@ -939,16 +895,27 @@
         },
         /* @__PURE__ */ React.createElement("option", { value: "film" }, "\u{1F3AC} Film"),
         /* @__PURE__ */ React.createElement("option", { value: "s\xE9rie" }, "\u{1F4FA} S\xE9rie")
-      )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10 } }, MOVIE_GENRES.map((g) => /* @__PURE__ */ React.createElement(
+      )), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement("datalist", { id: "movie-genres-dl" }, MOVIE_GENRES.map((g) => /* @__PURE__ */ React.createElement("option", { key: g, value: g }))), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          list: "movie-genres-dl",
+          value: m.genre || "",
+          onChange: (e) => upd((d) => {
+            d.movies.find((x) => x.id === m.id).genre = e.target.value;
+          }),
+          placeholder: "Genre : Drame, Com\xE9die, Thriller...",
+          style: { width: "100%", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none" }
+        }
+      )), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 18 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "\u{1F465} \xC0 regarder"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, [{ v: "seule", l: "\u{1F464} Seule" }, { v: "\xE0 2", l: "\u{1F491} \xC0 2" }, { v: "indiff\xE9rent", l: "\u2022 Indiff\xE9rent" }].map(({ v, l }) => /* @__PURE__ */ React.createElement(
         "button",
         {
-          key: g,
+          key: v,
           onClick: () => upd((d) => {
-            d.movies.find((x) => x.id === m.id).genre = m.genre === g ? "" : g;
+            d.movies.find((x) => x.id === m.id).avec = v;
           }),
-          style: { border: `1.5px solid ${m.genre === g ? C.terra : C.border}`, background: m.genre === g ? "#FEF3ED" : "white", borderRadius: 16, padding: "3px 10px", fontSize: 11, fontWeight: 500, color: m.genre === g ? C.terra : C.muted, cursor: "pointer", fontFamily: "inherit" }
+          style: { border: `1.5px solid ${(m.avec || "indiff\xE9rent") === v ? C.dark : C.border}`, background: (m.avec || "indiff\xE9rent") === v ? C.dark : "white", borderRadius: 20, padding: "5px 12px", fontSize: 12, fontWeight: 600, color: (m.avec || "indiff\xE9rent") === v ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit" }
         },
-        g
+        l
       ))), /* @__PURE__ */ React.createElement(
         "textarea",
         {
@@ -957,7 +924,7 @@
             d.movies.find((x) => x.id === m.id).notes = e.target.value;
           }),
           placeholder: m.status === "vu" ? "Ma critique, ce qui m'a marqu\xE9, \xE0 revoir ?" : "Note rapide, pourquoi \xE7a m'int\xE9resse...",
-          style: { width: "100%", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, resize: "none", outline: "none", minHeight: m.status === "vu" ? 90 : 50, lineHeight: 1.6, marginBottom: m.status === "vu" ? 8 : 0 }
+          style: { width: "100%", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, resize: "none", outline: "none", minHeight: m.status === "vu" ? 90 : 50, lineHeight: 1.6, marginTop: 14, marginBottom: m.status === "vu" ? 8 : 0 }
         }
       ), m.status === "vu" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted } }, "Note :"), /* @__PURE__ */ React.createElement(Stars, { value: m.rating || 0, onChange: (v) => upd((d) => {
         d.movies.find((x) => x.id === m.id).rating = v;
@@ -971,7 +938,7 @@
           style: { marginTop: 2, fontSize: 11, color: C.terra, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }
         },
         "Supprimer"
-      ))))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Nouveau film ou s\xE9rie...", onAdd: (name) => upd((d) => d.movies.push({ id: newId(), name, cat: mediaCat === "s\xE9rie" ? "s\xE9rie" : "film", genre: "", status: "\xE0 voir", notes: "", rating: 0 })) }));
+      )))))), AddButton({ label: "Nouveau film ou série", onClick: () => setAddPanel("movie") }));
     })()), tab === "wishlist" && /* @__PURE__ */ React.createElement("div", null, (() => {
       const WISH_CATS = ["Tout", "V\xEAtements", "Maison", "Beaut\xE9", "Tech", "Exp\xE9riences", "Autre"];
       const PRIORITY = [{ v: "haute", label: "\u{1F525} Indispensable" }, { v: "moyenne", label: "\u2728 Envie" }, { v: "basse", label: "\u{1F4AD} Un jour" }];
@@ -1108,7 +1075,7 @@
           style: { flexShrink: 0, border: `1.5px solid ${wSort === v ? C.terra : C.border}`, background: wSort === v ? "#FEF3ED" : "white", borderRadius: 20, padding: "4px 9px", fontSize: 11, fontWeight: 600, color: wSort === v ? C.terra : C.muted, cursor: "pointer", fontFamily: "inherit" }
         },
         l
-      ))), showRestants && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: restants.length > 0 && showAcquis ? 28 : 0 } }, showAcquis && restants.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "\xC0 avoir \xB7 ", restants.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, restants.length === 0 && wFilter !== "acquis" && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "28px 20px", color: C.muted, fontSize: 13 } }, "\u2728 Wishlist vide !"), restants.map((w) => WishCard(w)))), showAcquis && acquis.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "Acquis \xB7 ", acquis.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, acquis.map((w) => WishCard(w)))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Ajouter \xE0 ma wishlist...", onAdd: (name) => upd((d) => d.wishlist.push({ id: newId(), name, price: "", cat: "Autre", priority: "moyenne", url: "", notes: "", done: false })) }));
+      ))), /* @__PURE__ */ React.createElement(SearchBar, null), showRestants && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: restants.length > 0 && showAcquis ? 28 : 0 } }, showAcquis && restants.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "\xC0 avoir \xB7 ", restants.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, restants.length === 0 && wFilter !== "acquis" && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "28px 20px", color: C.muted, fontSize: 13 } }, "\u2728 Wishlist vide !"), restants.map((w) => WishCard(w)))), showAcquis && acquis.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "Acquis \xB7 ", acquis.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, acquis.map((w) => WishCard(w)))), AddButton({ label: "Ajouter à ma wishlist", onClick: () => setAddPanel("wish") }));
     })()), tab === "restaurants" && /* @__PURE__ */ React.createElement("div", null, (() => {
       const CUISINE_BASE = ["Japonais", "Italien", "Fran\xE7ais", "Tha\xEF", "Indien", "Mexicain", "Libanais", "Am\xE9ricain", "M\xE9diterran\xE9en", "Autre"];
       const customCuisines = [...new Set((data.restaurants || []).map((r) => r.cuisine).filter((c) => c && !CUISINE_BASE.includes(c)))];
@@ -1229,10 +1196,7 @@
           style: { flexShrink: 0, border: `1.5px solid ${restoSort === v ? C.terra : C.border}`, background: restoSort === v ? "#FEF3ED" : "white", borderRadius: 20, padding: "4px 9px", fontSize: 11, fontWeight: 600, color: restoSort === v ? C.terra : C.muted, cursor: "pointer", fontFamily: "inherit" }
         },
         l
-      ))), showTester && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: atester.length > 0 && showVisites ? 28 : 0 } }, showVisites && atester.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "\u{1F4CD} \xC0 tester \xB7 ", atester.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, atester.length === 0 && restoFilter !== "visit\xE9" && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "28px 20px", color: C.muted, fontSize: 13 } }, "\u{1F37D}\uFE0F Aucun resto \xE0 tester !"), atester.map((r) => RestoCard(r)))), showVisites && visites.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "\u2713 Visit\xE9s \xB7 ", visites.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, visites.map((r) => RestoCard(r)))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Resto \xE0 tester...", onAdd: (name) => upd((d) => {
-        if (!d.restaurants) d.restaurants = [];
-        d.restaurants.push({ id: newId(), name, quartier: "", cuisine: "", url: "", notes: "", rating: 0, status: "\xE0 tester" });
-      }) }));
+      ))), /* @__PURE__ */ React.createElement(SearchBar, null), showTester && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: atester.length > 0 && showVisites ? 28 : 0 } }, showVisites && atester.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "\u{1F4CD} \xC0 tester \xB7 ", atester.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, atester.length === 0 && restoFilter !== "visit\xE9" && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "28px 20px", color: C.muted, fontSize: 13 } }, "\u{1F37D}\uFE0F Aucun resto \xE0 tester !"), atester.map((r) => RestoCard(r)))), showVisites && visites.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "\u2713 Visit\xE9s \xB7 ", visites.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, visites.map((r) => RestoCard(r)))), AddButton({ label: "Nouveau restaurant", onClick: () => setAddPanel("resto") }));
     })()), tab === "objectifs" && /* @__PURE__ */ React.createElement("div", null, (() => {
       const GOAL_CATS = ["Perso", "Sant\xE9", "Pro", "Finances", "Relations", "Cr\xE9ativit\xE9", "Autre"];
       const CAT_COLORS = { Perso: "#FEF3ED", Sant\u00E9: "#F0FDF4", Pro: "#EFF6FF", Finances: "#FEF9EC", Relations: "#FDF4FF", Cr\u00E9ativit\u00E9: "#FFF7ED", Autre: C.cream };
@@ -1336,7 +1300,7 @@
           style: { flexShrink: 0, border: `1.5px solid ${goalSort === v ? C.sage : C.border}`, background: goalSort === v ? "#F0FDF4" : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: goalSort === v ? C.sage : C.muted, cursor: "pointer", fontFamily: "inherit" }
         },
         l
-      ))), /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 14, padding: "16px 20px", border: `1px solid ${C.border}`, marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 } }, /* @__PURE__ */ React.createElement("span", { style: { fontWeight: 600 } }, "Progression \xB7 ", done, "/", total), /* @__PURE__ */ React.createElement("span", { style: { color: C.sage, fontWeight: 700 } }, pct, "%")), /* @__PURE__ */ React.createElement("div", { style: { height: 6, background: C.cream, borderRadius: 3, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { height: "100%", background: `linear-gradient(90deg,${C.sage},${C.gold})`, borderRadius: 3, width: `${pct}%`, transition: "width 0.5s" } })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.muted, marginTop: 8, fontStyle: "italic" } }, pct === 100 ? "\u{1F389} Tous les objectifs accomplis !" : pct >= 50 ? "Tu es \xE0 mi-chemin \u2728" : "Continue, chaque pas compte \u{1F331}")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8, marginBottom: accomplished.length > 0 ? 24 : 0 } }, active.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "28px 20px", color: C.muted, fontSize: 13 } }, "\u{1F3AF} Ajoute ton premier objectif"), active.map((g) => GoalCard(g))), accomplished.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "Accomplis \xB7 ", accomplished.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, accomplished.map((g) => GoalCard(g)))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Nouvel objectif...", onAdd: (name) => upd((d) => d.goals.push({ id: newId(), name, done: false, doneAt: null, cat: "", deadline: "", notes: "" })) }));
+      ))), /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 14, padding: "16px 20px", border: `1px solid ${C.border}`, marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 } }, /* @__PURE__ */ React.createElement("span", { style: { fontWeight: 600 } }, "Progression \xB7 ", done, "/", total), /* @__PURE__ */ React.createElement("span", { style: { color: C.sage, fontWeight: 700 } }, pct, "%")), /* @__PURE__ */ React.createElement("div", { style: { height: 6, background: C.cream, borderRadius: 3, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { height: "100%", background: `linear-gradient(90deg,${C.sage},${C.gold})`, borderRadius: 3, width: `${pct}%`, transition: "width 0.5s" } })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.muted, marginTop: 8, fontStyle: "italic" } }, pct === 100 ? "\u{1F389} Tous les objectifs accomplis !" : pct >= 50 ? "Tu es \xE0 mi-chemin \u2728" : "Continue, chaque pas compte \u{1F331}")), /* @__PURE__ */ React.createElement(SearchBar, null), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8, marginBottom: accomplished.length > 0 ? 24 : 0 } }, active.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "28px 20px", color: C.muted, fontSize: 13 } }, "\u{1F3AF} Ajoute ton premier objectif"), active.map((g) => GoalCard(g))), accomplished.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "Accomplis \xB7 ", accomplished.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, accomplished.map((g) => GoalCard(g)))), AddButton({ label: "Nouvel objectif", onClick: () => setAddPanel("goal") }));
     })()), tab === "activites" && /* @__PURE__ */ React.createElement("div", null, (() => {
       const TYPES_BASE = [
         { key: "nature", label: "\u{1F33F} Nature", short: "\u{1F33F}" },
@@ -1562,10 +1526,7 @@
           style: { border: `1.5px solid ${activiteSort === v ? C.terra : C.border}`, background: activiteSort === v ? "#FEF3ED" : "white", borderRadius: 20, padding: "4px 9px", fontSize: 11, fontWeight: 600, color: activiteSort === v ? C.terra : C.muted, cursor: "pointer", fontFamily: "inherit" }
         },
         l
-      ))), showAfaire && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: afaire.length > 0 && showFaites ? 28 : 0 } }, showFaites && afaire.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 } }, "\u{1F4CD} \xC0 faire \xB7 ", afaire.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, afaire.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "32px 20px", color: C.muted, fontSize: 13, fontStyle: "italic" } }, "Rien \xE0 faire pour l'instant \u{1F5FA}\uFE0F"), afaire.map((a) => ActiviteCard(a)))), showFaites && faites.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 } }, "\u2713 Faites \xB7 ", faites.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, faites.map((a) => ActiviteCard(a)))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Ajouter une activit\xE9...", onAdd: (name) => upd((d) => {
-        if (!d.activites) d.activites = [];
-        d.activites.push({ id: newId(), name, type: "autre", priorite: "mod\xE9r\xE9e", lieu: "", avec: "", date: "", prix: "", url: "", notes: "", rating: 0, status: "\xE0 faire" });
-      }) }));
+      ))), showAfaire && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: afaire.length > 0 && showFaites ? 28 : 0 } }, showFaites && afaire.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 } }, "\u{1F4CD} \xC0 faire \xB7 ", afaire.length), /* @__PURE__ */ React.createElement(SearchBar, null), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, afaire.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "32px 20px", color: C.muted, fontSize: 13, fontStyle: "italic" } }, "Rien \xE0 faire pour l'instant \u{1F5FA}\uFE0F"), afaire.map((a) => ActiviteCard(a)))), showFaites && faites.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 } }, "\u2713 Faites \xB7 ", faites.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, faites.map((a) => ActiviteCard(a)))), AddButton({ label: "Nouvelle activité", onClick: () => setAddPanel("activite") }));
     })()), tab === "nettoyage" && (() => {
       const today = /* @__PURE__ */ new Date();
       const diffDays = (lastDone) => {
@@ -2071,7 +2032,71 @@
           "Fermer"
         )))
       ))));
-    })(), /* @__PURE__ */ React.createElement("div", { className: "carnet-tabs-mobile", style: { position: "fixed", bottom: 0, left: 0, right: 0, background: "white", borderTop: `1px solid ${C.border}`, display: "flex", overflowX: "auto", zIndex: 200, paddingBottom: "env(safe-area-inset-bottom,0px)", WebkitOverflowScrolling: "touch" } }, TABS.map((t) => /* @__PURE__ */ React.createElement("button", { key: t.id, onClick: () => {
+    })(), /* @__PURE__ */ React.createElement(AddPanel, {
+      open: addPanel !== null,
+      onClose: () => setAddPanel(null),
+      title: addPanel === "recipe" ? "Nouvelle recette" : addPanel === "book" ? "Nouveau livre" : addPanel === "podcast" ? "Nouveau podcast" : addPanel === "movie" ? "Nouveau film / série" : addPanel === "wish" ? "Wishlist" : addPanel === "resto" ? "Nouveau restaurant" : addPanel === "goal" ? "Nouvel objectif" : addPanel === "activite" ? "Nouvelle activité" : "Nouveau",
+      emoji: addPanel === "recipe" ? "🍽️" : addPanel === "book" ? "📚" : addPanel === "podcast" ? "🎙️" : addPanel === "movie" ? "🎬" : addPanel === "wish" ? "✨" : addPanel === "resto" ? "🗺️" : addPanel === "goal" ? "🎯" : addPanel === "activite" ? "🗺️" : "➕",
+      fields: addPanel === "recipe" ? [
+        { key: "name", label: "Nom de la recette", type: "text", placeholder: "Ex : Tarte tatin, Ramen maison...", autoFocus: true },
+        { key: "source", label: "Source", type: "text", placeholder: "Instagram, YouTube, livre..." },
+        { key: "cat", label: "Catégorie", type: "pills", default: "Plat", options: [{ v: "Entrée", label: "Entrée" }, { v: "Plat", label: "Plat" }, { v: "Dessert", label: "Dessert" }, { v: "Snack", label: "Snack" }, { v: "Boisson", label: "Boisson" }] },
+        { key: "temps", label: "Temps", type: "pills", default: "", options: [{ v: "", label: "?" }, { v: "< 20 min", label: "< 20 min" }, { v: "20-40 min", label: "20-40 min" }, { v: "40-60 min", label: "40-60 min" }, { v: "> 1h", label: "> 1h" }] },
+        { key: "url", label: "Lien (optionnel)", type: "text", placeholder: "https://..." },
+        { key: "notes", label: "Notes", type: "textarea", placeholder: "Ingrédients à trouver, variantes...", rows: 2 }
+      ] : addPanel === "book" ? [
+        { key: "name", label: "Titre du livre", type: "text", placeholder: "Ex : Atomic Habits...", autoFocus: true },
+        { key: "author", label: "Auteur", type: "text", placeholder: "Prénom Nom" },
+        { key: "type", label: "Genre", type: "pills", default: "roman", options: [{ v: "roman", label: "📖 Roman" }, { v: "essai", label: "💡 Essai" }, { v: "devperso", label: "🌱 Dév. perso" }, { v: "bio", label: "👤 Bio" }, { v: "bd", label: "🎨 BD/Manga" }, { v: "autre", label: "✦ Autre" }] },
+        { key: "notes", label: "Pourquoi ce livre ?", type: "textarea", placeholder: "Ce qui t'attire, recommandation de...", rows: 2 }
+      ] : addPanel === "podcast" ? [
+        { key: "name", label: "Nom du podcast", type: "text", placeholder: "Ex : Huberman Lab...", autoFocus: true },
+        { key: "notes", label: "Description", type: "text", placeholder: "Sujet, ce qui t'intéresse..." },
+        { key: "type", label: "Thème", type: "pills", default: "autre", options: [{ v: "bienetre", label: "🌿 Bien-être" }, { v: "culture", label: "🎭 Culture" }, { v: "business", label: "💼 Business" }, { v: "truecrime", label: "🔍 True crime" }, { v: "science", label: "🔬 Science" }, { v: "sport", label: "🏃 Sport" }, { v: "autre", label: "✦ Autre" }] },
+        { key: "url", label: "Lien (optionnel)", type: "text", placeholder: "Spotify, Apple Podcasts..." }
+      ] : addPanel === "movie" ? [
+        { key: "name", label: "Titre", type: "text", placeholder: "Ex : Past Lives, The Bear...", autoFocus: true },
+        { key: "cat", label: "Type", type: "pills", default: mediaCat === "série" ? "série" : "film", options: [{ v: "film", label: "🎬 Film" }, { v: "série", label: "📺 Série" }] },
+        { key: "genre", label: "Genre", type: "text", placeholder: "Drame, Comédie, Thriller..." },
+        { key: "avec", label: "À regarder", type: "pills", default: "indifférent", options: [{ v: "seule", label: "👤 Seule" }, { v: "à 2", label: "💑 À 2" }, { v: "indifférent", label: "• Indifférent" }] },
+        { key: "notes", label: "Pourquoi ce film ?", type: "textarea", placeholder: "Recommandé par, trailer vu...", rows: 2 }
+      ] : addPanel === "wish" ? [
+        { key: "name", label: "Nom de l'article", type: "text", placeholder: "Ex : Sneakers, Carnet Leuchtturm...", autoFocus: true },
+        { key: "price", label: "Prix estimé (€)", type: "number", placeholder: "0", suffix: "€" },
+        { key: "cat", label: "Catégorie", type: "pills", default: "Autre", options: [{ v: "Vêtements", label: "👗 Vêtements" }, { v: "Maison", label: "🏠 Maison" }, { v: "Beauté", label: "💄 Beauté" }, { v: "Tech", label: "💻 Tech" }, { v: "Expériences", label: "✨ Expériences" }, { v: "Autre", label: "✦ Autre" }] },
+        { key: "priority", label: "Priorité", type: "pills", default: "moyenne", options: [{ v: "haute", label: "🔥 Indispensable" }, { v: "moyenne", label: "✨ Envie" }, { v: "basse", label: "💭 Un jour" }] },
+        { key: "url", label: "Lien (optionnel)", type: "text", placeholder: "https://..." },
+        { key: "notes", label: "Notes", type: "textarea", placeholder: "Couleur, taille, raison...", rows: 2 }
+      ] : addPanel === "resto" ? [
+        { key: "name", label: "Nom du restaurant", type: "text", placeholder: "Ex : Sushi Ya, Le Comptoir...", autoFocus: true },
+        { key: "quartier", label: "Quartier / Ville", type: "text", placeholder: "Paris 11e, Lyon..." },
+        { key: "cuisine", label: "Type de cuisine", type: "text", placeholder: "Japonais, Italien, Français..." },
+        { key: "url", label: "Google Maps ou site", type: "text", placeholder: "https://..." },
+        { key: "notes", label: "Pourquoi y aller ?", type: "textarea", placeholder: "Recommandé par, spécialité...", rows: 2 }
+      ] : addPanel === "goal" ? [
+        { key: "name", label: "Mon objectif", type: "text", placeholder: "Ex : Lire 12 livres cette année...", autoFocus: true },
+        { key: "cat", label: "Catégorie", type: "pills", default: "", options: [{ v: "Perso", label: "🌱 Perso" }, { v: "Santé", label: "💪 Santé" }, { v: "Finance", label: "💰 Finance" }, { v: "Relations", label: "❤️ Relations" }, { v: "Carrière", label: "💼 Carrière" }, { v: "Créatif", label: "🎨 Créatif" }] },
+        { key: "deadline", label: "Échéance (optionnel)", type: "text", placeholder: "Ex : Fin décembre 2025" },
+        { key: "notes", label: "Notes / étapes", type: "textarea", placeholder: "Comment y arriver, pourquoi c'est important...", rows: 3 }
+      ] : addPanel === "activite" ? [
+        { key: "name", label: "Activité", type: "text", placeholder: "Ex : Week-end à Bruges, Escape game...", autoFocus: true },
+        { key: "type", label: "Type", type: "pills", default: "autre", options: [{ v: "voyage", label: "✈️ Voyage" }, { v: "sortie", label: "🎭 Sortie" }, { v: "sport", label: "🏃 Sport" }, { v: "culture", label: "🏛️ Culture" }, { v: "repas", label: "🍽️ Repas" }, { v: "autre", label: "✦ Autre" }] },
+        { key: "lieu", label: "Lieu", type: "text", placeholder: "Ville, adresse..." },
+        { key: "date", label: "Date envisagée", type: "text", placeholder: "Ex : Juin 2025, cet été..." },
+        { key: "prix", label: "Budget estimé (€)", type: "number", placeholder: "0", suffix: "€" },
+        { key: "notes", label: "Notes", type: "textarea", placeholder: "Idées, ce qui t'attire...", rows: 2 }
+      ] : [],
+      onSave: (vals) => {
+        if (addPanel === "recipe") upd((d) => d.recipes.push({ id: newId(), name: vals.name, source: vals.source || "", url: vals.url || "", cat: vals.cat || "Plat", temps: vals.temps || "", notes: vals.notes || "", rating: 0, status: "à tester" }));
+        else if (addPanel === "book") upd((d) => d.books.push({ id: newId(), name: vals.name, author: vals.author || "", type: vals.type || "roman", status: "à lire", notes: vals.notes || "", rating: 0 }));
+        else if (addPanel === "podcast") upd((d) => d.podcasts.push({ id: newId(), name: vals.name, notes: vals.notes || "", type: vals.type || "autre", url: vals.url || "", status: "à écouter", rating: 0 }));
+        else if (addPanel === "movie") upd((d) => d.movies.push({ id: newId(), name: vals.name, cat: vals.cat || "film", genre: vals.genre || "", avec: vals.avec || "indifférent", status: "à voir", notes: vals.notes || "", rating: 0 }));
+        else if (addPanel === "wish") upd((d) => d.wishlist.push({ id: newId(), name: vals.name, price: vals.price || "", cat: vals.cat || "Autre", priority: vals.priority || "moyenne", url: vals.url || "", notes: vals.notes || "", done: false }));
+        else if (addPanel === "resto") upd((d) => { if (!d.restaurants) d.restaurants = []; d.restaurants.push({ id: newId(), name: vals.name, quartier: vals.quartier || "", cuisine: vals.cuisine || "", url: vals.url || "", notes: vals.notes || "", rating: 0, status: "à tester" }); });
+        else if (addPanel === "goal") upd((d) => d.goals.push({ id: newId(), name: vals.name, done: false, doneAt: null, cat: vals.cat || "", deadline: vals.deadline || "", notes: vals.notes || "" }));
+        else if (addPanel === "activite") upd((d) => { if (!d.activites) d.activites = []; d.activites.push({ id: newId(), name: vals.name, type: vals.type || "autre", lieu: vals.lieu || "", date: vals.date || "", prix: vals.prix || "", notes: vals.notes || "", rating: 0, status: "à faire" }); });
+      }
+    }), /* @__PURE__ */ React.createElement("div", { className: "carnet-tabs-mobile", style: { position: "fixed", bottom: 0, left: 0, right: 0, background: "white", borderTop: `1px solid ${C.border}`, display: "flex", overflowX: "auto", zIndex: 200, paddingBottom: "env(safe-area-inset-bottom,0px)", WebkitOverflowScrolling: "touch" } }, TABS.map((t) => /* @__PURE__ */ React.createElement("button", { key: t.id, onClick: () => {
       setTab(t.id);
       setSearch("");
       setExpId(null);
