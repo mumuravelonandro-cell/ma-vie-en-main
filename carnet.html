@@ -134,7 +134,8 @@
     activites: [],
     activiteTypes: [],
     bookTypes: [],
-    podTypes: []
+    podTypes: [],
+    ideas: []
   };
   const load = async () => {
     try {
@@ -289,16 +290,21 @@
   };
   function Carnet() {
     const [data, setData] = useState(null);
-    const [tab, setTab] = useState("cuisine");
+    const [tab, setTab] = useState("principal");
     const [search, setSearch] = useState("");
     const [expandedId, setExpId] = useState(null);
     const [mediaCat, setMediaCat] = useState("Tout");
     const [activeCat, setActiveCat] = useState("all");
     const [newCit, setNewCit] = useState("");
     const [newSrc, setNewSrc] = useState("");
+    const [newIdeaText, setNewIdeaText] = useState("");
+    const [newIdeaCat, setNewIdeaCat] = useState("💡 Idée");
+    const [ideaFilter, setIdeaFilter] = useState("Tout");
+    const [ideaModal, setIdeaModal] = useState(null);
     const [wCat, setWCat] = useState("Tout");
     const [wFilter, setWFilter] = useState("Tout");
     const [wSort, setWSort] = useState("priorit\xE9");
+    const [wishModal, setWishModal] = useState(null); // null or {name,price,cat,priority,url,notes,reflexion}
     const [goalSort, setGoalSort] = useState("\xE9ch\xE9ance");
     const [newCleanName, setNewCleanName] = useState("");
     const [cleanFilter, setCleanFilter] = useState("tous");
@@ -310,6 +316,13 @@
     const [restoCuisine, setRestoCuisine] = useState("Tout");
     const [restoSort, setRestoSort] = useState("ajout");
     const [restoFilter, setRestoFilter] = useState("Tout");
+    const [restoModal, setRestoModal] = useState(false);
+    const [newRestoName, setNewRestoName] = useState("");
+    const [newRestoQuar, setNewRestoQuar] = useState("");
+    const [newRestoCuis, setNewRestoCuis] = useState("");
+    const [newRestoUrl, setNewRestoUrl] = useState("");
+    const [newRestoNotes, setNewRestoNotes] = useState("");
+    const [newRestoStatus, setNewRestoStatus] = useState("\xE0 tester");
     const [activiteType, setActiviteType] = useState("Tout");
     const [activiteFilter, setActiviteFilter] = useState("Tout");
     const [activiteSort, setActiviteSort] = useState("ajout");
@@ -328,11 +341,23 @@
     const [podType, setPodType] = useState("Tout");
     const [newBookType, setNewBookType] = useState("");
     const [newBookTypeEmoji, setNewBookTypeEmoji] = useState("");
+    const [showBookModal, setShowBookModal] = useState(false);
+    const [newBName, setNewBName] = useState("");
+    const [newBAuthor, setNewBAuthor] = useState("");
+    const [newBStatus, setNewBStatus] = useState("\xE0 lire");
+    const [newBType, setNewBType] = useState("");
+    const [newBNotes, setNewBNotes] = useState("");
     const [newPodType, setNewPodType] = useState("");
     const [newPodTypeEmoji, setNewPodTypeEmoji] = useState("");
+    const [podModal, setPodModal] = useState(null);
     const [newRName, setNewRName] = useState("");
     const [newRStatus, setNewRStatus] = useState("\xE0 tester");
     const [newRCatSel, setNewRCatSel] = useState("Plat");
+    const [showRecipeModal, setShowRecipeModal] = useState(false);
+    const [newRSource, setNewRSource] = useState("");
+    const [newRTemps, setNewRTemps] = useState("");
+    const [newRUrl, setNewRUrl] = useState("");
+    const [newRNotes, setNewRNotes] = useState("");
     useEffect(() => {
       load().then(setData);
     }, []);
@@ -376,13 +401,16 @@
     const addNewRecipe = () => {
       const trimmed = newRName.trim();
       if (!trimmed) return;
-      upd((d) => d.recipes.push({ id: newId(), name: trimmed, source: "", url: "", cat: newRCatSel, temps: "", notes: "", rating: 0, status: newRStatus }));
+      upd((d) => d.recipes.push({ id: newId(), name: trimmed, source: newRSource.trim(), url: newRUrl.trim(), cat: newRCatSel, temps: newRTemps, notes: newRNotes.trim(), rating: 0, status: newRStatus }));
+      setShowRecipeModal(false);
+      setNewRSource(""); setNewRUrl(""); setNewRTemps(""); setNewRNotes("");
       setNewRName("");
       setNewRStatus("\xE0 tester");
       setNewRCatSel("Plat");
     };
     if (!data) return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", fontFamily: "system-ui", color: C.muted, fontSize: 14 } }, "Chargement...");
     const TABS = [
+      { id: "principal", emoji: "\u2728", label: "Principal" },
       { id: "cuisine", emoji: "\u{1F373}", label: "Cuisine" },
       { id: "wishlist", emoji: "\u2728", label: "Wishlist" },
       { id: "restaurants", emoji: "\u{1F37D}\uFE0F", label: "Restaurants" },
@@ -441,7 +469,148 @@
       alignItems: "center",
       gap: 5,
       transition: "color 0.15s"
-    } }, t.emoji, " ", t.label)))), /* @__PURE__ */ React.createElement("div", { className: "carnet-tabs-mobile", style: { background: "white", borderBottom: `1px solid ${C.border}`, padding: "10px 16px" } }), /* @__PURE__ */ React.createElement("div", { style: { padding: "clamp(16px,4vw,24px) clamp(16px,4vw,32px)", maxWidth: 800, margin: "0 auto", paddingBottom: 80 } }, tab === "cuisine" && /* @__PURE__ */ React.createElement("div", null, (() => {
+    } }, t.emoji, " ", t.label)))), /* @__PURE__ */ React.createElement("div", { className: "carnet-tabs-mobile", style: { background: "white", borderBottom: `1px solid ${C.border}`, padding: "10px 16px" } }), /* @__PURE__ */ React.createElement("div", { style: { padding: "clamp(16px,4vw,24px) clamp(16px,4vw,32px)", maxWidth: 800, margin: "0 auto", paddingBottom: 80 } }, tab === "principal" && (() => {
+      const IDEA_CATS = ["💡 Idée", "🎯 Projet", "🛒 Acheter", "📞 Contacter", "🌍 Voyager", "📚 Apprendre", "💬 Dire", "🔧 Faire", "💭 Réfléchir", "✨ Inspiration"];
+      const ideas = data.ideas || [];
+      const filtered = ideaFilter === "Tout" ? ideas : ideaFilter === "__done__" ? ideas.filter(i => i.done) : ideas.filter(i => i.cat === ideaFilter);
+      const openIdeaModal = () => setIdeaModal({ cat: "💡 Idée", text: "", lieu: "", lien: "", notes: "" });
+      const closeIdeaModal = () => setIdeaModal(null);
+      const addIdea = () => {
+        if (!ideaModal || !ideaModal.text.trim()) return;
+        const today = new Date();
+        const dateStr = today.getDate() + "/" + String(today.getMonth()+1).padStart(2,"0") + "/" + today.getFullYear();
+        upd(d => {
+          if (!d.ideas) d.ideas = [];
+          d.ideas.unshift({ id: newId(), text: ideaModal.text.trim(), cat: ideaModal.cat, lieu: ideaModal.lieu.trim(), lien: ideaModal.lien.trim(), notes: ideaModal.notes.trim(), done: false, date: dateStr });
+        });
+        closeIdeaModal();
+      };
+      const catCounts = IDEA_CATS.reduce((acc, c) => { acc[c] = ideas.filter(i => i.cat === c && !i.done).length; return acc; }, {});
+      const pendingCount = ideas.filter(i => !i.done).length;
+      const doneCount = ideas.filter(i => i.done).length;
+      /* Champs contextuels selon la catégorie */
+      const showLieu = ideaModal && ["🎯 Projet", "🛒 Acheter", "🌍 Voyager", "🔧 Faire", "📞 Contacter"].includes(ideaModal.cat);
+      const showLien = ideaModal && ["🛒 Acheter", "📚 Apprendre", "✨ Inspiration", "🎯 Projet", "🌍 Voyager"].includes(ideaModal.cat);
+      const lieuLabel = ideaModal && ideaModal.cat === "🌍 Voyager" ? "📍 Destination / ville" : ideaModal && ideaModal.cat === "📞 Contacter" ? "👤 Qui contacter" : "📍 Lieu / où";
+      const lienLabel = ideaModal && ideaModal.cat === "🛒 Acheter" ? "🔗 Lien produit" : ideaModal && ideaModal.cat === "📚 Apprendre" ? "🔗 Ressource / lien" : "🔗 Lien";
+      return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 18 } },
+        /* Modal d'ajout */
+        ideaModal && /* @__PURE__ */ React.createElement("div", { onClick: closeIdeaModal, style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 500, display: "flex", alignItems: "flex-end", justifyContent: "center" } },
+          /* @__PURE__ */ React.createElement("div", { onClick: e => e.stopPropagation(), style: { background: "white", borderRadius: "20px 20px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: 560, display: "flex", flexDirection: "column", gap: 12, maxHeight: "88vh", overflowY: "auto" } },
+            /* Handle */
+            /* @__PURE__ */ React.createElement("div", { style: { width: 36, height: 4, borderRadius: 2, background: C.border, margin: "0 auto 4px" } }),
+            /* Titre */
+            /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, fontWeight: 700, color: C.dark, textAlign: "center", marginBottom: 4 } }, "Nouvelle entrée"),
+            /* Sélecteur de catégorie — grille */
+            /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 } },
+              IDEA_CATS.map(c => /* @__PURE__ */ React.createElement("button", { key: c, onClick: () => setIdeaModal(m => ({ ...m, cat: c })), style: { padding: "9px 12px", border: `1.5px solid ${ideaModal.cat === c ? C.dark : C.border}`, borderRadius: 12, background: ideaModal.cat === c ? C.dark : "white", color: ideaModal.cat === c ? "white" : C.muted, fontSize: 12, fontWeight: ideaModal.cat === c ? 700 : 400, cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "all 0.12s" } }, c))
+            ),
+            /* Séparateur */
+            /* @__PURE__ */ React.createElement("div", { style: { height: 1, background: C.cream, margin: "2px 0" } }),
+            /* Texte principal */
+            /* @__PURE__ */ React.createElement("textarea", {
+              autoFocus: true,
+              value: ideaModal.text,
+              onChange: e => setIdeaModal(m => ({ ...m, text: e.target.value })),
+              placeholder: ideaModal.cat === "💡 Idée" ? "Décris ton idée..." : ideaModal.cat === "🎯 Projet" ? "Décris le projet..." : ideaModal.cat === "🛒 Acheter" ? "Qu'est-ce que tu veux acheter ?" : ideaModal.cat === "📞 Contacter" ? "À propos de quoi ?" : ideaModal.cat === "🌍 Voyager" ? "Ce que tu veux faire / voir..." : ideaModal.cat === "📚 Apprendre" ? "Ce que tu veux apprendre..." : ideaModal.cat === "💬 Dire" ? "Ce que tu veux dire, et à qui..." : ideaModal.cat === "🔧 Faire" ? "Ce qu'il y a à faire..." : ideaModal.cat === "💭 Réfléchir" ? "Sur quoi tu veux réfléchir..." : "Note quelque chose...",
+              rows: 3,
+              style: { width: "100%", border: `1.5px solid ${C.border}`, background: C.cream, borderRadius: 12, padding: "12px 14px", fontFamily: "inherit", fontSize: 14, color: C.dark, outline: "none", resize: "none", lineHeight: 1.6 }
+            }),
+            /* Lieu (contextuel) */
+            showLieu && /* @__PURE__ */ React.createElement("input", { value: ideaModal.lieu, onChange: e => setIdeaModal(m => ({ ...m, lieu: e.target.value })), placeholder: lieuLabel, style: { border: `1.5px solid ${C.border}`, background: "white", borderRadius: 12, padding: "11px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", width: "100%" } }),
+            /* Lien (contextuel) */
+            showLien && /* @__PURE__ */ React.createElement("input", { value: ideaModal.lien, onChange: e => setIdeaModal(m => ({ ...m, lien: e.target.value })), placeholder: lienLabel, style: { border: `1.5px solid ${C.border}`, background: "white", borderRadius: 12, padding: "11px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", width: "100%" } }),
+            /* Notes (toujours dispo) */
+            /* @__PURE__ */ React.createElement("input", { value: ideaModal.notes, onChange: e => setIdeaModal(m => ({ ...m, notes: e.target.value })), placeholder: "💬 Notes complémentaires (optionnel)", style: { border: `1.5px solid ${C.border}`, background: "white", borderRadius: 12, padding: "11px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", width: "100%" } }),
+            /* Bouton valider */
+            /* @__PURE__ */ React.createElement("button", { onClick: addIdea, disabled: !ideaModal.text.trim(), style: { background: ideaModal.text.trim() ? C.dark : C.border, border: "none", borderRadius: 12, padding: "14px", color: "white", fontSize: 14, fontWeight: 700, cursor: ideaModal.text.trim() ? "pointer" : "default", fontFamily: "inherit", marginTop: 4, transition: "background 0.15s" } }, "Ajouter")
+          )
+        ),
+        /* Bouton d'ajout */
+        /* @__PURE__ */ React.createElement("button", { onClick: openIdeaModal, style: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: C.dark, border: "none", borderRadius: 14, padding: "14px 20px", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", width: "100%" } }, "✨ Nouvelle entrée"),
+        /* Stats rapides */
+        pendingCount > 0 && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, flexWrap: "wrap" } },
+          /* @__PURE__ */ React.createElement("div", { onClick: () => setIdeaFilter("Tout"), style: { background: "white", borderRadius: 14, border: `1.5px solid ${ideaFilter === "Tout" ? C.gold : C.border}`, padding: "12px 18px", flex: 1, minWidth: 100, cursor: "pointer", transition: "border-color 0.15s" } },
+            /* @__PURE__ */ React.createElement("div", { style: { fontSize: 22, fontWeight: 700, color: C.gold } }, pendingCount),
+            /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.muted, marginTop: 2 } }, "en attente")
+          ),
+          doneCount > 0 && /* @__PURE__ */ React.createElement("div", { onClick: () => setIdeaFilter("__done__"), style: { background: "white", borderRadius: 14, border: `1.5px solid ${ideaFilter === "__done__" ? C.sage : C.border}`, padding: "12px 18px", flex: 1, minWidth: 100, cursor: "pointer", transition: "border-color 0.15s" } },
+            /* @__PURE__ */ React.createElement("div", { style: { fontSize: 22, fontWeight: 700, color: C.sage } }, doneCount),
+            /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.muted, marginTop: 2 } }, "traitées")
+          )
+        ),
+        /* Filtres catégories */
+        ideas.length > 0 && ideaFilter !== "__done__" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 } },
+          [{ label: "Tout", count: ideas.filter(i => !i.done).length }, ...IDEA_CATS.filter(c => ideas.some(i => i.cat === c)).map(c => ({ label: c, count: catCounts[c] }))].map(f =>
+            /* @__PURE__ */ React.createElement("button", { key: f.label, onClick: () => setIdeaFilter(f.label === "Tout" ? "Tout" : f.label), style: { flexShrink: 0, padding: "6px 12px", border: `1.5px solid ${(ideaFilter === "Tout" && f.label === "Tout") || ideaFilter === f.label ? C.dark : C.border}`, borderRadius: 20, background: (ideaFilter === "Tout" && f.label === "Tout") || ideaFilter === f.label ? C.dark : "white", color: (ideaFilter === "Tout" && f.label === "Tout") || ideaFilter === f.label ? "white" : C.muted, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s", display: "flex", alignItems: "center", gap: 5 } },
+              f.label, f.count > 0 && /* @__PURE__ */ React.createElement("span", { style: { background: (ideaFilter === "Tout" && f.label === "Tout") || ideaFilter === f.label ? "rgba(255,255,255,0.25)" : C.cream, borderRadius: 10, padding: "0px 6px", fontSize: 10, fontWeight: 700 } }, f.count)
+            )
+          )
+        ),
+        /* Liste des idées en attente */
+        filtered.filter(i => !i.done).length === 0 && ideas.filter(i => !i.done).length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "50px 20px", color: C.muted, fontSize: 13 } },
+          /* @__PURE__ */ React.createElement("div", { style: { fontSize: 36, marginBottom: 10 } }, "✨"),
+          "Ton espace est vide.", /* @__PURE__ */ React.createElement("br", null),
+          "Capture ta première idée !"
+        ),
+        ideaFilter !== "__done__" && filtered.filter(i => !i.done).map(idea => /* @__PURE__ */ React.createElement("div", { key: idea.id, style: { background: "white", borderRadius: 14, border: `1.5px solid ${expandedId === idea.id ? C.dark : C.border}`, overflow: "hidden", transition: "border-color 0.15s" } },
+          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "flex-start", padding: "13px 14px", gap: 12 } },
+            /* Checkbox */
+            /* @__PURE__ */ React.createElement("button", { onClick: () => upd(d => { const i = d.ideas.find(x => x.id === idea.id); if(i) i.done = true; }), style: { flexShrink: 0, width: 22, height: 22, borderRadius: "50%", border: `2px solid ${C.border}`, background: "white", cursor: "pointer", marginTop: 1, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, transition: "all 0.15s" }, onMouseEnter: e => { e.currentTarget.style.borderColor = C.sage; e.currentTarget.style.background = "#F0FDF4"; }, onMouseLeave: e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = "white"; } }),
+            /* Content */
+            /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } },
+              /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" } },
+                /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, background: C.cream, borderRadius: 10, padding: "2px 9px", color: C.brown, fontWeight: 600 } }, idea.cat),
+                /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.border } }, idea.date)
+              ),
+              expandedId === idea.id ?
+                /* Edit mode */
+                /* @__PURE__ */ React.createElement("div", null,
+                  /* @__PURE__ */ React.createElement("textarea", { value: idea.text, onChange: e => upd(d => { d.ideas.find(x => x.id === idea.id).text = e.target.value; }), style: { width: "100%", border: `1.5px solid ${C.border}`, background: C.light, borderRadius: 10, padding: "8px 10px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", resize: "none", minHeight: 60, lineHeight: 1.5, marginBottom: 8 } }),
+                  /* @__PURE__ */ React.createElement("input", { value: idea.lieu || "", onChange: e => upd(d => { d.ideas.find(x => x.id === idea.id).lieu = e.target.value; }), placeholder: "📍 Lieu / destination", style: { width: "100%", border: `1.5px solid ${C.border}`, background: C.light, borderRadius: 10, padding: "8px 10px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none", marginBottom: 8 } }),
+                  /* @__PURE__ */ React.createElement("input", { value: idea.lien || "", onChange: e => upd(d => { d.ideas.find(x => x.id === idea.id).lien = e.target.value; }), placeholder: "🔗 Lien", style: { width: "100%", border: `1.5px solid ${C.border}`, background: C.light, borderRadius: 10, padding: "8px 10px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none", marginBottom: 8 } }),
+                  /* @__PURE__ */ React.createElement("input", { value: idea.notes || "", onChange: e => upd(d => { d.ideas.find(x => x.id === idea.id).notes = e.target.value; }), placeholder: "💬 Notes", style: { width: "100%", border: `1.5px solid ${C.border}`, background: C.light, borderRadius: 10, padding: "8px 10px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none", marginBottom: 8 } }),
+                  /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 } },
+                    IDEA_CATS.map(c => /* @__PURE__ */ React.createElement("button", { key: c, onClick: () => upd(d => { d.ideas.find(x => x.id === idea.id).cat = c; }), style: { padding: "4px 10px", border: `1.5px solid ${idea.cat === c ? C.dark : C.border}`, borderRadius: 20, background: idea.cat === c ? C.dark : "white", color: idea.cat === c ? "white" : C.muted, fontSize: 11, cursor: "pointer", fontFamily: "inherit" } }, c))
+                  ),
+                  /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+                    /* @__PURE__ */ React.createElement("button", { onClick: () => upd(d => { d.ideas = d.ideas.filter(x => x.id !== idea.id); setExpId(null); }), style: { fontSize: 11, color: C.terra, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" } }, "Supprimer"),
+                    /* @__PURE__ */ React.createElement("button", { onClick: () => setExpId(null), style: { fontSize: 12, background: C.dark, color: "white", border: "none", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 } }, "Fermer")
+                  )
+                )
+                :
+                /* Vue lecture */
+                /* @__PURE__ */ React.createElement("div", null,
+                  /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, color: C.dark, lineHeight: 1.5, marginBottom: (idea.lieu || idea.lien || idea.notes) ? 8 : 0 } }, idea.text),
+                  (idea.lieu || idea.lien || idea.notes) && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4, marginTop: 6 } },
+                    idea.lieu && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted } }, "📍 ", idea.lieu),
+                    idea.lien && /* @__PURE__ */ React.createElement("a", { href: idea.lien, target: "_blank", rel: "noopener noreferrer", onClick: e => e.stopPropagation(), style: { fontSize: 11, color: C.terra, wordBreak: "break-all" } }, "🔗 ", idea.lien),
+                    idea.notes && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted, fontStyle: "italic" } }, "💬 ", idea.notes)
+                  )
+                )
+            ),
+            /* Edit button */
+            !expandedId || expandedId !== idea.id ? /* @__PURE__ */ React.createElement("button", { onClick: e => { e.stopPropagation(); setExpId(idea.id); }, style: { flexShrink: 0, fontSize: 13, color: C.muted, background: "none", border: "none", cursor: "pointer", padding: "2px 4px" } }, "✏️") : null
+          )
+        )),
+        /* Idées traitées (pliées) */
+        ideaFilter === "__done__" && filtered.map(idea => /* @__PURE__ */ React.createElement("div", { key: idea.id, style: { display: "flex", alignItems: "center", padding: "10px 14px", background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, marginBottom: 8, gap: 10, opacity: 0.7 } },
+            /* @__PURE__ */ React.createElement("button", { onClick: () => upd(d => { const i = d.ideas.find(x => x.id === idea.id); if(i) i.done = false; }), style: { flexShrink: 0, width: 20, height: 20, borderRadius: "50%", border: "none", background: C.sage, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "white" } }, "✓"),
+            /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.muted, flex: 1 } }, idea.text),
+            /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, background: C.cream, borderRadius: 10, padding: "2px 8px", color: C.muted, flexShrink: 0 } }, idea.cat.split(" ")[0]),
+            /* @__PURE__ */ React.createElement("button", { onClick: () => upd(d => { d.ideas = d.ideas.filter(x => x.id !== idea.id); }), style: { flexShrink: 0, fontSize: 11, color: C.terra, background: "none", border: "none", cursor: "pointer", padding: "0 2px" } }, "✕")
+          )),
+        ideaFilter !== "__done__" && filtered.filter(i => i.done).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4 } },
+          /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: C.muted, marginBottom: 10 } }, "✓ Traitées (", filtered.filter(i => i.done).length, ")"),
+          filtered.filter(i => i.done).map(idea => /* @__PURE__ */ React.createElement("div", { key: idea.id, style: { display: "flex", alignItems: "center", padding: "10px 14px", background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, marginBottom: 8, gap: 10, opacity: 0.6 } },
+            /* @__PURE__ */ React.createElement("button", { onClick: () => upd(d => { const i = d.ideas.find(x => x.id === idea.id); if(i) i.done = false; }), style: { flexShrink: 0, width: 20, height: 20, borderRadius: "50%", border: "none", background: C.sage, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "white" } }, "✓"),
+            /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.muted, flex: 1 } }, idea.text),
+            /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, background: C.cream, borderRadius: 10, padding: "2px 8px", color: C.muted, flexShrink: 0 } }, idea.cat.split(" ")[0]),
+            /* @__PURE__ */ React.createElement("button", { onClick: () => upd(d => { d.ideas = d.ideas.filter(x => x.id !== idea.id); }), style: { flexShrink: 0, fontSize: 11, color: C.terra, background: "none", border: "none", cursor: "pointer", padding: "0 2px" } }, "✕")
+          ))
+        )
+      );
+    })(), tab === "cuisine" && /* @__PURE__ */ React.createElement("div", null, (() => {
       const R_CATS = ["Tout", "Petit d\xE9j", "Plat", "Dessert", "Snack", "Boisson"];
       const R_STATUS = [
         { value: "\xE0 tester", label: "\xC0 tester", emoji: "\u{1F9EA}", bg: "#EFF6FF", border: "#BFDBFE", color: "#3B82F6" },
@@ -540,7 +709,34 @@
         },
         "Supprimer"
       )));
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 14, border: `1.5px solid ${C.border}`, padding: "14px 16px", marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 } }, "\u2795 Nouvelle recette"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("input", { value: newRName, onChange: (e) => setNewRName(e.target.value), onKeyDown: (e) => e.key === "Enter" && addNewRecipe(), placeholder: "Nom de la recette...", style: { flex: "1 1 180px", border: `1.5px solid ${C.border}`, background: C.cream, borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none" } }), /* @__PURE__ */ React.createElement("select", { value: newRStatus, onChange: (e) => setNewRStatus(e.target.value), style: { flex: "0 0 auto", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none", cursor: "pointer" } }, R_STATUS.map((s) => /* @__PURE__ */ React.createElement("option", { key: s.value, value: s.value }, s.emoji, " ", s.label))), /* @__PURE__ */ React.createElement("select", { value: newRCatSel, onChange: (e) => setNewRCatSel(e.target.value), style: { flex: "0 0 auto", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none", cursor: "pointer" } }, R_CATS.filter((c) => c !== "Tout").map((c) => /* @__PURE__ */ React.createElement("option", { key: c, value: c }, c))), /* @__PURE__ */ React.createElement("button", { onClick: addNewRecipe, style: { flex: "0 0 auto", background: C.dark, border: "none", borderRadius: 10, padding: "8px 18px", color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" } }, "Ajouter"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 16 } }, [[toTest, "\u{1F9EA}", "\xE0 tester", "\xE0 tester", "#3B82F6", "#EFF6FF", "#BFDBFE"], [tested, "\u2713", "test\xE9es", "test\xE9", "#C4724A", "#FFF7ED", "#FED7AA"], [adopted, "\u{1F31F}", "adopt\xE9es", "adopt\xE9", "#7A9E7E", "#F0FDF4", "#BBF7D0"]].map(([n, e, l, filterVal, c, bg, brd]) => /* @__PURE__ */ React.createElement("div", { key: l, onClick: () => setRFilter(rFilter === filterVal ? "tous" : filterVal), style: { flex: 1, background: rFilter === filterVal ? bg : "white", borderRadius: 12, border: `1.5px solid ${rFilter === filterVal ? brd : C.border}`, padding: "10px 8px", textAlign: "center", cursor: "pointer", transition: "all 0.15s" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: c } }, n), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, e, " ", l)))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 8 } }, R_CATS.map((c) => /* @__PURE__ */ React.createElement(
+      const recipeModalEl = showRecipeModal ? /* @__PURE__ */ React.createElement("div", { onClick: () => setShowRecipeModal(false), style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 500, display: "flex", alignItems: "flex-end", justifyContent: "center" } },
+        /* @__PURE__ */ React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { background: "white", borderRadius: "20px 20px 0 0", padding: "24px 20px 32px", width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto" } },
+          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 } },
+            /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 700, color: C.dark } }, "\u{1F373} Nouvelle recette"),
+            /* @__PURE__ */ React.createElement("button", { onClick: () => setShowRecipeModal(false), style: { background: "none", border: "none", fontSize: 20, color: C.muted, cursor: "pointer", padding: 0 } }, "\u2715")
+          ),
+          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } },
+            /* @__PURE__ */ React.createElement("input", { value: newRName, onChange: (e) => setNewRName(e.target.value), autoFocus: true, placeholder: "Nom de la recette *", style: { border: `1.5px solid ${C.border}`, background: C.cream, borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 14, color: C.dark, outline: "none", width: "100%" } }),
+            /* @__PURE__ */ React.createElement("input", { value: newRSource, onChange: (e) => setNewRSource(e.target.value), placeholder: "\u{1F4CC} Source : TikTok, livre, amie...", style: { border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", width: "100%" } }),
+            /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } },
+              /* @__PURE__ */ React.createElement("select", { value: newRCatSel, onChange: (e) => setNewRCatSel(e.target.value), style: { flex: 1, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", cursor: "pointer" } },
+                R_CATS.filter((c) => c !== "Tout").map((c) => /* @__PURE__ */ React.createElement("option", { key: c, value: c }, c))
+              ),
+              /* @__PURE__ */ React.createElement("select", { value: newRTemps, onChange: (e) => setNewRTemps(e.target.value), style: { flex: 1, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", cursor: "pointer" } },
+                /* @__PURE__ */ React.createElement("option", { value: "" }, "\u23F1 Temps"),
+                R_TEMPS.map((t) => /* @__PURE__ */ React.createElement("option", { key: t, value: t }, t))
+              )
+            ),
+            /* @__PURE__ */ React.createElement("select", { value: newRStatus, onChange: (e) => setNewRStatus(e.target.value), style: { border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", cursor: "pointer", width: "100%" } },
+              R_STATUS.map((s) => /* @__PURE__ */ React.createElement("option", { key: s.value, value: s.value }, s.emoji, " ", s.label))
+            ),
+            /* @__PURE__ */ React.createElement("input", { value: newRUrl, onChange: (e) => setNewRUrl(e.target.value), placeholder: "\u{1F517} Lien (URL)", style: { border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", width: "100%" } }),
+            /* @__PURE__ */ React.createElement("textarea", { value: newRNotes, onChange: (e) => setNewRNotes(e.target.value), placeholder: "Notes, ingr\xE9dients cl\xE9s, astuces...", rows: 3, style: { border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", resize: "none", width: "100%", lineHeight: 1.6 } }),
+            /* @__PURE__ */ React.createElement("button", { onClick: addNewRecipe, disabled: !newRName.trim(), style: { background: newRName.trim() ? C.dark : C.border, border: "none", borderRadius: 12, padding: "12px", color: "white", fontSize: 14, fontWeight: 700, cursor: newRName.trim() ? "pointer" : "default", fontFamily: "inherit" } }, "Ajouter la recette")
+          )
+        )
+      ) : null;
+      return /* @__PURE__ */ React.createElement("div", null, recipeModalEl, /* @__PURE__ */ React.createElement("button", { onClick: () => { setNewRName(""); setShowRecipeModal(true); }, style: { width: "100%", background: C.dark, border: "none", borderRadius: 12, padding: "12px 18px", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 16 } }, "\u2795 Nouvelle recette"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 16 } }, [[toTest, "\u{1F9EA}", "\xE0 tester", "\xE0 tester", "#3B82F6", "#EFF6FF", "#BFDBFE"], [tested, "\u2713", "test\xE9es", "test\xE9", "#C4724A", "#FFF7ED", "#FED7AA"], [adopted, "\u{1F31F}", "adopt\xE9es", "adopt\xE9", "#7A9E7E", "#F0FDF4", "#BBF7D0"]].map(([n, e, l, filterVal, c, bg, brd]) => /* @__PURE__ */ React.createElement("div", { key: l, onClick: () => setRFilter(rFilter === filterVal ? "tous" : filterVal), style: { flex: 1, background: rFilter === filterVal ? bg : "white", borderRadius: 12, border: `1.5px solid ${rFilter === filterVal ? brd : C.border}`, padding: "10px 8px", textAlign: "center", cursor: "pointer", transition: "all 0.15s" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: c } }, n), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, e, " ", l)))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 8 } }, R_CATS.map((c) => /* @__PURE__ */ React.createElement(
         "button",
         {
           key: c,
@@ -568,9 +764,32 @@
     })()), tab === "livres" && /* @__PURE__ */ React.createElement("div", null, (() => {
       const lu = data.books.filter((b) => b.status === "lu").length;
       const cours = data.books.filter((b) => b.status === "en cours").length;
-      const total = data.books.length;
-      const pct = total > 0 ? Math.round(lu / total * 100) : 0;
-      return /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 14, padding: "14px 18px", border: `1px solid ${C.border}`, marginBottom: 16, display: "flex", alignItems: "center", gap: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 12 } }, /* @__PURE__ */ React.createElement("span", { style: { color: C.muted } }, lu, " lu", lu > 1 ? "s" : "", " \xB7 ", cours, " en cours \xB7 ", total - lu - cours, " \xE0 lire"), /* @__PURE__ */ React.createElement("span", { style: { fontWeight: 700, color: C.sage } }, pct, "%")), /* @__PURE__ */ React.createElement("div", { style: { height: 6, background: C.cream, borderRadius: 3, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { height: "100%", background: `linear-gradient(90deg,${C.sage},${C.gold})`, borderRadius: 3, width: `${pct}%`, transition: "width 0.5s" } }))));
+      const aLire = data.books.filter((b) => b.status === "\xE0 lire").length;
+      const addBook = () => {
+        const trimmed = newBName.trim();
+        if (!trimmed) return;
+        upd((d) => d.books.push({ id: newId(), name: trimmed, author: newBAuthor.trim(), status: newBStatus, type: newBType || undefined, notes: newBNotes.trim(), rating: 0 }));
+        setShowBookModal(false);
+        setNewBName(""); setNewBAuthor(""); setNewBStatus("\xE0 lire"); setNewBType(""); setNewBNotes("");
+      };
+      const bookModalEl = showBookModal && /* @__PURE__ */ React.createElement("div", { onClick: () => setShowBookModal(false), style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 500, display: "flex", alignItems: "flex-end", justifyContent: "center" } }, /* @__PURE__ */ React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { background: "white", borderRadius: "20px 20px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: 560 } },
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 } },
+          /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, fontWeight: 700, color: C.dark } }, "\u{1F4DA} Nouveau livre"),
+          /* @__PURE__ */ React.createElement("button", { onClick: () => setShowBookModal(false), style: { fontSize: 20, background: "none", border: "none", cursor: "pointer", color: C.muted } }, "\u2715")
+        ),
+        /* @__PURE__ */ React.createElement("input", { value: newBName, onChange: (e) => setNewBName(e.target.value), placeholder: "Titre du livre...", autoFocus: true, style: { width: "100%", border: `1.5px solid ${C.border}`, background: C.cream, borderRadius: 12, padding: "12px 14px", fontFamily: "inherit", fontSize: 14, fontWeight: 600, color: C.dark, outline: "none", marginBottom: 10 } }),
+        /* @__PURE__ */ React.createElement("input", { value: newBAuthor, onChange: (e) => setNewBAuthor(e.target.value), placeholder: "Auteur...", style: { width: "100%", border: `1.5px solid ${C.border}`, background: C.cream, borderRadius: 12, padding: "11px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", marginBottom: 12 } }),
+        /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "1px", textTransform: "uppercase", marginBottom: 8 } }, "Statut"),
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 16 } }, BOOK_STATUS.map((s) => /* @__PURE__ */ React.createElement("button", { key: s.value, onClick: () => setNewBStatus(s.value), style: { flex: 1, border: `1.5px solid ${newBStatus === s.value ? s.border : C.border}`, background: newBStatus === s.value ? s.bg : "white", borderRadius: 10, padding: "8px 6px", fontSize: 11, fontWeight: 600, color: newBStatus === s.value ? s.color : C.muted, cursor: "pointer", fontFamily: "inherit" } }, s.emoji, " ", s.label))),
+        /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "1px", textTransform: "uppercase", marginBottom: 8 } }, "Type"),
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 } }, [{ key: "roman", label: "\u{1F4D6} Roman" }, { key: "essai", label: "\u{1F4A1} Essai" }, { key: "devperso", label: "\u{1F331} D\xE9v. perso" }, { key: "bio", label: "\u{1F464} Biographie" }, { key: "bd", label: "\u{1F3A8} BD/Manga" }, { key: "autre", label: "\u2726 Autre" }, ...(data.bookTypes || []).map((t) => ({ key: t.key, label: (t.emoji || "\u2726") + " " + t.label }))].map((t) => /* @__PURE__ */ React.createElement("button", { key: t.key, onClick: () => setNewBType(newBType === t.key ? "" : t.key), style: { border: `1.5px solid ${newBType === t.key ? C.dark : C.border}`, background: newBType === t.key ? C.dark : "white", borderRadius: 20, padding: "5px 12px", fontSize: 11, fontWeight: 600, color: newBType === t.key ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit" } }, t.label))),
+        /* @__PURE__ */ React.createElement("textarea", { value: newBNotes, onChange: (e) => setNewBNotes(e.target.value), placeholder: "Notes, citations, pourquoi ce livre...", rows: 3, style: { width: "100%", border: `1.5px solid ${C.border}`, background: C.cream, borderRadius: 12, padding: "11px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", resize: "none", lineHeight: 1.6, marginBottom: 16 } }),
+        /* @__PURE__ */ React.createElement("button", { onClick: addBook, disabled: !newBName.trim(), style: { width: "100%", background: newBName.trim() ? C.dark : C.border, border: "none", borderRadius: 12, padding: "14px", color: "white", fontSize: 14, fontWeight: 700, cursor: newBName.trim() ? "pointer" : "default", fontFamily: "inherit" } }, "Ajouter le livre")
+      ));
+      return /* @__PURE__ */ React.createElement("div", null, bookModalEl,
+        /* @__PURE__ */ React.createElement("button", { onClick: () => { setNewBName(""); setShowBookModal(true); }, style: { width: "100%", background: C.dark, border: "none", borderRadius: 12, padding: "12px 18px", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 16 } }, "\u2795 Nouveau livre"),
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 16 } }, [[aLire, "\u{1F4DA}", "\xE0 lire", "\xE0 lire", "#3B82F6", "#EFF6FF", "#BFDBFE"], [cours, "\u{1F4D6}", "en cours", "en cours", "#C4724A", "#FFF7ED", "#FED7AA"], [lu, "\u2713", "lus", "lu", "#7A9E7E", "#F0FDF4", "#BBF7D0"]].map(([n, e, l, filterVal, c, bg, brd]) => /* @__PURE__ */ React.createElement("div", { key: l, onClick: () => setBookFilter(bookFilter === filterVal ? "tous" : filterVal), style: { flex: 1, background: bookFilter === filterVal ? bg : "white", borderRadius: 12, border: `1.5px solid ${bookFilter === filterVal ? brd : C.border}`, padding: "10px 8px", textAlign: "center", cursor: "pointer", transition: "all 0.15s" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: c } }, n), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, e, " ", l))))
+      );
     })(), (() => {
       const BOOK_TYPES_BASE = [
         { key: "roman", label: "\u{1F4D6} Roman" },
@@ -676,7 +895,7 @@
         style: { marginTop: 10, fontSize: 11, color: C.terra, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }
       },
       "Supprimer"
-    ))))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Nouveau livre...", extraField: "Auteur...", onAdd: (name, author) => upd((d) => d.books.push({ id: newId(), name, author, status: "\xE0 lire", notes: "", rating: 0 })) })), tab === "podcasts" && /* @__PURE__ */ React.createElement("div", null, (() => {
+    )))))), tab === "podcasts" && (() => {
       const POD_TYPES_BASE = [
         { key: "bienetre", label: "\u{1F33F} Bien-\xEAtre" },
         { key: "culture", label: "\u{1F3AD} Culture" },
@@ -698,101 +917,95 @@
         setNewPodType("");
         setNewPodTypeEmoji("");
       };
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 10 } }, [{ key: "Tout", label: "Tout" }, ...ALL_POD_TYPES].map((t) => /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          key: t.key,
-          onClick: () => setPodType(t.key),
-          style: { flexShrink: 0, border: `1.5px solid ${podType === t.key ? C.dark : C.border}`, background: podType === t.key ? C.dark : "white", borderRadius: 20, padding: "5px 12px", fontSize: 11, fontWeight: 600, color: podType === t.key ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
-        },
-        t.label,
-        t.custom && podType !== t.key && /* @__PURE__ */ React.createElement("span", { onClick: (e) => {
-          e.stopPropagation();
-          upd((d) => {
-            d.podTypes = (d.podTypes || []).filter((x) => x.key !== t.key);
-          });
-        }, style: { marginLeft: 4, fontSize: 9, color: C.terra, cursor: "pointer" } }, "\u2715")
-      ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 10, alignItems: "center" } }, /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          value: newPodTypeEmoji,
-          onChange: (e) => setNewPodTypeEmoji(e.target.value),
-          placeholder: "\u{1F399}\uFE0F",
-          style: { width: 36, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "5px 7px", fontFamily: "inherit", fontSize: 14, textAlign: "center", outline: "none", flexShrink: 0 }
-        }
-      ), /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          value: newPodType,
-          onChange: (e) => setNewPodType(e.target.value),
-          onKeyDown: (e) => e.key === "Enter" && addPodType(),
-          placeholder: "Nouveau type...",
-          style: { flex: 1, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 20, padding: "5px 12px", fontFamily: "inherit", fontSize: 11, color: C.dark, outline: "none" }
-        }
-      ), newPodType.trim() && /* @__PURE__ */ React.createElement("button", { onClick: addPodType, style: { background: C.dark, border: "none", borderRadius: 20, padding: "5px 12px", color: "white", fontSize: 11, cursor: "pointer", fontFamily: "inherit", fontWeight: 600 } }, "+")));
-    })(), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" } }, [["tous", "Tous"], ["\xE0 \xE9couter", "\u{1F3A7} \xC0 \xE9couter"], ["en cours", "\u25B6\uFE0F En cours"], ["termin\xE9", "\u2713 Termin\xE9s"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        key: v,
-        onClick: () => setPodFilter(v),
-        style: { flexShrink: 0, border: `1.5px solid ${podFilter === v ? C.terra : C.border}`, background: podFilter === v ? "#FEF3ED" : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: podFilter === v ? C.terra : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
-      },
-      l
-    ))), /* @__PURE__ */ React.createElement(SectionTitle, null, data.podcasts.filter((p) => podType === "Tout" || p.type === podType).length, " podcasts"), /* @__PURE__ */ React.createElement(SearchBar, null), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, data.podcasts.filter((p) => (filterText(p.name) || filterText(p.notes || "")) && (podFilter === "tous" || p.status === podFilter) && (podType === "Tout" || p.type === podType)).map((p) => /* @__PURE__ */ React.createElement(CardShell, { key: p.id, active: expandedId === p.id, onClick: () => toggle(p.id) }, /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 44, height: 44, borderRadius: 12, background: p.status === "termin\xE9" ? C.sage + "22" : p.status === "en cours" ? C.terra + "22" : C.warm, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 } }, "\u{1F399}\uFE0F"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: C.dark } }, p.name), p.notes && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, p.notes), p.status === "termin\xE9" && p.rating > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 3, display: "flex", gap: 1, fontSize: 12 } }, "\u2605".repeat(p.rating) + "\u2606".repeat(5 - p.rating))), /* @__PURE__ */ React.createElement(StatusPill, { value: p.status, options: POD_STATUS, onChange: (v) => upd((d) => {
-      d.podcasts.find((x) => x.id === p.id).status = v;
-    }) })), expandedId === p.id && /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.cream}`, padding: "14px 18px", background: C.light }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10 } }, [{ key: "bienetre", label: "\u{1F33F} Bien-\xEAtre" }, { key: "culture", label: "\u{1F3AD} Culture" }, { key: "business", label: "\u{1F4BC} Business" }, { key: "truecrime", label: "\u{1F50D} True crime" }, { key: "science", label: "\u{1F52C} Science" }, { key: "sport", label: "\u{1F3C3} Sport" }, { key: "autre", label: "\u2726 Autre" }, ...(data.podTypes || []).map((t) => ({ key: t.key, label: (t.emoji || "\u2726") + " " + t.label }))].map((t) => /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        key: t.key,
-        onClick: () => upd((d) => {
-          d.podcasts.find((x) => x.id === p.id).type = t.key;
-        }),
-        style: { border: `1.5px solid ${p.type === t.key ? C.dark : C.border}`, background: p.type === t.key ? C.dark : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: p.type === t.key ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit" }
-      },
-      t.label
-    ))), /* @__PURE__ */ React.createElement(
-      "textarea",
-      {
-        value: p.notes || "",
-        onChange: (e) => upd((d) => {
-          d.podcasts.find((x) => x.id === p.id).notes = e.target.value;
-        }),
-        placeholder: "Description, notes, \xE9pisodes favoris...",
-        style: { width: "100%", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, resize: "none", outline: "none", minHeight: 70, lineHeight: 1.6, marginBottom: 8 }
-      }
-    ), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 8, alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", gap: 6, alignItems: "center" } }, /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        value: p.url || "",
-        onChange: (e) => upd((d) => {
-          d.podcasts.find((x) => x.id === p.id).url = e.target.value;
-        }),
-        placeholder: "\u{1F517} Lien (Spotify, Apple...)",
-        style: { flex: 1, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none" }
-      }
-    ), p.url && /* @__PURE__ */ React.createElement(
-      "a",
-      {
-        href: p.url,
-        target: "_blank",
-        rel: "noopener noreferrer",
-        style: { flexShrink: 0, background: C.dark, borderRadius: 8, padding: "7px 10px", color: "white", fontSize: 11, textDecoration: "none", fontWeight: 600 },
-        onClick: (e) => e.stopPropagation()
-      },
-      "\u2197"
-    ))), p.status === "termin\xE9" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted } }, "Note :"), /* @__PURE__ */ React.createElement(Stars, { value: p.rating || 0, onChange: (v) => upd((d) => {
-      d.podcasts.find((x) => x.id === p.id).rating = v;
-    }) })), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: () => upd((d) => {
-          d.podcasts = d.podcasts.filter((x) => x.id !== p.id);
-          setExpId(null);
-        }),
-        style: { marginTop: 2, fontSize: 11, color: C.terra, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }
-      },
-      "Supprimer"
-    ))))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Nouveau podcast...", onAdd: (name) => upd((d) => d.podcasts.push({ id: newId(), name, status: "\xE0 \xE9couter", notes: "", url: "", rating: 0 })) })), tab === "films" && /* @__PURE__ */ React.createElement("div", null, (() => {
+      const cntEcouter = data.podcasts.filter((p) => p.status === "\xE0 \xE9couter").length;
+      const cntEnCours = data.podcasts.filter((p) => p.status === "en cours").length;
+      const cntTermine = data.podcasts.filter((p) => p.status === "termin\xE9").length;
+      const addPod = () => {
+        if (!podModal || !podModal.name.trim()) return;
+        upd((d) => d.podcasts.push({ id: newId(), name: podModal.name.trim(), desc: podModal.desc.trim(), notes: podModal.notes.trim(), url: podModal.url.trim(), status: podModal.status, type: podModal.type, rating: 0 }));
+        setPodModal(null);
+      };
+      const PodModal = () => {
+        if (!podModal) return null;
+        const m = podModal;
+        const setM = (key, val) => setPodModal(Object.assign({}, m, { [key]: val }));
+        return /* @__PURE__ */ React.createElement("div", { onClick: () => setPodModal(null), style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 500, display: "flex", alignItems: "flex-end", justifyContent: "center" } },
+          /* @__PURE__ */ React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { background: "white", borderRadius: "20px 20px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto" } },
+            /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 } },
+              /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 700, color: C.dark } }, "\u{1F399}\uFE0F Nouveau podcast"),
+              /* @__PURE__ */ React.createElement("button", { onClick: () => setPodModal(null), style: { background: "none", border: "none", fontSize: 20, color: C.muted, cursor: "pointer", padding: 0 } }, "\u2715")
+            ),
+            /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } },
+              /* @__PURE__ */ React.createElement("input", { value: m.name, onChange: (e) => setM("name", e.target.value), autoFocus: true, placeholder: "Nom du podcast *", style: { border: "1.5px solid " + C.border, background: C.cream, borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 14, fontWeight: 600, color: C.dark, outline: "none", width: "100%" } }),
+              /* @__PURE__ */ React.createElement("input", { value: m.desc, onChange: (e) => setM("desc", e.target.value), placeholder: "Description (auteur, th\xE8me...)", style: { border: "1.5px solid " + C.border, background: "white", borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", width: "100%" } }),
+              /* @__PURE__ */ React.createElement("select", { value: m.status, onChange: (e) => setM("status", e.target.value), style: { border: "1.5px solid " + C.border, background: "white", borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", cursor: "pointer", width: "100%" } },
+                POD_STATUS.map((s) => /* @__PURE__ */ React.createElement("option", { key: s.value, value: s.value }, s.emoji + " " + s.label))
+              ),
+              /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 } }, "Cat\xE9gorie"),
+              /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } },
+                [{ key: "", label: "\u2014 Aucune" }, ...ALL_POD_TYPES].map((t) => /* @__PURE__ */ React.createElement("button", { key: t.key, onClick: () => setM("type", t.key), style: { border: "1.5px solid " + (m.type === t.key ? C.dark : C.border), background: m.type === t.key ? C.dark : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: m.type === t.key ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit" } }, t.label))
+              ),
+              /* @__PURE__ */ React.createElement("input", { value: m.url, onChange: (e) => setM("url", e.target.value), placeholder: "\u{1F517} Lien (Spotify, Apple...)", style: { border: "1.5px solid " + C.border, background: "white", borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", width: "100%" } }),
+              /* @__PURE__ */ React.createElement("textarea", { value: m.notes, onChange: (e) => setM("notes", e.target.value), placeholder: "Notes, \xE9pisodes favoris...", rows: 3, style: { border: "1.5px solid " + C.border, background: "white", borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", resize: "none", width: "100%", lineHeight: 1.6 } }),
+              /* @__PURE__ */ React.createElement("button", { onClick: addPod, disabled: !m.name.trim(), style: { background: m.name.trim() ? C.dark : C.border, border: "none", borderRadius: 12, padding: "12px", color: "white", fontSize: 14, fontWeight: 700, cursor: m.name.trim() ? "pointer" : "default", fontFamily: "inherit" } }, "Ajouter le podcast")
+            )
+          )
+        );
+      };
+      return /* @__PURE__ */ React.createElement("div", null,
+        /* @__PURE__ */ React.createElement(PodModal, null),
+        /* @__PURE__ */ React.createElement("button", { onClick: () => setPodModal({ name: "", desc: "", status: "\xE0 \xE9couter", type: "", url: "", notes: "" }), style: { width: "100%", background: C.dark, border: "none", borderRadius: 12, padding: "12px 18px", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 14 } }, "\u{1F399}\uFE0F Nouveau podcast"),
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 14 } },
+          [
+            [cntEcouter, "\u{1F3A7}", "\xE0 \xE9couter", "\xE0 \xE9couter", "#3B82F6", "#EFF6FF", "#BFDBFE"],
+            [cntEnCours, "\u25B6\uFE0F", "en cours", "en cours", C.terra, "#FFF7ED", "#FED7AA"],
+            [cntTermine, "\u2713", "termin\xE9s", "termin\xE9", C.sage, "#F0FDF4", "#BBF7D0"]
+          ].map(function(arr) {
+            var n=arr[0], e=arr[1], l=arr[2], filterVal=arr[3], c=arr[4], bg=arr[5], brd=arr[6];
+            return /* @__PURE__ */ React.createElement("div", { key: l, onClick: () => setPodFilter(podFilter === filterVal ? "tous" : filterVal), style: { flex: 1, background: podFilter === filterVal ? bg : "white", borderRadius: 12, border: "1.5px solid " + (podFilter === filterVal ? brd : C.border), padding: "10px 8px", textAlign: "center", cursor: "pointer", transition: "all 0.15s" } },
+              /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: c } }, n),
+              /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, e + " " + l)
+            );
+          })
+        ),
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 10 } }, [{ key: "Tout", label: "Tout" }, ...ALL_POD_TYPES].map((t) => /* @__PURE__ */ React.createElement(
+          "button",
+          { key: t.key, onClick: () => setPodType(t.key), style: { flexShrink: 0, border: "1.5px solid " + (podType === t.key ? C.dark : C.border), background: podType === t.key ? C.dark : "white", borderRadius: 20, padding: "5px 12px", fontSize: 11, fontWeight: 600, color: podType === t.key ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" } },
+          t.label,
+          t.custom && podType !== t.key && /* @__PURE__ */ React.createElement("span", { onClick: (e) => { e.stopPropagation(); upd((d) => { d.podTypes = (d.podTypes || []).filter((x) => x.key !== t.key); }); }, style: { marginLeft: 4, fontSize: 9, color: C.terra, cursor: "pointer" } }, "\u2715")
+        ))),
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 10, alignItems: "center" } },
+          /* @__PURE__ */ React.createElement("input", { value: newPodTypeEmoji, onChange: (e) => setNewPodTypeEmoji(e.target.value), placeholder: "\u{1F399}\uFE0F", style: { width: 36, border: "1.5px solid " + C.border, background: "white", borderRadius: 10, padding: "5px 7px", fontFamily: "inherit", fontSize: 14, textAlign: "center", outline: "none", flexShrink: 0 } }),
+          /* @__PURE__ */ React.createElement("input", { value: newPodType, onChange: (e) => setNewPodType(e.target.value), onKeyDown: (e) => e.key === "Enter" && addPodType(), placeholder: "Nouveau type...", style: { flex: 1, border: "1.5px solid " + C.border, background: "white", borderRadius: 20, padding: "5px 12px", fontFamily: "inherit", fontSize: 11, color: C.dark, outline: "none" } }),
+          newPodType.trim() && /* @__PURE__ */ React.createElement("button", { onClick: addPodType, style: { background: C.dark, border: "none", borderRadius: 20, padding: "5px 12px", color: "white", fontSize: 11, cursor: "pointer", fontFamily: "inherit", fontWeight: 600 } }, "+")
+        ),
+        /* @__PURE__ */ React.createElement(SearchBar, null),
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, data.podcasts.filter((p) => (filterText(p.name) || filterText(p.notes || "") || filterText(p.desc || "")) && (podFilter === "tous" || p.status === podFilter) && (podType === "Tout" || p.type === podType)).map((p) => /* @__PURE__ */ React.createElement(CardShell, { key: p.id, active: expandedId === p.id, onClick: () => toggle(p.id) },
+          /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 } },
+            /* @__PURE__ */ React.createElement("div", { style: { width: 44, height: 44, borderRadius: 12, background: p.status === "termin\xE9" ? C.sage + "22" : p.status === "en cours" ? C.terra + "22" : C.warm, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 } }, "\u{1F399}\uFE0F"),
+            /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } },
+              /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: C.dark } }, p.name),
+              (p.desc || p.notes) && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: C.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, p.desc || p.notes),
+              p.status === "termin\xE9" && p.rating > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 3, display: "flex", gap: 1, fontSize: 12 } }, "\u2605".repeat(p.rating) + "\u2606".repeat(5 - p.rating))
+            ),
+            /* @__PURE__ */ React.createElement(StatusPill, { value: p.status, options: POD_STATUS, onChange: (v) => upd((d) => { d.podcasts.find((x) => x.id === p.id).status = v; }) })
+          ),
+          expandedId === p.id && /* @__PURE__ */ React.createElement("div", { style: { borderTop: "1px solid " + C.cream, padding: "14px 18px", background: C.light }, onClick: (e) => e.stopPropagation() },
+            /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10 } }, [{ key: "bienetre", label: "\u{1F33F} Bien-\xEAtre" }, { key: "culture", label: "\u{1F3AD} Culture" }, { key: "business", label: "\u{1F4BC} Business" }, { key: "truecrime", label: "\u{1F50D} True crime" }, { key: "science", label: "\u{1F52C} Science" }, { key: "sport", label: "\u{1F3C3} Sport" }, { key: "autre", label: "\u2726 Autre" }, ...(data.podTypes || []).map((t) => ({ key: t.key, label: (t.emoji || "\u2726") + " " + t.label }))].map((t) => /* @__PURE__ */ React.createElement("button", { key: t.key, onClick: () => upd((d) => { d.podcasts.find((x) => x.id === p.id).type = t.key; }), style: { border: "1.5px solid " + (p.type === t.key ? C.dark : C.border), background: p.type === t.key ? C.dark : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: p.type === t.key ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit" } }, t.label))),
+            /* @__PURE__ */ React.createElement("input", { value: p.desc || "", onChange: (e) => upd((d) => { d.podcasts.find((x) => x.id === p.id).desc = e.target.value; }), placeholder: "Description (auteur, th\xE8me...)", style: { width: "100%", border: "1.5px solid " + C.border, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none", marginBottom: 8 } }),
+            /* @__PURE__ */ React.createElement("textarea", { value: p.notes || "", onChange: (e) => upd((d) => { d.podcasts.find((x) => x.id === p.id).notes = e.target.value; }), placeholder: "Notes, \xE9pisodes favoris...", style: { width: "100%", border: "1.5px solid " + C.border, background: "white", borderRadius: 10, padding: "10px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, resize: "none", outline: "none", minHeight: 70, lineHeight: 1.6, marginBottom: 8 } }),
+            /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 8, alignItems: "center" } },
+              /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", gap: 6, alignItems: "center" } },
+                /* @__PURE__ */ React.createElement("input", { value: p.url || "", onChange: (e) => upd((d) => { d.podcasts.find((x) => x.id === p.id).url = e.target.value; }), placeholder: "\u{1F517} Lien (Spotify, Apple...)", style: { flex: 1, border: "1.5px solid " + C.border, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none" } }),
+                p.url && /* @__PURE__ */ React.createElement("a", { href: p.url, target: "_blank", rel: "noopener noreferrer", style: { flexShrink: 0, background: C.dark, borderRadius: 8, padding: "7px 10px", color: "white", fontSize: 11, textDecoration: "none", fontWeight: 600 }, onClick: (e) => e.stopPropagation() }, "\u2197")
+              )
+            ),
+            p.status === "termin\xE9" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted } }, "Note :"), /* @__PURE__ */ React.createElement(Stars, { value: p.rating || 0, onChange: (v) => upd((d) => { d.podcasts.find((x) => x.id === p.id).rating = v; }) })),
+            /* @__PURE__ */ React.createElement("button", { onClick: () => upd((d) => { d.podcasts = d.podcasts.filter((x) => x.id !== p.id); setExpId(null); }), style: { marginTop: 2, fontSize: 11, color: C.terra, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" } }, "Supprimer")
+          )
+        )))
+      );
+    })(), tab === "films" && /* @__PURE__ */ React.createElement("div", null, (() => {
       const MOVIE_GENRES_BASE = ["Drame", "Com\xE9die", "Thriller", "Action", "Horreur", "Sci-fi", "Romance", "Documentaire", "Animation", "Autre"];
       const customMovieGenres = [...new Set((data.movies || []).map((m) => m.genre).filter((g) => g && !MOVIE_GENRES_BASE.includes(g)))];
       const MOVIE_GENRES = [...MOVIE_GENRES_BASE, ...customMovieGenres];
@@ -887,12 +1100,102 @@
       const base = data.wishlist.filter(
         (w) => filterText(w.name) && (wCat === "Tout" || (w.cat || "Autre") === wCat)
       );
-      const restants = base.filter((w) => !w.done).sort(sortFnW);
+      const restants = base.filter((w) => !w.done && !w.reflexion).sort(sortFnW);
+      const enReflexion = base.filter((w) => !w.done && w.reflexion).sort(sortFnW);
       const acquis = base.filter((w) => w.done).sort(sortFnW);
-      const showAcquis = wFilter !== "restant";
-      const showRestants = wFilter !== "acquis";
-      const total = restants.filter((w) => w.price).reduce((acc, w) => acc + parsePrice(w.price), 0);
-      const acquired = data.wishlist.filter((w) => w.done).length;
+      const showAcquis = wFilter === "acquis" || wFilter === "Tout";
+      const showRestants = wFilter === "restant" || wFilter === "Tout";
+      const showReflexion = wFilter === "reflexion" || wFilter === "Tout";
+      const countReflexion = data.wishlist.filter((w) => !w.done && w.reflexion).length;
+      const countAcquis = data.wishlist.filter((w) => w.done).length;
+      const countRestants = data.wishlist.filter((w) => !w.done && !w.reflexion).length;
+
+      // Modal d'ajout
+      const WishModal = () => {
+        if (!wishModal) return null;
+        const m = wishModal;
+        const setM = (key, val) => setWishModal(__spreadProps(__spreadValues({}, m), { [key]: val }));
+        const confirm = () => {
+          if (!m.name.trim()) return;
+          upd((d) => d.wishlist.push({
+            id: newId(), name: m.name.trim(), price: m.price, cat: m.cat,
+            priority: m.priority, url: m.url, notes: m.notes, done: false, reflexion: m.reflexion
+          }));
+          setWishModal(null);
+        };
+        return /* @__PURE__ */ React.createElement("div", {
+          onClick: () => setWishModal(null),
+          style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 500, display: "flex", alignItems: "flex-end", justifyContent: "center" }
+        }, /* @__PURE__ */ React.createElement("div", {
+          onClick: (e) => e.stopPropagation(),
+          style: { background: "white", borderRadius: "20px 20px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: 480, maxHeight: "90vh", overflowY: "auto" }
+        },
+          /* Header */
+          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 } },
+            /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, fontWeight: 700, color: C.dark } }, "\u2728 Ajouter \xE0 ma wishlist"),
+            /* @__PURE__ */ React.createElement("button", { onClick: () => setWishModal(null), style: { background: "none", border: "none", fontSize: 18, color: C.muted, cursor: "pointer" } }, "\u2715")
+          ),
+          /* Nom */
+          /* @__PURE__ */ React.createElement("input", {
+            autoFocus: true,
+            value: m.name,
+            onChange: (e) => setM("name", e.target.value),
+            placeholder: "Nom de l\u2019article...",
+            style: { width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "10px 12px", fontFamily: "inherit", fontSize: 14, fontWeight: 600, color: C.dark, outline: "none", marginBottom: 10 }
+          }),
+          /* Prix + Cat */
+          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 10 } },
+            /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", alignItems: "center", border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden" } },
+              /* @__PURE__ */ React.createElement("input", {
+                type: "number", min: "0", value: m.price,
+                onChange: (e) => setM("price", e.target.value),
+                placeholder: "Prix",
+                style: { flex: 1, border: "none", padding: "9px 0 9px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none" }
+              }),
+              /* @__PURE__ */ React.createElement("span", { style: { paddingRight: 10, fontSize: 12, color: C.muted } }, "\u20AC")
+            ),
+            /* @__PURE__ */ React.createElement("select", {
+              value: m.cat,
+              onChange: (e) => setM("cat", e.target.value),
+              style: { flex: 1, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 10px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none" }
+            }, WISH_CATS.filter((c) => c !== "Tout").map((c) => /* @__PURE__ */ React.createElement("option", { key: c, value: c }, c)))
+          ),
+          /* Priorité */
+          /* @__PURE__ */ React.createElement("select", {
+            value: m.priority,
+            onChange: (e) => setM("priority", e.target.value),
+            style: { width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none", marginBottom: 10 }
+          }, PRIORITY.map((p) => /* @__PURE__ */ React.createElement("option", { key: p.v, value: p.v }, p.label))),
+          /* En réflexion toggle */
+          /* @__PURE__ */ React.createElement("div", {
+            onClick: () => setM("reflexion", !m.reflexion),
+            style: { display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", border: `1.5px solid ${m.reflexion ? C.sage : C.border}`, borderRadius: 10, background: m.reflexion ? "#EDF4EE" : "white", cursor: "pointer", marginBottom: 10, transition: "all 0.15s" }
+          },
+            /* @__PURE__ */ React.createElement("div", { style: { width: 18, height: 18, borderRadius: "50%", border: m.reflexion ? "none" : `2px solid ${C.border}`, background: m.reflexion ? C.sage : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "white", flexShrink: 0 } }, m.reflexion && "\u2713"),
+            /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: m.reflexion ? C.sage : C.muted, fontWeight: 600 } }, "\u{1F4AD} En r\xE9flexion (pas encore d\xE9cid\xE9e)")
+          ),
+          /* URL */
+          /* @__PURE__ */ React.createElement("input", {
+            value: m.url,
+            onChange: (e) => setM("url", e.target.value),
+            placeholder: "\u{1F517} Lien (site, Instagram...)",
+            style: { width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none", marginBottom: 10 }
+          }),
+          /* Notes */
+          /* @__PURE__ */ React.createElement("textarea", {
+            value: m.notes,
+            onChange: (e) => setM("notes", e.target.value),
+            placeholder: "Notes (couleur, taille, pourquoi tu le veux...)",
+            style: { width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, resize: "none", outline: "none", minHeight: 60, lineHeight: 1.5, marginBottom: 14 }
+          }),
+          /* Bouton */
+          /* @__PURE__ */ React.createElement("button", {
+            onClick: confirm,
+            style: { width: "100%", background: m.name.trim() ? C.dark : C.border, border: "none", borderRadius: 12, padding: "13px", color: "white", fontSize: 14, fontWeight: 700, cursor: m.name.trim() ? "pointer" : "default", fontFamily: "inherit", transition: "background 0.15s" }
+          }, "Ajouter \u2728")
+        ));
+      };
+
       const WishCard = (w) => {
         var _a;
         return /* @__PURE__ */ React.createElement(CardShell, { key: w.id, active: expandedId === w.id, onClick: () => setExpId(expandedId === w.id ? null : w.id) }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, padding: "14px 18px" } }, /* @__PURE__ */ React.createElement(
@@ -901,13 +1204,15 @@
             onClick: (e) => {
               e.stopPropagation();
               upd((d) => {
-                d.wishlist.find((x) => x.id === w.id).done = !w.done;
+                const item = d.wishlist.find((x) => x.id === w.id);
+                item.done = !w.done;
+                if (item.done) item.reflexion = false;
               });
             },
             style: { width: 24, height: 24, borderRadius: "50%", border: w.done ? "none" : `2px solid ${C.border}`, background: w.done ? C.gold : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "white", flexShrink: 0, cursor: "pointer", transition: "all 0.2s" }
           },
           w.done && "\u2713"
-        ), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: w.done ? C.muted : C.dark, textDecoration: w.done ? "line-through" : "none" } }, w.name), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginTop: 3, flexWrap: "wrap" } }, w.cat && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.muted, background: C.cream, borderRadius: 10, padding: "1px 7px" } }, w.cat), !w.done && w.priority && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.terra, background: "#FEF3ED", borderRadius: 10, padding: "1px 7px" } }, ((_a = PRIORITY.find((p) => p.v === w.priority)) == null ? void 0 : _a.label) || w.priority))), w.price && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: w.done ? C.muted : C.gold, fontWeight: 700, flexShrink: 0, textDecoration: w.done ? "line-through" : "none" } }, parsePrice(w.price) > 0 ? parsePrice(w.price).toFixed(0) + "\u20AC" : w.price), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.muted } }, "\u203A")), expandedId === w.id && /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.cream}`, padding: "14px 18px", background: C.light }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 100, display: "flex", alignItems: "center", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, overflow: "hidden" } }, /* @__PURE__ */ React.createElement(
+        ), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: w.done ? C.muted : C.dark } }, w.name), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginTop: 3, flexWrap: "wrap" } }, w.cat && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.muted, background: C.cream, borderRadius: 10, padding: "1px 7px" } }, w.cat), w.reflexion && !w.done && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.sage, background: "#EDF4EE", borderRadius: 10, padding: "1px 7px" } }, "\u{1F4AD} R\xE9flexion"), !w.done && !w.reflexion && w.priority && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.terra, background: "#FEF3ED", borderRadius: 10, padding: "1px 7px" } }, ((_a = PRIORITY.find((p) => p.v === w.priority)) == null ? void 0 : _a.label) || w.priority))), w.price && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: w.done ? C.muted : C.gold, fontWeight: 700, flexShrink: 0 } }, parsePrice(w.price) > 0 ? parsePrice(w.price).toFixed(0) + "\u20AC" : w.price), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.muted } }, "\u203A")), expandedId === w.id && /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.cream}`, padding: "14px 18px", background: C.light }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 100, display: "flex", alignItems: "center", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, overflow: "hidden" } }, /* @__PURE__ */ React.createElement(
           "input",
           {
             type: "number",
@@ -939,7 +1244,16 @@
             style: { width: "100%", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none", cursor: "pointer", marginBottom: 8 }
           },
           PRIORITY.map((p) => /* @__PURE__ */ React.createElement("option", { key: p.v, value: p.v }, p.label))
-        ), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, alignItems: "center", marginBottom: 8 } }, /* @__PURE__ */ React.createElement(
+        ),
+        /* Toggle réflexion dans edit */
+        /* @__PURE__ */ React.createElement("div", {
+          onClick: () => upd((d) => { const item = d.wishlist.find((x) => x.id === w.id); item.reflexion = !item.reflexion; }),
+          style: { display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", border: `1.5px solid ${w.reflexion ? C.sage : C.border}`, borderRadius: 10, background: w.reflexion ? "#EDF4EE" : "white", cursor: "pointer", marginBottom: 8, transition: "all 0.15s" }
+        },
+          /* @__PURE__ */ React.createElement("div", { style: { width: 16, height: 16, borderRadius: "50%", border: w.reflexion ? "none" : `2px solid ${C.border}`, background: w.reflexion ? C.sage : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "white", flexShrink: 0 } }, w.reflexion && "\u2713"),
+          /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: w.reflexion ? C.sage : C.muted, fontWeight: 600 } }, "\u{1F4AD} En r\xE9flexion")
+        ),
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, alignItems: "center", marginBottom: 8 } }, /* @__PURE__ */ React.createElement(
           "input",
           {
             value: w.url || "",
@@ -981,31 +1295,81 @@
           "Supprimer"
         )));
       };
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 100, background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, padding: "10px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.gold } }, acquired), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, "acquis \u2713")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 100, background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, padding: "10px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.terra } }, data.wishlist.filter((w) => !w.done).length), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, "restants")), total > 0 && /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 100, background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, padding: "10px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, fontWeight: 700, color: C.dark } }, total.toFixed(0), "\u20AC"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, "budget estim\xE9"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 8 } }, WISH_CATS.map((c) => /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          key: c,
-          onClick: () => setWCat(c),
-          style: { flexShrink: 0, border: `1.5px solid ${wCat === c ? C.dark : C.border}`, background: wCat === c ? C.dark : "white", borderRadius: 20, padding: "5px 12px", fontSize: 11, fontWeight: 600, color: wCat === c ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
-        },
-        c
-      ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap", alignItems: "center" } }, [["Tout", "Tout"], ["restant", "\xC0 avoir"], ["acquis", "Acquis \u2713"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          key: v,
-          onClick: () => setWFilter(v),
-          style: { border: `1.5px solid ${wFilter === v ? C.gold : C.border}`, background: wFilter === v ? "#FEF9EC" : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: wFilter === v ? C.gold : C.muted, cursor: "pointer", fontFamily: "inherit" }
-        },
-        l
-      )), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted, marginLeft: 4 } }, "Trier :"), [["priorit\xE9", "\u{1F525}"], ["prix\u2191", "\u20AC\u2191"], ["prix\u2193", "\u20AC\u2193"], ["nom", "A\u2192Z"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          key: v,
-          onClick: () => setWSort(v),
-          style: { flexShrink: 0, border: `1.5px solid ${wSort === v ? C.terra : C.border}`, background: wSort === v ? "#FEF3ED" : "white", borderRadius: 20, padding: "4px 9px", fontSize: 11, fontWeight: 600, color: wSort === v ? C.terra : C.muted, cursor: "pointer", fontFamily: "inherit" }
-        },
-        l
-      ))), /* @__PURE__ */ React.createElement(SearchBar, null), showRestants && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: restants.length > 0 && showAcquis ? 28 : 0 } }, showAcquis && restants.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "\xC0 avoir \xB7 ", restants.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, restants.length === 0 && wFilter !== "acquis" && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "28px 20px", color: C.muted, fontSize: 13 } }, "\u2728 Wishlist vide !"), restants.map((w) => WishCard(w)))), showAcquis && acquis.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "Acquis \xB7 ", acquis.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, acquis.map((w) => WishCard(w)))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Ajouter \xE0 ma wishlist...", onAdd: (name) => upd((d) => d.wishlist.push({ id: newId(), name, price: "", cat: "Autre", priority: "moyenne", url: "", notes: "", done: false })) }));
+
+      return /* @__PURE__ */ React.createElement("div", null,
+        /* Modal d'ajout */
+        /* @__PURE__ */ React.createElement(WishModal, null),
+        /* Bouton Ajouter en haut */
+        /* @__PURE__ */ React.createElement("button", {
+          onClick: () => setWishModal({ name: "", price: "", cat: "Autre", priority: "moyenne", url: "", notes: "", reflexion: false }),
+          style: { width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: C.dark, border: "none", borderRadius: 12, padding: "12px 16px", color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 14 }
+        }, "\u2728 Ajouter \xE0 ma wishlist"),
+        /* Compteurs cliquables */
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" } },
+          /* @__PURE__ */ React.createElement("div", {
+            onClick: () => setWFilter(wFilter === "acquis" ? "Tout" : "acquis"),
+            style: { flex: 1, minWidth: 80, background: wFilter === "acquis" ? C.gold : "white", borderRadius: 12, border: `1.5px solid ${wFilter === "acquis" ? C.gold : C.border}`, padding: "10px 14px", textAlign: "center", cursor: "pointer", transition: "all 0.15s" }
+          },
+            /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: wFilter === "acquis" ? "white" : C.gold } }, countAcquis),
+            /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: wFilter === "acquis" ? "rgba(255,255,255,0.8)" : C.muted, marginTop: 1 } }, "acquis \u2713")
+          ),
+          /* @__PURE__ */ React.createElement("div", {
+            onClick: () => setWFilter(wFilter === "restant" ? "Tout" : "restant"),
+            style: { flex: 1, minWidth: 80, background: wFilter === "restant" ? C.terra : "white", borderRadius: 12, border: `1.5px solid ${wFilter === "restant" ? C.terra : C.border}`, padding: "10px 14px", textAlign: "center", cursor: "pointer", transition: "all 0.15s" }
+          },
+            /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: wFilter === "restant" ? "white" : C.terra } }, countRestants),
+            /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: wFilter === "restant" ? "rgba(255,255,255,0.8)" : C.muted, marginTop: 1 } }, "\xE0 avoir")
+          ),
+          /* @__PURE__ */ React.createElement("div", {
+            onClick: () => setWFilter(wFilter === "reflexion" ? "Tout" : "reflexion"),
+            style: { flex: 1, minWidth: 80, background: wFilter === "reflexion" ? C.sage : "white", borderRadius: 12, border: `1.5px solid ${wFilter === "reflexion" ? C.sage : C.border}`, padding: "10px 14px", textAlign: "center", cursor: "pointer", transition: "all 0.15s" }
+          },
+            /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: wFilter === "reflexion" ? "white" : C.sage } }, countReflexion),
+            /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: wFilter === "reflexion" ? "rgba(255,255,255,0.8)" : C.muted, marginTop: 1 } }, "\u{1F4AD} r\xE9flexion")
+          )
+        ),
+        /* Filtres catégories */
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 8 } }, WISH_CATS.map((c) => /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            key: c,
+            onClick: () => setWCat(c),
+            style: { flexShrink: 0, border: `1.5px solid ${wCat === c ? C.dark : C.border}`, background: wCat === c ? C.dark : "white", borderRadius: 20, padding: "5px 12px", fontSize: 11, fontWeight: 600, color: wCat === c ? "white" : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
+          },
+          c
+        ))),
+        /* Tri */
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap", alignItems: "center" } },
+          /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted } }, "Trier :"),
+          [["priorit\xE9", "\u{1F525}"], ["prix\u2191", "\u20AC\u2191"], ["prix\u2193", "\u20AC\u2193"], ["nom", "A\u2192Z"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
+            "button",
+            {
+              key: v,
+              onClick: () => setWSort(v),
+              style: { flexShrink: 0, border: `1.5px solid ${wSort === v ? C.terra : C.border}`, background: wSort === v ? "#FEF3ED" : "white", borderRadius: 20, padding: "4px 9px", fontSize: 11, fontWeight: 600, color: wSort === v ? C.terra : C.muted, cursor: "pointer", fontFamily: "inherit" }
+            },
+            l
+          ))
+        ),
+        /* @__PURE__ */ React.createElement(SearchBar, null),
+        /* Section À avoir */
+        showRestants && restants.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 20 } },
+          /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "\xC0 avoir \xB7 ", restants.length),
+          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, restants.map((w) => WishCard(w)))
+        ),
+        showRestants && restants.length === 0 && wFilter === "restant" && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "28px 20px", color: C.muted, fontSize: 13 } }, "\u2728 Rien dans la wishlist !"),
+        /* Section En réflexion */
+        showReflexion && enReflexion.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 20 } },
+          /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.sage, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "\u{1F4AD} En r\xE9flexion \xB7 ", enReflexion.length),
+          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, enReflexion.map((w) => WishCard(w)))
+        ),
+        /* Section Acquis */
+        showAcquis && acquis.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } },
+          /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "Acquis \xB7 ", acquis.length),
+          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, acquis.map((w) => WishCard(w)))
+        ),
+        showAcquis && acquis.length === 0 && wFilter === "acquis" && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "28px 20px", color: C.muted, fontSize: 13 } }, "\u{1F6CD}\uFE0F Aucun acquis pour l'instant.")
+      );
     })()), tab === "restaurants" && /* @__PURE__ */ React.createElement("div", null, (() => {
       const CUISINE_BASE = ["Japonais", "Italien", "Fran\xE7ais", "Tha\xEF", "Indien", "Mexicain", "Libanais", "Am\xE9ricain", "M\xE9diterran\xE9en", "Autre"];
       const customCuisines = [...new Set((data.restaurants || []).map((r) => r.cuisine).filter((c) => c && !CUISINE_BASE.includes(c)))];
@@ -1036,7 +1400,7 @@
           style: { width: 24, height: 24, borderRadius: "50%", border: r.status === "visit\xE9" ? "none" : `2px solid ${C.border}`, background: r.status === "visit\xE9" ? C.sage : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "white", flexShrink: 0, cursor: "pointer", transition: "all 0.2s" }
         },
         r.status === "visit\xE9" && "\u2713"
-      ), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: r.status === "visit\xE9" ? C.muted : C.dark, textDecoration: r.status === "visit\xE9" ? "line-through" : "none" } }, r.name), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginTop: 3, flexWrap: "wrap" } }, r.cuisine && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.muted, background: C.cream, borderRadius: 10, padding: "1px 7px" } }, r.cuisine), r.quartier && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.muted } }, "\u{1F4CD} ", r.quartier), r.status === "visit\xE9" && r.rating > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10 } }, "\u2605".repeat(r.rating) + "\u2606".repeat(5 - r.rating)))), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.muted } }, "\u203A")), expandedId === r.id && /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.cream}`, padding: "14px 18px", background: C.light }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
+      ), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: r.status === "visit\xE9" ? C.muted : C.dark } }, r.name), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginTop: 3, flexWrap: "wrap" } }, r.cuisine && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.muted, background: C.cream, borderRadius: 10, padding: "1px 7px" } }, r.cuisine), r.quartier && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.muted } }, "\u{1F4CD} ", r.quartier), r.status === "visit\xE9" && r.rating > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10 } }, "\u2605".repeat(r.rating) + "\u2606".repeat(5 - r.rating)))), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: C.muted } }, "\u203A")), expandedId === r.id && /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.cream}`, padding: "14px 18px", background: C.light }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
         "input",
         {
           value: r.quartier || "",
@@ -1102,7 +1466,44 @@
         },
         "Supprimer"
       )));
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 100, background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, padding: "10px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.sage } }, (data.restaurants || []).filter((r) => r.status === "visit\xE9").length), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, "visit\xE9s \u2713")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 100, background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, padding: "10px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.terra } }, (data.restaurants || []).filter((r) => r.status !== "visit\xE9").length), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, "\xE0 tester"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 8 } }, CUISINES_FILTER.map((c) => /* @__PURE__ */ React.createElement(
+      const nbVisites = (data.restaurants || []).filter((r) => r.status === "visit\xE9").length;
+      const nbAtester = (data.restaurants || []).filter((r) => r.status !== "visit\xE9").length;
+      const addResto = () => {
+        const name = newRestoName.trim();
+        if (!name) return;
+        upd((d) => {
+          if (!d.restaurants) d.restaurants = [];
+          d.restaurants.push({ id: newId(), name, quartier: newRestoQuar.trim(), cuisine: newRestoCuis.trim(), url: newRestoUrl.trim(), notes: newRestoNotes.trim(), rating: 0, status: newRestoStatus });
+        });
+        setRestoModal(false);
+        setNewRestoName(""); setNewRestoQuar(""); setNewRestoCuis(""); setNewRestoUrl(""); setNewRestoNotes(""); setNewRestoStatus("\xE0 tester");
+      };
+      const restoModalEl = restoModal ? /* @__PURE__ */ React.createElement("div", { onClick: () => setRestoModal(false), style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 500, display: "flex", alignItems: "flex-end", justifyContent: "center" } },
+        /* @__PURE__ */ React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { background: "white", borderRadius: "20px 20px 0 0", padding: "24px 20px 32px", width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto" } },
+          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 } },
+            /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 700, color: C.dark } }, "\u{1F37D}\uFE0F Nouveau restaurant"),
+            /* @__PURE__ */ React.createElement("button", { onClick: () => setRestoModal(false), style: { background: "none", border: "none", fontSize: 20, color: C.muted, cursor: "pointer", padding: 0 } }, "\u2715")
+          ),
+          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } },
+            /* @__PURE__ */ React.createElement("input", { value: newRestoName, onChange: (e) => setNewRestoName(e.target.value), autoFocus: true, placeholder: "Nom du restaurant *", style: { border: `1.5px solid ${C.border}`, background: C.cream, borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 14, color: C.dark, outline: "none", width: "100%" } }),
+            /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } },
+              /* @__PURE__ */ React.createElement("input", { value: newRestoQuar, onChange: (e) => setNewRestoQuar(e.target.value), placeholder: "\u{1F4CD} Quartier / ville", style: { flex: 1, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none" } }),
+              /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } },
+                /* @__PURE__ */ React.createElement("datalist", { id: "resto-modal-dl" }, ALL_CUISINES.map((c) => /* @__PURE__ */ React.createElement("option", { key: c, value: c }))),
+                /* @__PURE__ */ React.createElement("input", { list: "resto-modal-dl", value: newRestoCuis, onChange: (e) => setNewRestoCuis(e.target.value), placeholder: "Type de cuisine", style: { width: "100%", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none" } })
+              )
+            ),
+            /* @__PURE__ */ React.createElement("select", { value: newRestoStatus, onChange: (e) => setNewRestoStatus(e.target.value), style: { border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", cursor: "pointer", width: "100%" } },
+              /* @__PURE__ */ React.createElement("option", { value: "\xE0 tester" }, "\u{1F4CD} \xC0 tester"),
+              /* @__PURE__ */ React.createElement("option", { value: "visit\xE9" }, "\u2713 Visit\xE9")
+            ),
+            /* @__PURE__ */ React.createElement("input", { value: newRestoUrl, onChange: (e) => setNewRestoUrl(e.target.value), placeholder: "\u{1F517} Google Maps ou site", style: { border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", width: "100%" } }),
+            /* @__PURE__ */ React.createElement("textarea", { value: newRestoNotes, onChange: (e) => setNewRestoNotes(e.target.value), placeholder: "Notes, pourquoi tu veux y aller...", rows: 3, style: { border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", resize: "none", width: "100%", lineHeight: 1.6 } }),
+            /* @__PURE__ */ React.createElement("button", { onClick: addResto, disabled: !newRestoName.trim(), style: { background: newRestoName.trim() ? C.dark : C.border, border: "none", borderRadius: 12, padding: "12px", color: "white", fontSize: 14, fontWeight: 700, cursor: newRestoName.trim() ? "pointer" : "default", fontFamily: "inherit" } }, "Ajouter")
+          )
+        )
+      ) : null;
+      return /* @__PURE__ */ React.createElement("div", null, restoModalEl, /* @__PURE__ */ React.createElement("button", { onClick: () => { setNewRestoName(""); setRestoModal(true); }, style: { width: "100%", background: C.dark, border: "none", borderRadius: 12, padding: "12px 18px", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 16 } }, "\u2795 Nouveau restaurant"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { onClick: () => setRestoFilter(restoFilter === "visit\xE9" ? "Tout" : "visit\xE9"), style: { flex: 1, minWidth: 100, background: restoFilter === "visit\xE9" ? "#F0FDF4" : "white", borderRadius: 12, border: `1.5px solid ${restoFilter === "visit\xE9" ? "#BBF7D0" : C.border}`, padding: "10px 14px", textAlign: "center", cursor: "pointer", transition: "all 0.15s" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.sage } }, nbVisites), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, "visit\xE9s \u2713")), /* @__PURE__ */ React.createElement("div", { onClick: () => setRestoFilter(restoFilter === "\xE0 tester" ? "Tout" : "\xE0 tester"), style: { flex: 1, minWidth: 100, background: restoFilter === "\xE0 tester" ? "#FEF3ED" : "white", borderRadius: 12, border: `1.5px solid ${restoFilter === "\xE0 tester" ? "#FED7AA" : C.border}`, padding: "10px 14px", textAlign: "center", cursor: "pointer", transition: "all 0.15s" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, color: C.terra } }, nbAtester), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, "\xE0 tester"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 8 } }, CUISINES_FILTER.map((c) => /* @__PURE__ */ React.createElement(
         "button",
         {
           key: c,
@@ -1126,10 +1527,7 @@
           style: { flexShrink: 0, border: `1.5px solid ${restoSort === v ? C.terra : C.border}`, background: restoSort === v ? "#FEF3ED" : "white", borderRadius: 20, padding: "4px 9px", fontSize: 11, fontWeight: 600, color: restoSort === v ? C.terra : C.muted, cursor: "pointer", fontFamily: "inherit" }
         },
         l
-      ))), /* @__PURE__ */ React.createElement(SearchBar, null), showTester && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: atester.length > 0 && showVisites ? 28 : 0 } }, showVisites && atester.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "\u{1F4CD} \xC0 tester \xB7 ", atester.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, atester.length === 0 && restoFilter !== "visit\xE9" && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "28px 20px", color: C.muted, fontSize: 13 } }, "\u{1F37D}\uFE0F Aucun resto \xE0 tester !"), atester.map((r) => RestoCard(r)))), showVisites && visites.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "\u2713 Visit\xE9s \xB7 ", visites.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, visites.map((r) => RestoCard(r)))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Resto \xE0 tester...", onAdd: (name) => upd((d) => {
-        if (!d.restaurants) d.restaurants = [];
-        d.restaurants.push({ id: newId(), name, quartier: "", cuisine: "", url: "", notes: "", rating: 0, status: "\xE0 tester" });
-      }) }));
+      ))), /* @__PURE__ */ React.createElement(SearchBar, null), showTester && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: atester.length > 0 && showVisites ? 28 : 0 } }, showVisites && atester.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "\u{1F4CD} \xC0 tester \xB7 ", atester.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, atester.length === 0 && restoFilter !== "visit\xE9" && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "28px 20px", color: C.muted, fontSize: 13 } }, "\u{1F37D}\uFE0F Aucun resto \xE0 tester !"), atester.map((r) => RestoCard(r)))), showVisites && visites.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "\u2713 Visit\xE9s \xB7 ", visites.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, visites.map((r) => RestoCard(r)))));
     })()), tab === "objectifs" && /* @__PURE__ */ React.createElement("div", null, (() => {
       const GOAL_CATS = ["Perso", "Sant\xE9", "Pro", "Finances", "Relations", "Cr\xE9ativit\xE9", "Autre"];
       const CAT_COLORS = { Perso: "#FEF3ED", Sant\u00E9: "#F0FDF4", Pro: "#EFF6FF", Finances: "#FEF9EC", Relations: "#FDF4FF", Cr\u00E9ativit\u00E9: "#FFF7ED", Autre: C.cream };
