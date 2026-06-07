@@ -138,31 +138,33 @@
     ideas: []
   };
   const load = async () => {
-    try {
-      const res = await fetch(BIN_URL, { headers: HEADERS });
-      if (res.ok) {
-        const json = await res.json();
-        if (json && json.carnet) {
-          const d = __spreadValues(__spreadValues({}, DEFAULT_DATA), json.carnet);
-          if (d.cleaning) d.cleaning = d.cleaning.map((c) => __spreadProps(__spreadValues({}, c), { freq: (c.freq || "").toLowerCase() }));
-          try {
-            localStorage.setItem(STORE_KEY, JSON.stringify(d));
-          } catch (e) {
-          }
-          return d;
-        }
-      }
-    } catch (e) {
-    }
+    // Étape 1 : localStorage immédiat
+    let localData = null;
     try {
       const v = localStorage.getItem(STORE_KEY);
       if (v) {
         const d = __spreadValues(__spreadValues({}, DEFAULT_DATA), JSON.parse(v));
         if (d.cleaning) d.cleaning = d.cleaning.map((c) => __spreadProps(__spreadValues({}, c), { freq: (c.freq || "").toLowerCase() }));
-        return d;
+        localData = d;
       }
-    } catch (e) {
-    }
+    } catch (e) {}
+
+    // Étape 2 : cloud en background
+    try {
+      const res = await fetch(BIN_URL, { headers: HEADERS });
+      if (res.ok) {
+        const json = await res.json();
+        _binCache = json;
+        if (json && json.carnet) {
+          const d = __spreadValues(__spreadValues({}, DEFAULT_DATA), json.carnet);
+          if (d.cleaning) d.cleaning = d.cleaning.map((c) => __spreadProps(__spreadValues({}, c), { freq: (c.freq || "").toLowerCase() }));
+          try { localStorage.setItem(STORE_KEY, JSON.stringify(d)); } catch (e) {}
+          return d;
+        }
+      }
+    } catch (e) {}
+
+    if (localData) return localData;
     return DEFAULT_DATA;
   };
   const BIN_ID = "69b5db9cb7ec241ddc6ba14e";
@@ -171,6 +173,8 @@
   const HEADERS = { "Content-Type": "application/json", "X-Master-Key": BIN_KEY, "X-Bin-Meta": "false" };
   let _saveBinTimer = null;
   let _lastBinData = null;
+  let _binCache = null;
+  let _setSyncStatus = null;
   const save = async (data) => {
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify(data));
@@ -179,15 +183,23 @@
     _lastBinData = data;
     if (_saveBinTimer) clearTimeout(_saveBinTimer);
     _saveBinTimer = setTimeout(async () => {
+      if (_setSyncStatus) _setSyncStatus("syncing");
       try {
-        const res = await fetch(BIN_URL, { headers: HEADERS });
-        const current = res.ok ? await res.json() : {};
-        await fetch(BIN_URL, {
+        const current = _binCache || {};
+        const body = JSON.stringify(__spreadProps(__spreadValues({}, current), { carnet: _lastBinData }));
+        const r = await fetch(BIN_URL, {
           method: "PUT",
           headers: HEADERS,
-          body: JSON.stringify(__spreadProps(__spreadValues({}, current), { carnet: _lastBinData }))
+          body
         });
+        if (r.ok) {
+          _binCache = __spreadProps(__spreadValues({}, current), { carnet: _lastBinData });
+          if (_setSyncStatus) { _setSyncStatus("ok"); setTimeout(() => _setSyncStatus("idle"), 2500); }
+        } else {
+          if (_setSyncStatus) _setSyncStatus("error");
+        }
       } catch (e) {
+        if (_setSyncStatus) _setSyncStatus("error");
       }
     }, 2e3);
   };
@@ -313,6 +325,24 @@
     const [newCleanFreq, setNewCleanFreq] = useState("Mensuel");
     const [newCleanDays, setNewCleanDays] = useState(30);
     const [newDefiEmoji, setNewDefiEmoji] = useState("\u2B50");
+    const [showGoalModal, setShowGoalModal] = useState(false);
+    const [newGoalName, setNewGoalName] = useState("");
+    const [newGoalCat, setNewGoalCat] = useState("");
+    const [newGoalDeadline, setNewGoalDeadline] = useState("");
+    const [newGoalNotes, setNewGoalNotes] = useState("");
+    const [showDefiModal, setShowDefiModal] = useState(false);
+    const [showCitModal, setShowCitModal] = useState(false);
+    const [showActiviteModal, setShowActiviteModal] = useState(false);
+    const [newActivName, setNewActivName] = useState("");
+    const [newActivType, setNewActivType] = useState("autre");
+    const [newActivPrio, setNewActivPrio] = useState("mod\xE9r\xE9e");
+    const [newActivLieu, setNewActivLieu] = useState("");
+    const [newActivAvec, setNewActivAvec] = useState("");
+    const [newActivDate, setNewActivDate] = useState("");
+    const [newActivUrl, setNewActivUrl] = useState("");
+    const [newActivNotes, setNewActivNotes] = useState("");
+    const [showCleanModal, setShowCleanModal] = useState(false);
+    const [newCleanNotes, setNewCleanNotes] = useState("");
     const [restoCuisine, setRestoCuisine] = useState("Tout");
     const [restoSort, setRestoSort] = useState("ajout");
     const [restoFilter, setRestoFilter] = useState("Tout");
@@ -347,6 +377,13 @@
     const [newBStatus, setNewBStatus] = useState("\xE0 lire");
     const [newBType, setNewBType] = useState("");
     const [newBNotes, setNewBNotes] = useState("");
+    const [showMovieModal, setShowMovieModal] = useState(false);
+    const [newMName, setNewMName] = useState("");
+    const [newMCat, setNewMCat] = useState("film");
+    const [newMStatus, setNewMStatus] = useState("\xE0 voir");
+    const [newMGenre, setNewMGenre] = useState("");
+    const [newMWith, setNewMWith] = useState("");
+    const [newMNotes, setNewMNotes] = useState("");
     const [newPodType, setNewPodType] = useState("");
     const [newPodTypeEmoji, setNewPodTypeEmoji] = useState("");
     const [podModal, setPodModal] = useState(null);
@@ -364,23 +401,28 @@
     useEffect(() => {
       if (data) save(data);
     }, [data]);
-    const [syncStatus, setSyncStatus] = useState(null);
+    const [syncStatus, setSyncStatus] = useState("idle");
+    useEffect(() => { _setSyncStatus = setSyncStatus; return () => { _setSyncStatus = null; }; }, [setSyncStatus]);
     const forceSyncUp = async () => {
       if (!data) return;
       setSyncStatus("syncing");
       try {
-        const res = await fetch(BIN_URL, { headers: HEADERS });
-        const current = res.ok ? await res.json() : {};
+        const current = _binCache || {};
         const r = await fetch(BIN_URL, {
           method: "PUT",
           headers: HEADERS,
           body: JSON.stringify(__spreadProps(__spreadValues({}, current), { carnet: data }))
         });
-        setSyncStatus(r.ok ? "ok" : "error");
+        if (r.ok) {
+          _binCache = __spreadProps(__spreadValues({}, current), { carnet: data });
+          setSyncStatus("ok");
+        } else {
+          setSyncStatus("error");
+        }
       } catch (e) {
         setSyncStatus("error");
       }
-      setTimeout(() => setSyncStatus(null), 3e3);
+      setTimeout(() => setSyncStatus("idle"), 3e3);
     };
     const upd = (fn) => setData((prev) => {
       const next = JSON.parse(JSON.stringify(prev));
@@ -1014,74 +1056,194 @@
         { id: "film", label: "\u{1F3AC} Films" },
         { id: "s\xE9rie", label: "\u{1F4FA} S\xE9ries" }
       ];
+      const WITH_WHO_OPTS = [
+        { id: "", label: "Indiff\xE9rent" },
+        { id: "deux", label: "\u{1F46B} \xC0 deux" },
+        { id: "seul", label: "\u{1F9D8} Seul(e)" }
+      ];
       const filtered = data.movies.filter(
         (m) => m.name && (mediaCat === "Tout" || m.cat === mediaCat) && (movieFilter === "tous" || m.status === movieFilter) && (filterText(m.name) || filterText(m.genre || ""))
       );
-      const aVoir = data.movies.filter((m) => m.name && m.status === "\xE0 voir").length;
-      const enCours = data.movies.filter((m) => m.name && m.status === "en cours").length;
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 10 } }, cats.map((c) => /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          key: c.id,
-          onClick: () => setMediaCat(c.id),
-          style: { padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${mediaCat === c.id ? C.dark : C.border}`, background: mediaCat === c.id ? C.dark : "white", color: mediaCat === c.id ? "white" : C.muted, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }
+      const nAVoir = data.movies.filter((m) => m.name && m.status === "\xE0 voir").length;
+      const nEnCours = data.movies.filter((m) => m.name && m.status === "en cours").length;
+      const nVu = data.movies.filter((m) => m.name && m.status === "vu").length;
+      const nDeux = data.movies.filter((m) => m.name && m.withWho === "deux").length;
+      const nSeul = data.movies.filter((m) => m.name && m.withWho === "seul").length;
+      const openMovieModal = () => {
+        setNewMName(""); setNewMCat(mediaCat === "s\xE9rie" ? "s\xE9rie" : "film"); setNewMStatus("\xE0 voir"); setNewMGenre(""); setNewMWith(""); setNewMNotes("");
+        setShowMovieModal(true);
+      };
+      const addMovie = () => {
+        const trimmed = newMName.trim();
+        if (!trimmed) return;
+        upd((d) => d.movies.push({ id: newId(), name: trimmed, cat: newMCat, genre: newMGenre.trim(), withWho: newMWith, status: newMStatus, notes: newMNotes.trim(), rating: 0 }));
+        setShowMovieModal(false);
+      };
+      const counterStyle = (active) => ({ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, background: active ? C.dark : "white", border: `1.5px solid ${active ? C.dark : C.border}`, borderRadius: 14, padding: "10px 6px", cursor: "pointer", transition: "all 0.15s" });
+      return /* @__PURE__ */ React.createElement("div", null,
+        /* @__PURE__ */ React.createElement("button", {
+          onClick: openMovieModal,
+          style: { width: "100%", marginBottom: 14, padding: "11px 16px", background: C.dark, color: "white", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }
+        }, "\u{1F3AC} + Ajouter un film / s\xE9rie"),
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 14 } },
+          /* @__PURE__ */ React.createElement("div", { style: counterStyle(movieFilter === "\xE0 voir"), onClick: () => setMovieFilter(movieFilter === "\xE0 voir" ? "tous" : "\xE0 voir") },
+            /* @__PURE__ */ React.createElement("span", { style: { fontSize: 20, fontWeight: 700, color: movieFilter === "\xE0 voir" ? "white" : C.dark, lineHeight: 1.1 } }, nAVoir),
+            /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: movieFilter === "\xE0 voir" ? "rgba(255,255,255,0.7)" : C.muted, marginTop: 2 } }, "\xC0 voir")
+          ),
+          /* @__PURE__ */ React.createElement("div", { style: counterStyle(movieFilter === "en cours"), onClick: () => setMovieFilter(movieFilter === "en cours" ? "tous" : "en cours") },
+            /* @__PURE__ */ React.createElement("span", { style: { fontSize: 20, fontWeight: 700, color: movieFilter === "en cours" ? "white" : C.dark, lineHeight: 1.1 } }, nEnCours),
+            /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: movieFilter === "en cours" ? "rgba(255,255,255,0.7)" : C.muted, marginTop: 2 } }, "En cours")
+          ),
+          /* @__PURE__ */ React.createElement("div", { style: counterStyle(movieFilter === "vu"), onClick: () => setMovieFilter(movieFilter === "vu" ? "tous" : "vu") },
+            /* @__PURE__ */ React.createElement("span", { style: { fontSize: 20, fontWeight: 700, color: movieFilter === "vu" ? "white" : C.dark, lineHeight: 1.1 } }, nVu),
+            /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: movieFilter === "vu" ? "rgba(255,255,255,0.7)" : C.muted, marginTop: 2 } }, "Vus")
+          ),
+          /* @__PURE__ */ React.createElement("div", { style: counterStyle(false), onClick: () => {} },
+            /* @__PURE__ */ React.createElement("span", { style: { fontSize: 20, fontWeight: 700, color: C.dark, lineHeight: 1.1 } }, nDeux),
+            /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.muted, marginTop: 2 } }, "\xC0 deux")
+          ),
+          /* @__PURE__ */ React.createElement("div", { style: counterStyle(false), onClick: () => {} },
+            /* @__PURE__ */ React.createElement("span", { style: { fontSize: 20, fontWeight: 700, color: C.dark, lineHeight: 1.1 } }, nSeul),
+            /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, color: C.muted, marginTop: 2 } }, "Seul(e)")
+          )
+        ),
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 10 } }, cats.map((c) => /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            key: c.id,
+            onClick: () => setMediaCat(c.id),
+            style: { padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${mediaCat === c.id ? C.dark : C.border}`, background: mediaCat === c.id ? C.dark : "white", color: mediaCat === c.id ? "white" : C.muted, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }
+          },
+          c.label
+        ))),
+        /* @__PURE__ */ React.createElement(SearchBar, null),
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, filtered.map((m) => /* @__PURE__ */ React.createElement(CardShell, { key: m.id, active: expandedId === m.id, onClick: () => toggle(m.id) }, /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 44, height: 44, borderRadius: 12, background: m.status === "vu" ? C.sage + "22" : m.status === "en cours" ? C.terra + "22" : C.warm, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 } }, m.cat === "s\xE9rie" ? "\u{1F4FA}" : "\u{1F3AC}"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: C.dark } }, m.name), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap", alignItems: "center" } }, m.genre && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, background: C.cream, borderRadius: 10, padding: "1px 7px", color: C.muted } }, m.genre), m.withWho === "deux" && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, background: "#FEF3ED", borderRadius: 10, padding: "1px 7px", color: C.terra } }, "\u{1F46B} \xE0 deux"), m.withWho === "seul" && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, background: "#F0FDF4", borderRadius: 10, padding: "1px 7px", color: C.sage } }, "\u{1F9D8} seul(e)"), m.status === "vu" && m.rating > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12 } }, "\u2605".repeat(m.rating) + "\u2606".repeat(5 - m.rating)))), /* @__PURE__ */ React.createElement(StatusPill, { value: m.status, options: MEDIA_STATUS, onChange: (v) => upd((d) => {
+          d.movies.find((x) => x.id === m.id).status = v;
+        }) })), expandedId === m.id && /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.cream}`, padding: "14px 18px", background: C.light }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap", alignItems: "center" } }, /* @__PURE__ */ React.createElement(
+          "select",
+          {
+            value: m.cat || "film",
+            onChange: (e) => upd((d) => {
+              d.movies.find((x) => x.id === m.id).cat = e.target.value;
+            }),
+            style: { border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "7px 10px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none", cursor: "pointer" }
+          },
+          /* @__PURE__ */ React.createElement("option", { value: "film" }, "\u{1F3AC} Film"),
+          /* @__PURE__ */ React.createElement("option", { value: "s\xE9rie" }, "\u{1F4FA} S\xE9rie")
+        ), /* @__PURE__ */ React.createElement(
+          "select",
+          {
+            value: m.withWho || "",
+            onChange: (e) => upd((d) => { d.movies.find((x) => x.id === m.id).withWho = e.target.value; }),
+            style: { border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "7px 10px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none", cursor: "pointer" }
+          },
+          /* @__PURE__ */ React.createElement("option", { value: "" }, "Indiff\xE9rent"),
+          /* @__PURE__ */ React.createElement("option", { value: "deux" }, "\u{1F46B} \xC0 deux"),
+          /* @__PURE__ */ React.createElement("option", { value: "seul" }, "\u{1F9D8} Seul(e)")
+        )), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement("datalist", { id: "movie-genres-dl" }, MOVIE_GENRES.map((g) => /* @__PURE__ */ React.createElement("option", { key: g, value: g }))), /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            list: "movie-genres-dl",
+            value: m.genre || "",
+            onChange: (e) => upd((d) => {
+              d.movies.find((x) => x.id === m.id).genre = e.target.value;
+            }),
+            placeholder: "Genre : Drame, Com\xE9die, Thriller...",
+            style: { width: "100%", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none" }
+          }
+        )), /* @__PURE__ */ React.createElement(
+          "textarea",
+          {
+            value: m.notes || "",
+            onChange: (e) => upd((d) => {
+              d.movies.find((x) => x.id === m.id).notes = e.target.value;
+            }),
+            placeholder: m.status === "vu" ? "Ma critique, ce qui m'a marqu\xE9, \xE0 revoir ?" : "Note rapide, pourquoi \xE7a m'int\xE9resse...",
+            style: { width: "100%", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, resize: "none", outline: "none", minHeight: m.status === "vu" ? 90 : 50, lineHeight: 1.6, marginBottom: m.status === "vu" ? 8 : 0 }
+          }
+        ), m.status === "vu" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted } }, "Note :"), /* @__PURE__ */ React.createElement(Stars, { value: m.rating || 0, onChange: (v) => upd((d) => {
+          d.movies.find((x) => x.id === m.id).rating = v;
+        }) })), /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => upd((d) => {
+              d.movies = d.movies.filter((x) => x.id !== m.id);
+              setExpId(null);
+            }),
+            style: { marginTop: 2, fontSize: 11, color: C.terra, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }
+          },
+          "Supprimer"
+        ))))),
+        showMovieModal && /* @__PURE__ */ React.createElement("div", {
+          style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center" },
+          onClick: () => setShowMovieModal(false)
+        }, /* @__PURE__ */ React.createElement("div", {
+          style: { background: "white", borderRadius: "20px 20px 0 0", padding: "24px 20px 36px", width: "100%", maxWidth: 480 },
+          onClick: (e) => e.stopPropagation()
         },
-        c.label
-      )), /* @__PURE__ */ React.createElement("div", { style: { marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" } }, aVoir > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted } }, aVoir, " \xE0 voir"), enCours > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.terra, fontWeight: 600 } }, enCours, " en cours"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" } }, [["tous", "Tous"], ["\xE0 voir", "\u{1F440} \xC0 voir"], ["en cours", "\u25B6\uFE0F En cours"], ["vu", "\u2713 Vus"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          key: v,
-          onClick: () => setMovieFilter(v),
-          style: { flexShrink: 0, border: `1.5px solid ${movieFilter === v ? C.terra : C.border}`, background: movieFilter === v ? "#FEF3ED" : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: movieFilter === v ? C.terra : C.muted, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }
-        },
-        l
-      ))), /* @__PURE__ */ React.createElement(SearchBar, null), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, filtered.map((m) => /* @__PURE__ */ React.createElement(CardShell, { key: m.id, active: expandedId === m.id, onClick: () => toggle(m.id) }, /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { width: 44, height: 44, borderRadius: 12, background: m.status === "vu" ? C.sage + "22" : m.status === "en cours" ? C.terra + "22" : C.warm, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 } }, m.cat === "s\xE9rie" ? "\u{1F4FA}" : "\u{1F3AC}"), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: C.dark } }, m.name), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 4, marginTop: 3, flexWrap: "wrap", alignItems: "center" } }, m.genre && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, background: C.cream, borderRadius: 10, padding: "1px 7px", color: C.muted } }, m.genre), m.status === "vu" && m.rating > 0 && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12 } }, "\u2605".repeat(m.rating) + "\u2606".repeat(5 - m.rating)))), /* @__PURE__ */ React.createElement(StatusPill, { value: m.status, options: MEDIA_STATUS, onChange: (v) => upd((d) => {
-        d.movies.find((x) => x.id === m.id).status = v;
-      }) })), expandedId === m.id && /* @__PURE__ */ React.createElement("div", { style: { borderTop: `1px solid ${C.cream}`, padding: "14px 18px", background: C.light }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap", alignItems: "center" } }, /* @__PURE__ */ React.createElement(
-        "select",
-        {
-          value: m.cat || "film",
-          onChange: (e) => upd((d) => {
-            d.movies.find((x) => x.id === m.id).cat = e.target.value;
+          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 } },
+            /* @__PURE__ */ React.createElement("span", { style: { fontSize: 16, fontWeight: 700, color: C.dark } }, "\u{1F3AC} Nouveau film / s\xE9rie"),
+            /* @__PURE__ */ React.createElement("button", { onClick: () => setShowMovieModal(false), style: { background: "none", border: "none", fontSize: 22, cursor: "pointer", color: C.muted, lineHeight: 1 } }, "\u00D7")
+          ),
+          /* @__PURE__ */ React.createElement("input", {
+            autoFocus: true,
+            value: newMName,
+            onChange: (e) => setNewMName(e.target.value),
+            onKeyDown: (e) => e.key === "Enter" && addMovie(),
+            placeholder: "Titre...",
+            style: { width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 14, color: C.dark, outline: "none", marginBottom: 10 }
           }),
-          style: { border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "7px 10px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none", cursor: "pointer" }
-        },
-        /* @__PURE__ */ React.createElement("option", { value: "film" }, "\u{1F3AC} Film"),
-        /* @__PURE__ */ React.createElement("option", { value: "s\xE9rie" }, "\u{1F4FA} S\xE9rie")
-      )), /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 10 } }, /* @__PURE__ */ React.createElement("datalist", { id: "movie-genres-dl" }, MOVIE_GENRES.map((g) => /* @__PURE__ */ React.createElement("option", { key: g, value: g }))), /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          list: "movie-genres-dl",
-          value: m.genre || "",
-          onChange: (e) => upd((d) => {
-            d.movies.find((x) => x.id === m.id).genre = e.target.value;
+          /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 10 } },
+            /* @__PURE__ */ React.createElement("select", {
+              value: newMCat,
+              onChange: (e) => setNewMCat(e.target.value),
+              style: { flex: 1, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "9px 10px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none" }
+            },
+              /* @__PURE__ */ React.createElement("option", { value: "film" }, "\u{1F3AC} Film"),
+              /* @__PURE__ */ React.createElement("option", { value: "s\xE9rie" }, "\u{1F4FA} S\xE9rie")
+            ),
+            /* @__PURE__ */ React.createElement("select", {
+              value: newMStatus,
+              onChange: (e) => setNewMStatus(e.target.value),
+              style: { flex: 1, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "9px 10px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none" }
+            },
+              /* @__PURE__ */ React.createElement("option", { value: "\xE0 voir" }, "\u{1F440} \xC0 voir"),
+              /* @__PURE__ */ React.createElement("option", { value: "en cours" }, "\u25B6\uFE0F En cours"),
+              /* @__PURE__ */ React.createElement("option", { value: "vu" }, "\u2713 Vu")
+            )
+          ),
+          /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 10 } },
+            /* @__PURE__ */ React.createElement("datalist", { id: "movie-genres-dl-modal" }, MOVIE_GENRES.map((g) => /* @__PURE__ */ React.createElement("option", { key: g, value: g }))),
+            /* @__PURE__ */ React.createElement("input", {
+              list: "movie-genres-dl-modal",
+              value: newMGenre,
+              onChange: (e) => setNewMGenre(e.target.value),
+              placeholder: "Genre : Drame, Com\xE9die, Thriller...",
+              style: { width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none" }
+            })
+          ),
+          /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 10 } },
+            /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.muted, marginBottom: 6, fontWeight: 600 } }, "Regarder..."),
+            /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } },
+              [["", "Indiff\xE9rent"], ["deux", "\u{1F46B} \xC0 deux"], ["seul", "\u{1F9D8} Seul(e)"]].map(([v, l]) => /* @__PURE__ */ React.createElement("button", {
+                key: v,
+                onClick: () => setNewMWith(v),
+                style: { flex: 1, padding: "8px 6px", borderRadius: 10, border: `1.5px solid ${newMWith === v ? C.terra : C.border}`, background: newMWith === v ? "#FEF3ED" : "white", color: newMWith === v ? C.terra : C.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }
+              }, l))
+            )
+          ),
+          /* @__PURE__ */ React.createElement("textarea", {
+            value: newMNotes,
+            onChange: (e) => setNewMNotes(e.target.value),
+            placeholder: "Note rapide, pourquoi \xE7a m'int\xE9resse... (optionnel)",
+            style: { width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, resize: "none", outline: "none", minHeight: 60, lineHeight: 1.6, marginBottom: 14 }
           }),
-          placeholder: "Genre : Drame, Com\xE9die, Thriller...",
-          style: { width: "100%", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none" }
-        }
-      )), /* @__PURE__ */ React.createElement(
-        "textarea",
-        {
-          value: m.notes || "",
-          onChange: (e) => upd((d) => {
-            d.movies.find((x) => x.id === m.id).notes = e.target.value;
-          }),
-          placeholder: m.status === "vu" ? "Ma critique, ce qui m'a marqu\xE9, \xE0 revoir ?" : "Note rapide, pourquoi \xE7a m'int\xE9resse...",
-          style: { width: "100%", border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, resize: "none", outline: "none", minHeight: m.status === "vu" ? 90 : 50, lineHeight: 1.6, marginBottom: m.status === "vu" ? 8 : 0 }
-        }
-      ), m.status === "vu" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted } }, "Note :"), /* @__PURE__ */ React.createElement(Stars, { value: m.rating || 0, onChange: (v) => upd((d) => {
-        d.movies.find((x) => x.id === m.id).rating = v;
-      }) })), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: () => upd((d) => {
-            d.movies = d.movies.filter((x) => x.id !== m.id);
-            setExpId(null);
-          }),
-          style: { marginTop: 2, fontSize: 11, color: C.terra, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }
-        },
-        "Supprimer"
-      ))))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Nouveau film ou s\xE9rie...", onAdd: (name) => upd((d) => d.movies.push({ id: newId(), name, cat: mediaCat === "s\xE9rie" ? "s\xE9rie" : "film", genre: "", status: "\xE0 voir", notes: "", rating: 0 })) }));
+          /* @__PURE__ */ React.createElement("button", {
+            onClick: addMovie,
+            style: { width: "100%", padding: "12px", background: newMName.trim() ? C.dark : C.border, color: "white", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: newMName.trim() ? "pointer" : "default", fontFamily: "inherit", transition: "background 0.15s" }
+          }, "Ajouter")
+        ))
+      );
     })()), tab === "wishlist" && /* @__PURE__ */ React.createElement("div", null, (() => {
       const WISH_CATS = ["Tout", "V\xEAtements", "Maison", "Beaut\xE9", "Tech", "Exp\xE9riences", "Autre"];
       const PRIORITY = [{ v: "haute", label: "\u{1F525} Indispensable" }, { v: "moyenne", label: "\u2728 Envie" }, { v: "basse", label: "\u{1F4AD} Un jour" }];
@@ -1623,7 +1785,7 @@
         },
         "Supprimer"
       )));
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 14, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted, flexShrink: 0 } }, "Trier :"), [["\xE9ch\xE9ance", "\u{1F4C5} \xC9ch\xE9ance"], ["cat", "Cat\xE9gorie"], ["nom", "A\u2192Z"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
+      const addGoalModal = () => { const trimmed = newGoalName.trim(); if (!trimmed) return; upd((d) => d.goals.push({ id: newId(), name: trimmed, done: false, doneAt: null, cat: newGoalCat, deadline: newGoalDeadline, notes: newGoalNotes.trim() })); setShowGoalModal(false); setNewGoalName(""); setNewGoalCat(""); setNewGoalDeadline(""); setNewGoalNotes(""); }; return /* @__PURE__ */ React.createElement("div", null, showGoalModal && /* @__PURE__ */ React.createElement("div", { onClick: () => setShowGoalModal(false), style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 500, display: "flex", alignItems: "flex-end", justifyContent: "center" } }, /* @__PURE__ */ React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { background: "white", borderRadius: "20px 20px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: 520, display: "flex", flexDirection: "column", gap: 10, maxHeight: "88vh", overflowY: "auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 700, color: C.dark } }, "\u{1F3AF} Nouvel objectif"), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowGoalModal(false), style: { background: "none", border: "none", fontSize: 20, color: C.muted, cursor: "pointer", padding: 0 } }, "\u2715")), /* @__PURE__ */ React.createElement("input", { value: newGoalName, onChange: (e) => setNewGoalName(e.target.value), autoFocus: true, placeholder: "Nom de l\u2019objectif *", style: { border: `1.5px solid ${C.border}`, background: C.cream, borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 14, color: C.dark, outline: "none", width: "100%" } }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, GOAL_CATS.map((c) => /* @__PURE__ */ React.createElement("button", { key: c, onClick: () => setNewGoalCat(newGoalCat === c ? "" : c), style: { padding: "5px 12px", border: `1.5px solid ${newGoalCat === c ? CAT_TEXT[c] || C.muted : C.border}`, borderRadius: 16, background: newGoalCat === c ? CAT_COLORS[c] || C.cream : "white", color: newGoalCat === c ? CAT_TEXT[c] || C.muted : C.muted, fontSize: 11, cursor: "pointer", fontFamily: "inherit", fontWeight: newGoalCat === c ? 700 : 400 } }, c))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted, flexShrink: 0 } }, "\u{1F4C5} \xC9ch\xE9ance :"), /* @__PURE__ */ React.createElement("input", { type: "date", value: newGoalDeadline, onChange: (e) => setNewGoalDeadline(e.target.value), style: { flex: 1, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none" } })), /* @__PURE__ */ React.createElement("textarea", { value: newGoalNotes, onChange: (e) => setNewGoalNotes(e.target.value), placeholder: "Pourquoi cet objectif ? \xC9tapes...", rows: 3, style: { border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", resize: "none", width: "100%", lineHeight: 1.6 } }), /* @__PURE__ */ React.createElement("button", { onClick: addGoalModal, disabled: !newGoalName.trim(), style: { background: newGoalName.trim() ? C.dark : C.border, border: "none", borderRadius: 12, padding: "12px", color: "white", fontSize: 14, fontWeight: 700, cursor: newGoalName.trim() ? "pointer" : "default", fontFamily: "inherit" } }, "Ajouter l\u2019objectif"))), /* @__PURE__ */ React.createElement("button", { onClick: () => { setNewGoalName(""); setNewGoalCat(""); setNewGoalDeadline(""); setNewGoalNotes(""); setShowGoalModal(true); }, style: { width: "100%", background: C.dark, border: "none", borderRadius: 12, padding: "12px 18px", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 16 } }, "\u2795 Nouvel objectif"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 14, alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11, color: C.muted, flexShrink: 0 } }, "Trier :"), [["\xE9ch\xE9ance", "\u{1F4C5} \xC9ch\xE9ance"], ["cat", "Cat\xE9gorie"], ["nom", "A\u2192Z"]].map(([v, l]) => /* @__PURE__ */ React.createElement(
         "button",
         {
           key: v,
@@ -1631,7 +1793,7 @@
           style: { flexShrink: 0, border: `1.5px solid ${goalSort === v ? C.sage : C.border}`, background: goalSort === v ? "#F0FDF4" : "white", borderRadius: 20, padding: "4px 10px", fontSize: 11, fontWeight: 600, color: goalSort === v ? C.sage : C.muted, cursor: "pointer", fontFamily: "inherit" }
         },
         l
-      ))), /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 14, padding: "16px 20px", border: `1px solid ${C.border}`, marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 } }, /* @__PURE__ */ React.createElement("span", { style: { fontWeight: 600 } }, "Progression \xB7 ", done, "/", total), /* @__PURE__ */ React.createElement("span", { style: { color: C.sage, fontWeight: 700 } }, pct, "%")), /* @__PURE__ */ React.createElement("div", { style: { height: 6, background: C.cream, borderRadius: 3, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { height: "100%", background: `linear-gradient(90deg,${C.sage},${C.gold})`, borderRadius: 3, width: `${pct}%`, transition: "width 0.5s" } })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.muted, marginTop: 8, fontStyle: "italic" } }, pct === 100 ? "\u{1F389} Tous les objectifs accomplis !" : pct >= 50 ? "Tu es \xE0 mi-chemin \u2728" : "Continue, chaque pas compte \u{1F331}")), /* @__PURE__ */ React.createElement(SearchBar, null), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8, marginBottom: accomplished.length > 0 ? 24 : 0 } }, active.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "28px 20px", color: C.muted, fontSize: 13 } }, "\u{1F3AF} Ajoute ton premier objectif"), active.map((g) => GoalCard(g))), accomplished.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "Accomplis \xB7 ", accomplished.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, accomplished.map((g) => GoalCard(g)))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Nouvel objectif...", onAdd: (name) => upd((d) => d.goals.push({ id: newId(), name, done: false, doneAt: null, cat: "", deadline: "", notes: "" })) }));
+      ))), /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 14, padding: "16px 20px", border: `1px solid ${C.border}`, marginBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 } }, /* @__PURE__ */ React.createElement("span", { style: { fontWeight: 600 } }, "Progression \xB7 ", done, "/", total), /* @__PURE__ */ React.createElement("span", { style: { color: C.sage, fontWeight: 700 } }, pct, "%")), /* @__PURE__ */ React.createElement("div", { style: { height: 6, background: C.cream, borderRadius: 3, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { height: "100%", background: `linear-gradient(90deg,${C.sage},${C.gold})`, borderRadius: 3, width: `${pct}%`, transition: "width 0.5s" } })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.muted, marginTop: 8, fontStyle: "italic" } }, pct === 100 ? "\u{1F389} Tous les objectifs accomplis !" : pct >= 50 ? "Tu es \xE0 mi-chemin \u2728" : "Continue, chaque pas compte \u{1F331}")), /* @__PURE__ */ React.createElement(SearchBar, null), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8, marginBottom: accomplished.length > 0 ? 24 : 0 } }, active.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "28px 20px", color: C.muted, fontSize: 13 } }, "\u{1F3AF} Ajoute ton premier objectif"), active.map((g) => GoalCard(g))), accomplished.length > 0 && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "Accomplis \xB7 ", accomplished.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, accomplished.map((g) => GoalCard(g)))));
     })()), tab === "activites" && /* @__PURE__ */ React.createElement("div", null, (() => {
       const TYPES_BASE = [
         { key: "nature", label: "\u{1F33F} Nature", short: "\u{1F33F}" },
@@ -1833,7 +1995,7 @@
           "Supprimer"
         )));
       };
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, padding: "10px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 20, fontWeight: 700, color: C.terra } }, (data.activites || []).filter((a) => a.status !== "fait").length), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, "\xE0 faire")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, padding: "10px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 20, fontWeight: 700, color: C.gold } }, (data.activites || []).filter((a) => a.status !== "fait" && a.priorite === "forte").length), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, "\u2B50 envies fortes")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, padding: "10px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 20, fontWeight: 700, color: C.sage } }, (data.activites || []).filter((a) => a.status === "fait").length), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, "faites \u2713"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 10 } }, [{ key: "Tout", label: "Tout" }, ...TYPES].map((t) => /* @__PURE__ */ React.createElement(
+      const addActivModal = () => { if (!newActivName.trim()) return; upd((d) => { if (!d.activites) d.activites = []; d.activites.push({ id: newId(), name: newActivName.trim(), type: newActivType, priorite: newActivPrio, lieu: newActivLieu.trim(), avec: newActivAvec.trim(), date: newActivDate, prix: "", url: newActivUrl.trim(), notes: newActivNotes.trim(), rating: 0, status: "\xE0 faire" }); }); setShowActiviteModal(false); setNewActivName(""); setNewActivType("autre"); setNewActivPrio("mod\xE9r\xE9e"); setNewActivLieu(""); setNewActivAvec(""); setNewActivDate(""); setNewActivUrl(""); setNewActivNotes(""); }; return /* @__PURE__ */ React.createElement("div", null, showActiviteModal && /* @__PURE__ */ React.createElement("div", { onClick: () => setShowActiviteModal(false), style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 500, display: "flex", alignItems: "flex-end", justifyContent: "center" } }, /* @__PURE__ */ React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { background: "white", borderRadius: "20px 20px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: 520, display: "flex", flexDirection: "column", gap: 10, maxHeight: "88vh", overflowY: "auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 700, color: C.dark } }, "\u{1F5FA}\uFE0F Nouvelle activit\xE9"), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowActiviteModal(false), style: { background: "none", border: "none", fontSize: 20, color: C.muted, cursor: "pointer", padding: 0 } }, "\u2715")), /* @__PURE__ */ React.createElement("input", { value: newActivName, onChange: (e) => setNewActivName(e.target.value), autoFocus: true, placeholder: "Nom de l\u2019activit\xE9 *", style: { border: `1.5px solid ${C.border}`, background: C.cream, borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 14, color: C.dark, outline: "none", width: "100%" } }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, TYPES.map((t) => /* @__PURE__ */ React.createElement("button", { key: t.key, onClick: () => setNewActivType(t.key), style: { padding: "5px 10px", border: `1.5px solid ${newActivType === t.key ? C.dark : C.border}`, borderRadius: 16, background: newActivType === t.key ? C.dark : "white", color: newActivType === t.key ? "white" : C.muted, fontSize: 11, cursor: "pointer", fontFamily: "inherit", fontWeight: newActivType === t.key ? 700 : 400 } }, t.label))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, [["forte", "\u2B50 Envie forte", C.gold, "#FEF9EC"], ["mod\xE9r\xE9e", "Envie mod\xE9r\xE9e", C.muted, C.cream]].map(([v, l, col, bg]) => /* @__PURE__ */ React.createElement("button", { key: v, onClick: () => setNewActivPrio(v), style: { flex: 1, padding: "8px 10px", borderRadius: 12, border: `1.5px solid ${newActivPrio === v ? col : C.border}`, background: newActivPrio === v ? bg : "white", fontSize: 12, fontWeight: newActivPrio === v ? 700 : 400, color: newActivPrio === v ? col : C.muted, cursor: "pointer", fontFamily: "inherit" } }, l))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("input", { value: newActivLieu, onChange: (e) => setNewActivLieu(e.target.value), placeholder: "\u{1F4CD} Lieu / ville", style: { flex: 1, minWidth: 120, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "9px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none" } }), /* @__PURE__ */ React.createElement("input", { value: newActivAvec, onChange: (e) => setNewActivAvec(e.target.value), placeholder: "\u{1F465} Avec qui", style: { flex: 1, minWidth: 120, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "9px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none" } })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("input", { type: "date", value: newActivDate, onChange: (e) => setNewActivDate(e.target.value), style: { flex: 1, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "9px 12px", fontFamily: "inherit", fontSize: 12, color: newActivDate ? C.dark : C.muted, outline: "none" } }), /* @__PURE__ */ React.createElement("input", { value: newActivUrl, onChange: (e) => setNewActivUrl(e.target.value), placeholder: "\u{1F517} Lien / site", style: { flex: 1, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "9px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none" } })), /* @__PURE__ */ React.createElement("textarea", { value: newActivNotes, onChange: (e) => setNewActivNotes(e.target.value), placeholder: "Notes, id\xE9es...", rows: 2, style: { border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "9px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", resize: "none", width: "100%", lineHeight: 1.5 } }), /* @__PURE__ */ React.createElement("button", { onClick: addActivModal, disabled: !newActivName.trim(), style: { background: newActivName.trim() ? C.dark : C.border, border: "none", borderRadius: 12, padding: "12px", color: "white", fontSize: 14, fontWeight: 700, cursor: newActivName.trim() ? "pointer" : "default", fontFamily: "inherit" } }, "Ajouter l\u2019activit\xE9"))), /* @__PURE__ */ React.createElement("button", { onClick: () => { setNewActivName(""); setNewActivType("autre"); setNewActivPrio("mod\xE9r\xE9e"); setNewActivLieu(""); setNewActivAvec(""); setNewActivDate(""); setNewActivUrl(""); setNewActivNotes(""); setShowActiviteModal(true); }, style: { width: "100%", background: C.dark, border: "none", borderRadius: 12, padding: "12px 18px", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 16 } }, "\u2795 Nouvelle activit\xE9"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, padding: "10px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 20, fontWeight: 700, color: C.terra } }, (data.activites || []).filter((a) => a.status !== "fait").length), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, "\xE0 faire")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, padding: "10px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 20, fontWeight: 700, color: C.gold } }, (data.activites || []).filter((a) => a.status !== "fait" && a.priorite === "forte").length), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, "\u2B50 envies fortes")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, background: "white", borderRadius: 12, border: `1.5px solid ${C.border}`, padding: "10px 14px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 20, fontWeight: 700, color: C.sage } }, (data.activites || []).filter((a) => a.status === "fait").length), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.muted, marginTop: 1 } }, "faites \u2713"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, overflowX: "auto", paddingBottom: 6, marginBottom: 10 } }, [{ key: "Tout", label: "Tout" }, ...TYPES].map((t) => /* @__PURE__ */ React.createElement(
         "button",
         {
           key: t.key,
@@ -1857,10 +2019,7 @@
           style: { border: `1.5px solid ${activiteSort === v ? C.terra : C.border}`, background: activiteSort === v ? "#FEF3ED" : "white", borderRadius: 20, padding: "4px 9px", fontSize: 11, fontWeight: 600, color: activiteSort === v ? C.terra : C.muted, cursor: "pointer", fontFamily: "inherit" }
         },
         l
-      ))), showAfaire && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: afaire.length > 0 && showFaites ? 28 : 0 } }, showFaites && afaire.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 } }, "\u{1F4CD} \xC0 faire \xB7 ", afaire.length), /* @__PURE__ */ React.createElement(SearchBar, null), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, afaire.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "32px 20px", color: C.muted, fontSize: 13, fontStyle: "italic" } }, "Rien \xE0 faire pour l'instant \u{1F5FA}\uFE0F"), afaire.map((a) => ActiviteCard(a)))), showFaites && faites.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 } }, "\u2713 Faites \xB7 ", faites.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, faites.map((a) => ActiviteCard(a)))), /* @__PURE__ */ React.createElement(AddRow, { placeholder: "+ Ajouter une activit\xE9...", onAdd: (name) => upd((d) => {
-        if (!d.activites) d.activites = [];
-        d.activites.push({ id: newId(), name, type: "autre", priorite: "mod\xE9r\xE9e", lieu: "", avec: "", date: "", prix: "", url: "", notes: "", rating: 0, status: "\xE0 faire" });
-      }) }));
+      ))), showAfaire && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: afaire.length > 0 && showFaites ? 28 : 0 } }, showFaites && afaire.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 } }, "\u{1F4CD} \xC0 faire \xB7 ", afaire.length), /* @__PURE__ */ React.createElement(SearchBar, null), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, afaire.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "32px 20px", color: C.muted, fontSize: 13, fontStyle: "italic" } }, "Rien \xE0 faire pour l'instant \u{1F5FA}\uFE0F"), afaire.map((a) => ActiviteCard(a)))), showFaites && faites.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 } }, "\u2713 Faites \xB7 ", faites.length), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, faites.map((a) => ActiviteCard(a)))));
     })()), tab === "nettoyage" && (() => {
       const today = /* @__PURE__ */ new Date();
       const diffDays = (lastDone) => {
@@ -1896,7 +2055,7 @@
         if (d < 30) return `il y a ${Math.floor(d / 7)} sem.`;
         return `il y a ${Math.floor(d / 30)} mois`;
       };
-      return /* @__PURE__ */ React.createElement("div", null, (() => {
+      const addCleanModal = () => { if (!newCleanName.trim()) return; upd((d) => d.cleaning.push({ id: newId(), name: newCleanName.trim(), freq: newCleanFreq, freqDays: newCleanDays, lastDone: null, notes: newCleanNotes.trim() })); setShowCleanModal(false); setNewCleanName(""); setNewCleanDays(30); setNewCleanFreq("mensuel"); setNewCleanNotes(""); }; const FREQS_MODAL = [{ id: "quotidien", label: "Quotidien" }, { id: "hebdo", label: "Hebdomadaire" }, { id: "mensuel", label: "Mensuel" }, { id: "trimestriel", label: "Trimestriel" }]; return /* @__PURE__ */ React.createElement("div", null, showCleanModal && /* @__PURE__ */ React.createElement("div", { onClick: () => setShowCleanModal(false), style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 500, display: "flex", alignItems: "flex-end", justifyContent: "center" } }, /* @__PURE__ */ React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { background: "white", borderRadius: "20px 20px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: 520, display: "flex", flexDirection: "column", gap: 10, maxHeight: "88vh", overflowY: "auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 700, color: C.dark } }, "\u{1F9F9} Nouvelle t\xE2che"), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowCleanModal(false), style: { background: "none", border: "none", fontSize: 20, color: C.muted, cursor: "pointer", padding: 0 } }, "\u2715")), /* @__PURE__ */ React.createElement("input", { value: newCleanName, onChange: (e) => setNewCleanName(e.target.value), autoFocus: true, placeholder: "Nom de la t\xE2che *", style: { border: `1.5px solid ${C.border}`, background: C.cream, borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 14, color: C.dark, outline: "none", width: "100%" } }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap" } }, FREQS_MODAL.map((f) => /* @__PURE__ */ React.createElement("button", { key: f.id, onClick: () => setNewCleanFreq(f.id), style: { padding: "6px 14px", border: `1.5px solid ${newCleanFreq === f.id ? C.dark : C.border}`, borderRadius: 16, background: newCleanFreq === f.id ? C.dark : "white", color: newCleanFreq === f.id ? "white" : C.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit", fontWeight: newCleanFreq === f.id ? 700 : 400 } }, f.label))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: 11, color: C.muted, whiteSpace: "nowrap" } }, "Tous les"), /* @__PURE__ */ React.createElement("input", { type: "number", value: newCleanDays, min: "1", onChange: (e) => setNewCleanDays(parseInt(e.target.value) || 1), style: { width: 70, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "9px 10px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", textAlign: "center" } }), /* @__PURE__ */ React.createElement("label", { style: { fontSize: 11, color: C.muted } }, "jours")), /* @__PURE__ */ React.createElement("input", { value: newCleanNotes, onChange: (e) => setNewCleanNotes(e.target.value), placeholder: "Notes (optionnel)", style: { border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", width: "100%" } }), /* @__PURE__ */ React.createElement("button", { onClick: addCleanModal, disabled: !newCleanName.trim(), style: { background: newCleanName.trim() ? C.dark : C.border, border: "none", borderRadius: 12, padding: "12px", color: "white", fontSize: 14, fontWeight: 700, cursor: newCleanName.trim() ? "pointer" : "default", fontFamily: "inherit" } }, "Ajouter la t\xE2che"))), /* @__PURE__ */ React.createElement("button", { onClick: () => { setNewCleanName(""); setNewCleanDays(30); setNewCleanFreq("mensuel"); setNewCleanNotes(""); setShowCleanModal(true); }, style: { width: "100%", background: C.dark, border: "none", borderRadius: 12, padding: "12px 18px", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 16 } }, "\u2795 Nouvelle t\xE2che de m\xE9nage"), (() => {
         const todayStr = (() => {
           const d = /* @__PURE__ */ new Date();
           return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -2074,44 +2233,7 @@
             "Supprimer"
           )));
         })));
-      }), /* @__PURE__ */ React.createElement("div", { style: { background: C.cream, borderRadius: 14, border: `1.5px solid ${C.border}`, padding: "14px 16px", marginTop: 8 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", color: C.muted, marginBottom: 10 } }, "Nouvelle t\xE2che"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          value: newCleanName,
-          onChange: (e) => setNewCleanName(e.target.value),
-          placeholder: "Nom de la t\xE2che...",
-          style: { flex: 1, minWidth: 160, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none" }
-        }
-      ), /* @__PURE__ */ React.createElement(
-        "select",
-        {
-          value: newCleanFreq,
-          onChange: (e) => setNewCleanFreq(e.target.value),
-          style: { border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 12, color: C.dark, outline: "none", cursor: "pointer" }
-        },
-        FREQS.map((f) => /* @__PURE__ */ React.createElement("option", { key: f.id, value: f.id }, f.label))
-      )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, alignItems: "center" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: 11, color: C.muted, whiteSpace: "nowrap" } }, "Tous les"), /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          type: "number",
-          value: newCleanDays,
-          min: "1",
-          onChange: (e) => setNewCleanDays(parseInt(e.target.value) || 1),
-          style: { width: 60, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 10px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", textAlign: "center" }
-        }
-      ), /* @__PURE__ */ React.createElement("label", { style: { fontSize: 11, color: C.muted } }, "jours"), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: () => {
-            if (!newCleanName.trim()) return;
-            upd((d) => d.cleaning.push({ id: newId(), name: newCleanName.trim(), freq: newCleanFreq, freqDays: newCleanDays, lastDone: null, notes: "" }));
-            setNewCleanName("");
-            setNewCleanDays(30);
-          },
-          style: { marginLeft: "auto", background: C.dark, border: "none", borderRadius: 10, padding: "8px 16px", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit", whiteSpace: "nowrap" }
-        },
-        "+ Ajouter"
-      ))));
+      }));
     })(), tab === "defis" && (() => {
       const dynCats = ["all", ...new Set(data.defis.map((d) => d.cat).filter(Boolean))];
       const CAT_EMOJIS = { all: "\u2728", mindset: "\u{1F9E0}", corps: "\u{1F4AA}", cuisine: "\u{1F373}", social: "\u{1F91D}", aventure: "\u{1F30D}", perso: "\u{1F338}", digital: "\u{1F4F1}" };
@@ -2212,7 +2334,7 @@
         },
         "Supprimer"
       )));
-      return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { background: C.dark, borderRadius: 16, padding: "18px 20px", border: `1px solid ${C.border}`, marginBottom: 16, position: "relative", overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: -20, right: -20, width: 80, height: 80, borderRadius: "50%", background: C.gold, opacity: 0.15 } }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, position: "relative", zIndex: 1 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 22, fontWeight: 700, color: C.gold, fontFamily: "Georgia,serif" } }, doneCount), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14, color: C.muted } }, " / ", total, " d\xE9fis accomplis")), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18, fontWeight: 700, color: C.gold } }, pct, "%")), /* @__PURE__ */ React.createElement("div", { style: { height: 8, background: "rgba(255,255,255,0.08)", borderRadius: 20, overflow: "hidden", position: "relative", zIndex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { height: "100%", background: `linear-gradient(90deg,${C.terra},${C.gold})`, borderRadius: 20, width: `${pct}%`, transition: "width 0.5s" } })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.muted, marginTop: 8, fontStyle: "italic", position: "relative", zIndex: 1 } }, pct === 100 ? "\u{1F389} Tous les d\xE9fis accomplis !" : pct >= 50 ? "Tu es sur la bonne voie \u2728" : "Chaque d\xE9fi accompli compte \u{1F33F}")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 14, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" } }, dynCats.map((c) => /* @__PURE__ */ React.createElement(
+      const addDefiModal = () => { if (!newDefiName.trim()) return; const cat = newDefiCat.trim().toLowerCase() || "perso"; upd((d) => d.defis.push({ id: newId(), cat, emoji: newDefiEmoji || "\u2B50", name: newDefiName.trim(), done: false, doneAt: null, notes: "" })); setShowDefiModal(false); setNewDefiName(""); setNewDefiEmoji("\u2B50"); setNewDefiCat(""); setActiveCat(cat); }; return /* @__PURE__ */ React.createElement("div", null, showDefiModal && /* @__PURE__ */ React.createElement("div", { onClick: () => setShowDefiModal(false), style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 500, display: "flex", alignItems: "flex-end", justifyContent: "center" } }, /* @__PURE__ */ React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { background: "white", borderRadius: "20px 20px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: 520, display: "flex", flexDirection: "column", gap: 10, maxHeight: "88vh", overflowY: "auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 700, color: C.dark } }, "\u{1F3C6} Nouveau d\xE9fi"), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowDefiModal(false), style: { background: "none", border: "none", fontSize: 20, color: C.muted, cursor: "pointer", padding: 0 } }, "\u2715")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("input", { value: newDefiEmoji, onChange: (e) => setNewDefiEmoji(e.target.value), autoFocus: true, placeholder: "\u{1F3AF}", style: { width: 52, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "9px 8px", fontFamily: "inherit", fontSize: 20, textAlign: "center", outline: "none" } }), /* @__PURE__ */ React.createElement("input", { value: newDefiName, onChange: (e) => setNewDefiName(e.target.value), placeholder: "Nom du d\xE9fi...", style: { flex: 1, border: `1.5px solid ${C.border}`, background: C.cream, borderRadius: 10, padding: "9px 12px", fontFamily: "inherit", fontSize: 14, color: C.dark, outline: "none" } })), /* @__PURE__ */ React.createElement("datalist", { id: "new-defi-cats-modal" }, dynCats.filter((c) => c !== "all").map((c) => /* @__PURE__ */ React.createElement("option", { key: c, value: c }))), /* @__PURE__ */ React.createElement("input", { list: "new-defi-cats-modal", value: newDefiCat, onChange: (e) => setNewDefiCat(e.target.value), placeholder: "Cat\xE9gorie (mindset, corps, perso...)", style: { border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none", width: "100%" } }), /* @__PURE__ */ React.createElement("button", { onClick: addDefiModal, disabled: !newDefiName.trim(), style: { background: newDefiName.trim() ? C.dark : C.border, border: "none", borderRadius: 12, padding: "12px", color: "white", fontSize: 14, fontWeight: 700, cursor: newDefiName.trim() ? "pointer" : "default", fontFamily: "inherit" } }, "Ajouter le d\xE9fi"))), /* @__PURE__ */ React.createElement("button", { onClick: () => { setNewDefiName(""); setNewDefiEmoji("\u2B50"); setNewDefiCat(""); setShowDefiModal(true); }, style: { width: "100%", background: C.dark, border: "none", borderRadius: 12, padding: "12px 18px", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 16 } }, "\u2795 Nouveau d\xE9fi"), /* @__PURE__ */ React.createElement("div", { style: { background: C.dark, borderRadius: 16, padding: "18px 20px", border: `1px solid ${C.border}`, marginBottom: 16, position: "relative", overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: -20, right: -20, width: 80, height: 80, borderRadius: "50%", background: C.gold, opacity: 0.15 } }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, position: "relative", zIndex: 1 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 22, fontWeight: 700, color: C.gold, fontFamily: "Georgia,serif" } }, doneCount), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14, color: C.muted } }, " / ", total, " d\xE9fis accomplis")), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 18, fontWeight: 700, color: C.gold } }, pct, "%")), /* @__PURE__ */ React.createElement("div", { style: { height: 8, background: "rgba(255,255,255,0.08)", borderRadius: 20, overflow: "hidden", position: "relative", zIndex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { height: "100%", background: `linear-gradient(90deg,${C.terra},${C.gold})`, borderRadius: 20, width: `${pct}%`, transition: "width 0.5s" } })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.muted, marginTop: 8, fontStyle: "italic", position: "relative", zIndex: 1 } }, pct === 100 ? "\u{1F389} Tous les d\xE9fis accomplis !" : pct >= 50 ? "Tu es sur la bonne voie \u2728" : "Chaque d\xE9fi accompli compte \u{1F33F}")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 14, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" } }, dynCats.map((c) => /* @__PURE__ */ React.createElement(
         "button",
         {
           key: c,
@@ -2222,53 +2344,7 @@
         CAT_EMOJIS[c] || "\u{1F3F7}",
         " ",
         c === "all" ? "Tout" : c.charAt(0).toUpperCase() + c.slice(1)
-      ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8, marginBottom: doneDefis.length > 0 ? 24 : 12 } }, activeDefis.length === 0 && doneDefis.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "28px", color: C.muted, fontSize: 13 } }, "\u{1F3C6} Ajoute ton premier d\xE9fi"), activeDefis.map((d) => DefiCard(d))), doneDefis.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.sage, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "Accomplis \xB7 ", doneDefis.length, " \u{1F3C6}"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, doneDefis.map((d) => DefiCard(d)))), /* @__PURE__ */ React.createElement("div", { style: { background: C.cream, borderRadius: 14, border: `1.5px solid ${C.border}`, padding: "14px 16px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", color: C.muted, marginBottom: 10 } }, "Nouveau d\xE9fi"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          value: newDefiEmoji,
-          onChange: (e) => setNewDefiEmoji(e.target.value),
-          style: { width: 44, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "7px", fontFamily: "inherit", fontSize: 18, textAlign: "center", outline: "none" }
-        }
-      ), /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          value: newDefiName,
-          onChange: (e) => setNewDefiName(e.target.value),
-          placeholder: "Nom du d\xE9fi...",
-          onKeyDown: (e) => {
-            if (e.key === "Enter" && newDefiName.trim()) {
-              upd((d) => d.defis.push({ id: newId(), cat: newDefiCat || "perso", emoji: newDefiEmoji || "\u2B50", name: newDefiName.trim(), done: false, doneAt: null, notes: "" }));
-              setNewDefiName("");
-              setNewDefiEmoji("\u2B50");
-            }
-          },
-          style: { flex: 1, minWidth: 160, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none" }
-        }
-      )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("datalist", { id: "new-defi-cats" }, dynCats.filter((c) => c !== "all").map((c) => /* @__PURE__ */ React.createElement("option", { key: c, value: c }))), /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          list: "new-defi-cats",
-          value: newDefiCat,
-          onChange: (e) => setNewDefiCat(e.target.value),
-          placeholder: "Cat\xE9gorie...",
-          style: { flex: 1, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit", fontSize: 13, color: C.dark, outline: "none" }
-        }
-      ), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: () => {
-            if (!newDefiName.trim()) return;
-            const cat = newDefiCat.trim().toLowerCase() || "perso";
-            upd((d) => d.defis.push({ id: newId(), cat, emoji: newDefiEmoji || "\u2B50", name: newDefiName.trim(), done: false, doneAt: null, notes: "" }));
-            setNewDefiName("");
-            setNewDefiEmoji("\u2B50");
-            setNewDefiCat("");
-            setActiveCat(cat);
-          },
-          style: { background: C.dark, border: "none", borderRadius: 10, padding: "8px 16px", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit", whiteSpace: "nowrap" }
-        },
-        "+ Ajouter"
-      ))));
+      ))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8, marginBottom: doneDefis.length > 0 ? 24 : 12 } }, activeDefis.length === 0 && doneDefis.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "28px", color: C.muted, fontSize: 13 } }, "\u{1F3C6} Ajoute ton premier d\xE9fi"), activeDefis.map((d) => DefiCard(d))), doneDefis.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: C.sage, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 } }, "Accomplis \xB7 ", doneDefis.length, " \u{1F3C6}"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, doneDefis.map((d) => DefiCard(d)))));
     })()), tab === "citations" && (() => {
       const filtered = (data.citations || []).filter((c) => filterText(c.text + " " + (c.source || "")));
       const addCit = () => {
@@ -2280,37 +2356,7 @@
         setNewCit("");
         setNewSrc("");
       };
-      return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 14 } }, /* @__PURE__ */ React.createElement(SectionTitle, { title: "\u{1F4AC} Citations & Phrases qui parlent" }), /* @__PURE__ */ React.createElement("div", { style: { background: "white", borderRadius: 14, border: `1.5px solid ${C.border}`, overflow: "hidden" } }, /* @__PURE__ */ React.createElement(
-        "textarea",
-        {
-          value: newCit,
-          onChange: (e) => setNewCit(e.target.value),
-          placeholder: "Une phrase qui te parle...",
-          onKeyDown: (e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              addCit();
-            }
-          },
-          rows: 2,
-          style: { width: "100%", border: "none", borderBottom: `1px solid ${C.cream}`, padding: "12px 14px", fontFamily: "Georgia,serif", fontSize: 13, fontStyle: "italic", color: C.dark, outline: "none", resize: "none", lineHeight: 1.6, background: "transparent" }
-        }
-      ), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, padding: "8px 12px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: C.muted, flexShrink: 0 } }, "\u2014"), /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          value: newSrc,
-          onChange: (e) => setNewSrc(e.target.value),
-          placeholder: "Source (livre, film, personne...)",
-          style: { flex: 1, border: "none", fontFamily: "inherit", fontSize: 12, color: C.muted, outline: "none", background: "transparent" }
-        }
-      ), /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: addCit,
-          style: { flexShrink: 0, background: C.dark, border: "none", borderRadius: 8, padding: "6px 14px", color: "white", fontSize: 13, cursor: "pointer", fontWeight: 700, fontFamily: "inherit" }
-        },
-        "+"
-      ))), filtered.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "40px 20px", color: C.muted, fontSize: 13 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 32, marginBottom: 8 } }, "\u{1F4AC}"), "Aucune citation pour l'instant.", /* @__PURE__ */ React.createElement("br", null), "Saisis une phrase qui te touche !"), filtered.map((c) => /* @__PURE__ */ React.createElement("div", { key: c.id, style: { background: "white", borderRadius: 14, border: `1.5px solid ${expandedId === c.id ? C.dark : C.border}`, overflow: "hidden" } }, expandedId !== c.id ? /* @__PURE__ */ React.createElement("div", { style: { padding: "18px 20px", position: "relative" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 32, color: C.border, lineHeight: 1, marginBottom: 4, fontFamily: "Georgia,serif" } }, '"'), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, color: C.dark, lineHeight: 1.7, fontStyle: "italic", fontFamily: "Georgia,serif", marginBottom: c.source ? 8 : 0 } }, c.text), c.source && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.muted, fontWeight: 600 } }, "\u2014 ", c.source), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.border, marginTop: 6 } }, c.date), /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: 12, right: 12, display: "flex", gap: 6 } }, /* @__PURE__ */ React.createElement(
+      return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 14 } }, /* Modal citation */ showCitModal && /* @__PURE__ */ React.createElement("div", { onClick: () => setShowCitModal(false), style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 500, display: "flex", alignItems: "flex-end", justifyContent: "center" } }, /* @__PURE__ */ React.createElement("div", { onClick: (e) => e.stopPropagation(), style: { background: "white", borderRadius: "20px 20px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: 520, display: "flex", flexDirection: "column", gap: 10, maxHeight: "88vh", overflowY: "auto" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 15, fontWeight: 700, color: C.dark } }, "\u{1F4AC} Nouvelle citation"), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowCitModal(false), style: { background: "none", border: "none", fontSize: 20, color: C.muted, cursor: "pointer", padding: 0 } }, "\u2715")), /* @__PURE__ */ React.createElement("textarea", { value: newCit, onChange: (e) => setNewCit(e.target.value), autoFocus: true, placeholder: "Une phrase qui te parle...", rows: 4, style: { width: "100%", border: `1.5px solid ${C.border}`, background: C.cream, borderRadius: 10, padding: "12px 14px", fontFamily: "Georgia,serif", fontSize: 14, fontStyle: "italic", color: C.dark, outline: "none", resize: "none", lineHeight: 1.6 } }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14, color: C.muted } }, "\u2014"), /* @__PURE__ */ React.createElement("input", { value: newSrc, onChange: (e) => setNewSrc(e.target.value), placeholder: "Source (livre, film, personne...)", style: { flex: 1, border: `1.5px solid ${C.border}`, background: "white", borderRadius: 10, padding: "10px 14px", fontFamily: "inherit", fontSize: 13, color: C.muted, outline: "none" } })), /* @__PURE__ */ React.createElement("button", { onClick: () => { addCit(); setShowCitModal(false); }, disabled: !newCit.trim(), style: { background: newCit.trim() ? C.dark : C.border, border: "none", borderRadius: 12, padding: "12px", color: "white", fontSize: 14, fontWeight: 700, cursor: newCit.trim() ? "pointer" : "default", fontFamily: "inherit" } }, "Ajouter la citation"))), /* @__PURE__ */ React.createElement("button", { onClick: () => { setNewCit(""); setNewSrc(""); setShowCitModal(true); }, style: { width: "100%", background: C.dark, border: "none", borderRadius: 12, padding: "12px 18px", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" } }, "\u2795 Nouvelle citation"), /* @__PURE__ */ React.createElement(SectionTitle, { title: "\u{1F4AC} Citations & Phrases qui parlent" }), filtered.length === 0 && /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "40px 20px", color: C.muted, fontSize: 13 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 32, marginBottom: 8 } }, "\u{1F4AC}"), "Aucune citation pour l'instant.", /* @__PURE__ */ React.createElement("br", null), "Saisis une phrase qui te touche !"), filtered.map((c) => /* @__PURE__ */ React.createElement("div", { key: c.id, style: { background: "white", borderRadius: 14, border: `1.5px solid ${expandedId === c.id ? C.dark : C.border}`, overflow: "hidden" } }, expandedId !== c.id ? /* @__PURE__ */ React.createElement("div", { style: { padding: "18px 20px", position: "relative" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 32, color: C.border, lineHeight: 1, marginBottom: 4, fontFamily: "Georgia,serif" } }, '"'), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, color: C.dark, lineHeight: 1.7, fontStyle: "italic", fontFamily: "Georgia,serif", marginBottom: c.source ? 8 : 0 } }, c.text), c.source && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: C.muted, fontWeight: 600 } }, "\u2014 ", c.source), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: C.border, marginTop: 6 } }, c.date), /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: 12, right: 12, display: "flex", gap: 6 } }, /* @__PURE__ */ React.createElement(
         "button",
         {
           onClick: () => setExpId(c.id),
