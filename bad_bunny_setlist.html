@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bad Bunny — Madrid Setlist 🐰</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface2: #1e1e1e;
+    --accent: #c8f23a;
+    --accent2: #ff3c6e;
+    --text: #f0f0f0;
+    --muted: #888;
+    --border: #2a2a2a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+  }
+
+  header {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a0a 50%, #0a1a0a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 20px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .logo { font-size: 28px; }
+
+  h1 {
+    font-size: clamp(18px, 5vw, 24px);
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+  }
+
+  .concert-info {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .search-bar {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-bar:focus { border-color: var(--accent); }
+  .search-bar::placeholder { color: var(--muted); }
+
+  .filters {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 14px;
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  .filter-btn.active, .filter-btn:hover {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+
+  .progress-bar {
+    margin-top: 10px;
+    background: var(--surface2);
+    border-radius: 4px;
+    height: 6px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+  }
+  .progress-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  main { padding: 12px; max-width: 800px; margin: 0 auto; }
+
+  .song-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .song-card:hover { border-color: #3a3a3a; }
+  .song-card.learned { border-color: var(--accent) !important; }
+
+  .song-header {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    cursor: pointer;
+    gap: 12px;
+    user-select: none;
+  }
+
+  .song-number {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    min-width: 22px;
+  }
+
+  .song-info { flex: 1; }
+
+  .song-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+
+  .song-meta {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .album-tag {
+    display: inline-block;
+    background: var(--surface2);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 10px;
+    color: var(--muted);
+    margin-left: 6px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .song-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .check-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s;
+    color: var(--muted);
+  }
+  .check-btn.done {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+  }
+
+  .expand-icon {
+    color: var(--muted);
+    font-size: 18px;
+    transition: transform 0.3s;
+    line-height: 1;
+  }
+  .song-card.open .expand-icon { transform: rotate(180deg); }
+
+  .song-body {
+    display: none;
+    padding: 0 16px 16px;
+    border-top: 1px solid var(--border);
+  }
+  .song-card.open .song-body { display: block; }
+
+  .tabs {
+    display: flex;
+    gap: 0;
+    margin: 14px 0 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Context tab */
+  .context-section {
+    margin-bottom: 14px;
+  }
+  .context-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-family: 'Space Mono', monospace;
+  }
+  .context-text {
+    font-size: 13px;
+    color: #ccc;
+    line-height: 1.6;
+  }
+
+  /* Lyrics tab */
+  .lyrics-container {
+    font-size: 13px;
+    line-height: 1.8;
+  }
+
+  .lyric-line {
+    display: flex;
+    gap: 12px;
+    padding: 2px 0;
+    border-radius: 4px;
+  }
+  .lyric-line:hover { background: var(--surface2); }
+
+  .lyric-es {
+    flex: 1;
+    color: #ddd;
+  }
+  .lyric-fr {
+    flex: 1;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .lyric-line.key-line .lyric-es {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .lyric-line.key-line .lyric-fr {
+    color: #a8d420;
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  .lyric-section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--accent2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 10px 0 4px;
+    display: block;
+  }
+
+  .lyrics-header {
+    display: flex;
+    gap: 12px;
+    padding: 0 0 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .lyrics-header span {
+    flex: 1;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* Tips tab */
+  .tip-item {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: flex-start;
+  }
+  .tip-icon {
+    font-size: 18px;
+    min-width: 24px;
+    margin-top: 1px;
+  }
+  .tip-text {
+    font-size: 13px;
+    color: #ccc;
+    line-height: 1.5;
+  }
+  .tip-text strong { color: var(--accent); }
+
+  .difficulty-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    font-family: 'Space Mono', monospace;
+  }
+  .diff-easy { background: #1a3a1a; color: #4caf50; }
+  .diff-medium { background: #3a2a00; color: #ffc107; }
+  .diff-hard { background: #3a0a1a; color: var(--accent2); }
+
+  .key-phrase-box {
+    background: var(--surface2);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 12px;
+    margin: 10px 0;
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  footer {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--muted);
+    font-size: 12px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    padding: 10px 16px;
+    background: var(--surface2);
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+  }
+  .legend-dot.pink { background: var(--accent2); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <span class="logo">🐰</span>
+    <div>
+      <h1>Bad Bunny · Madrid Setlist</h1>
+      <div class="concert-info">EL CLUB DE LAS LOCURAS · 5 JUILLET 2025</div>
+    </div>
+  </div>
+  <input class="search-bar" type="text" placeholder="Rechercher une chanson..." id="searchInput" oninput="filterSongs()">
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter('all', this)">Toutes (30)</button>
+    <button class="filter-btn" onclick="setFilter('easy', this)">🟢 Facile</button>
+    <button class="filter-btn" onclick="setFilter('medium', this)">🟡 Moyen</button>
+    <button class="filter-btn" onclick="setFilter('hard', this)">🔴 Dur</button>
+    <button class="filter-btn" onclick="setFilter('learned', this)">✅ Apprises</button>
+  </div>
+  <div class="progress-bar" style="margin-top:10px">
+    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+  </div>
+  <div class="progress-label" id="progressLabel">0 / 30 chansons apprises</div>
+</header>
+
+<main id="songList"></main>
+
+<footer>
+  Bonne chance pour le 5 juillet ! 🔥 Bendiciendo el concierto
+</footer>
+
+<script>
+const songs = [
+  {
+    id: 1,
+    title: "LA MuDANZA",
+    album: "Debí Tirar Más Fotos",
+    year: 2025,
+    feat: null,
+    difficulty: "medium",
+    context: "Chanson d'ouverture du dernier album de Bad Bunny sorti en janvier 2025. 'La Mudanza' (Le Déménagement) parle d'une rupture vue comme un déménagement émotionnel — partir, tout laisser, recommencer ailleurs. Sert souvent d'intro épique en concert, avec une ambiance sombre et introspective.",
+    vibe: "Mélancolique, rupture, nouveau départ",
+    keyPhrase: "\"Me voy a mudar\" — Je vais déménager (partir de ta vie)",
+    lyrics: [
+      {section: "Intro"},
+      {es: "Me voy a mudar, me llevaré todo lo que es mío", fr: "Je vais déménager, j'emporte tout ce qui m'appartient", key: true},
+      {es: "Dejaré lo tuyo ahí, pa' que lo recoja alguien", fr: "Je laisserai tes affaires là, pour que quelqu'un les ramasse"},
+      {es: "Ya no hay nada que hacer aquí", fr: "Il n'y a plus rien à faire ici"},
+      {es: "El amor se fue como el viento", fr: "L'amour est parti comme le vent"},
+      {section: "Verso 1"},
+      {es: "Tú me cambiaste la cerradura el día que me fui", fr: "Tu as changé la serrure le jour où je suis parti"},
+      {es: "Pero olvidaste que yo me llevé las llaves contigo", fr: "Mais tu as oublié que j'ai emporté les clés avec moi"},
+      {es: "Ahora tú eres extraña en lo que era mi nido", fr: "Maintenant tu es une étrangère dans ce qui était mon nid"},
+      {section: "Coro", key: true},
+      {es: "La mudanza ya viene en camino", fr: "Le déménagement arrive bientôt", key: true},
+      {es: "Saco mis cosas, no vuelvo, fue bonito", fr: "Je récupère mes affaires, je ne reviens pas, c'était bien", key: true},
+      {es: "Me voy pa' donde nadie me pida", fr: "Je vais là où personne ne me demande", key: true},
+      {es: "Una disculpa que no merezco dar", fr: "Une excuse que je ne mérite pas de donner", key: true},
+    ],
+    tips: [
+      {icon: "🎵", text: "<strong>Mélodie hypnotique :</strong> Le coro est répété 3x en concert. Apprends 'La mudanza ya viene en camino' par cœur, c'est le moment où tout le stade chante."},
+      {icon: "📱", text: "<strong>Écoute :</strong> Mets-la en boucle le matin. Le rythme lent aide à mémoriser."},
+      {icon: "✍️", text: "<strong>Mnémotechnique :</strong> Imagine vraiment déménager — visualise des cartons pendant que tu chantes."}
+    ]
+  },
+  {
+    id: 2,
+    title: "Callaita",
+    album: "YHLQMDLG / Singles",
+    year: 2019,
+    feat: "Tainy",
+    difficulty: "easy",
+    context: "'Callaita' (La silencieuse/timide) est l'un des plus grands hits de Bad Bunny. Une histoire d'une fille discrète en public mais débordante en privé. Produit par Tainy avec un beat minimaliste et mémorable. Chanson symbole du nouveau reggaeton 'bedroom pop'.",
+    vibe: "Sensuel, mystérieux, doux",
+    keyPhrase: "\"Ella es callaita pero cuando está conmigo, ay\" — Elle est discrète mais quand elle est avec moi...",
+    lyrics: [
+      {section: "Intro"},
+      {es: "Dicen por ahí que ella es muy callaita", fr: "On dit qu'elle est très discrète", key: true},
+      {es: "Que en la calle no habla ni una pequeñita", fr: "Que dans la rue elle ne dit pas un mot"},
+      {section: "Verso 1"},
+      {es: "Llegó bajando la escalera de su building", fr: "Elle est descendue par l'escalier de son immeuble"},
+      {es: "Luce diferente, parece que fue al gym", fr: "Elle est différente, on dirait qu'elle a fait la gym"},
+      {es: "Le dije: 'Mamá, ¿cómo tú estás?'", fr: "Je lui ai dit : 'Chérie, comment tu vas ?'"},
+      {es: "Me dijo: 'Bien' y siguió su camino pa' allá", fr: "Elle m'a dit : 'Bien' et a continué son chemin"},
+      {section: "Coro", key: true},
+      {es: "Ella es callaita pero cuando está conmigo", fr: "Elle est discrète mais quand elle est avec moi", key: true},
+      {es: "Ay, ay, ay", fr: "Ay, ay, ay", key: true},
+      {es: "Le gusta el perreo y que le den besito", fr: "Elle aime danser et recevoir des bisous", key: true},
+      {es: "Ay, ay, ay, callaita", fr: "Ay, ay, ay, la discrète", key: true},
+      {section: "Puente"},
+      {es: "De día es una santa, de noche ella me encanta", fr: "Le jour c'est une sainte, la nuit elle me charme"},
+      {es: "No es lo que aparenta, eso me desespera", fr: "Elle n'est pas ce qu'elle semble, ça me rend fou"},
+    ],
+    tips: [
+      {icon: "🎯", text: "<strong>Priorité haute :</strong> Chanson classique connue de tout le monde. Le coro 'Ella es callaita' est ultra simple à apprendre."},
+      {icon: "🕺", text: "<strong>En concert :</strong> Tout le monde chante spontanément les 'Ay, ay, ay'. Apprends juste ça et le coro principal."},
+      {icon: "⏱️", text: "<strong>Temps d'apprentissage :</strong> 15-20 min. Très accessible, peu de paroles à mémoriser."}
+    ]
+  },
+  {
+    id: 3,
+    title: "PIToRRO DE COCO",
+    album: "Debí Tirar Más Fotos",
+    year: 2025,
+    feat: null,
+    difficulty: "medium",
+    context: "Titre décalé et festif du dernier album. 'Pitorro de coco' est une boisson porto-ricaine artisanale (rhum de coco illégal). Bad Bunny célèbre la culture et les traditions de Porto Rico avec humour et fierté. Beat tropical avec des influences bomba et plena.",
+    vibe: "Festif, orgueilleux (Porto Rico), tropical",
+    keyPhrase: "\"Pitorro de coco pa' brindá\" — Du rhum de coco pour trinquer",
+    lyrics: [
+      {section: "Intro"},
+      {es: "Pitorro de coco pa' los que saben", fr: "Du pitorro de coco pour ceux qui savent", key: true},
+      {es: "La isla me llama, yo siempre vuelvo", fr: "L'île m'appelle, je reviens toujours"},
+      {section: "Verso 1"},
+      {es: "En Puerto Rico la gente goza", fr: "À Porto Rico les gens profitent"},
+      {es: "Con la música que el alma roza", fr: "Avec la musique qui touche l'âme"},
+      {es: "El pitorro corre por la vena", fr: "Le pitorro coule dans les veines"},
+      {es: "De esta tierra que siempre me llena", fr: "De cette terre qui me comble toujours"},
+      {section: "Coro", key: true},
+      {es: "Pitorro de coco, pitorro de coco", fr: "Pitorro de coco, pitorro de coco", key: true},
+      {es: "Pa' brindá con los míos esta noche", fr: "Pour trinquer avec les miens ce soir", key: true},
+      {es: "Que viva Puerto Rico, que no se olvide", fr: "Vive Porto Rico, qu'on ne l'oublie pas", key: true},
+      {es: "Pitorro de coco, sí", fr: "Pitorro de coco, oui", key: true},
+    ],
+    tips: [
+      {icon: "🥥", text: "<strong>Fun fact :</strong> Dis à ton voisin de concert ce que c'est — ça brise la glace ! Le pitorro est un alcool illégal artisanal de Porto Rico."},
+      {icon: "🎵", text: "<strong>Beat tropical :</strong> Le rythme est entraînant, apprends la répétition 'Pitorro de coco' qui revient souvent — c'est le hook principal."},
+      {icon: "📍", text: "<strong>Sens profond :</strong> Cri d'amour pour Porto Rico. Chante avec fierté même si tu n'es pas porto-ricaine !"}
+    ]
+  },
+  {
+    id: 4,
+    title: "WELTiTA",
+    album: "Debí Tirar Más Fotos",
+    year: 2025,
+    feat: "Chuwi",
+    difficulty: "medium",
+    context: "'Weltita' est une romance tendre et nostalgique. Le mot est un affectueux porto-ricain pour désigner une fille belle/adorable. Feat avec Chuwi. Chanson douce qui parle d'un amour innocent et d'une connexion pure, en contraste avec le reste du répertoire plus explicite.",
+    vibe: "Romantique, tendre, nostalgique",
+    keyPhrase: "\"Weltita, tú eres mi weltita\" — Tu es ma petite chérie",
+    lyrics: [
+      {section: "Intro"},
+      {es: "Ay, weltita, tú sabes que yo te quiero", fr: "Ay, ma chérie, tu sais que je t'aime", key: true},
+      {section: "Verso 1"},
+      {es: "Eres la niña de mis ojos, tú me tienes loco", fr: "Tu es la prunelle de mes yeux, tu me rends fou"},
+      {es: "Cuando tú me sonríes, para el tiempo un poco", fr: "Quand tu me souris, le temps s'arrête un peu"},
+      {es: "Tu risa es mi canción favorita", fr: "Ton rire est ma chanson préférée"},
+      {es: "Eres mi weltita bonita", fr: "Tu es ma belle weltita"},
+      {section: "Coro", key: true},
+      {es: "Weltita, weltita, weltita", fr: "Weltita, weltita, weltita", key: true},
+      {es: "Tú eres mi weltita", fr: "Tu es ma weltita", key: true},
+      {es: "Con ese cuerpo, esa carita", fr: "Avec ce corps, ce visage", key: true},
+      {es: "Weltita, ay, mi weltita bonita", fr: "Weltita, ay, ma belle weltita", key: true},
+    ],
+    tips: [
+      {icon: "💕", text: "<strong>Chanson douce :</strong> Parfaite pour souffler entre deux bangers. Le public swaye généralement côte à côte."},
+      {icon: "🔁", text: "<strong>Répétition :</strong> 'Weltita' revient constamment — une fois que tu as ce mot dans la tête, tu as 50% de la chanson."},
+      {icon: "🎤", text: "<strong>Feat Chuwi :</strong> Écoute bien pour distinguer les deux voix et savoir qui chante quoi."}
+    ]
+  },
+  {
+    id: 5,
+    title: "TURiSTA",
+    album: "Debí Tirar Más Fotos",
+    year: 2025,
+    feat: null,
+    difficulty: "hard",
+    context: "Critique acerbe du tourisme à Porto Rico. Bad Bunny dénonce comment les touristes (souvent blancs, riches, américains) envahissent l'île, font monter les prix et déplacent les locaux. Chanson politiquement engagée, un des moments les plus intenses de l'album.",
+    vibe: "Militant, en colère, politique",
+    keyPhrase: "\"No quiero turistas aquí\" — Je ne veux pas de touristes ici",
+    lyrics: [
+      {section: "Verso 1"},
+      {es: "Llegaron como siempre a destruir lo nuestro", fr: "Ils sont arrivés comme toujours pour détruire ce qui nous appartient"},
+      {es: "Con sus cámaras y su dinero falso", fr: "Avec leurs caméras et leur argent factice"},
+      {es: "Compraron las playas, vendieron el barrio", fr: "Ils ont acheté les plages, vendu le quartier"},
+      {es: "Mientras nosotros pa' afuera, los gringos pa' adentro", fr: "Pendant qu'on nous pousse dehors, les gringos entrent"},
+      {section: "Coro", key: true},
+      {es: "No quiero turistas aquí", fr: "Je ne veux pas de touristes ici", key: true},
+      {es: "Que se lleven lo que trajeron", fr: "Qu'ils reprennent ce qu'ils ont apporté", key: true},
+      {es: "Esta isla es nuestra, no es de ellos", fr: "Cette île est à nous, pas à eux", key: true},
+      {es: "No quiero turistas aquí", fr: "Je ne veux pas de touristes ici", key: true},
+      {section: "Verso 2"},
+      {es: "Gentrificación vestida de progreso", fr: "Gentrification habillée en progrès"},
+      {es: "El coquí ya no canta, ni el sueño", fr: "La grenouille coquí ne chante plus, ni le rêve"},
+    ],
+    tips: [
+      {icon: "🔥", text: "<strong>Moment intense :</strong> Probablement un des moments les plus électrisants du concert. Le public local (et averti) va hurler."},
+      {icon: "💪", text: "<strong>Message :</strong> Comprendre le sens aide à chanter avec l'énergie appropriée — de la colère ! Pas besoin de tout mémoriser, l'énergie suffit."},
+      {icon: "⚠️", text: "<strong>Difficulté :</strong> Rythme rapide et paroles denses. Concentre-toi sur le coro 'No quiero turistas aquí'."}
+    ]
+  },
+  {
+    id: 6,
+    title: "BAILE INolVIDABLE",
+    album: "Debí Tirar Más Fotos",
+    year: 2025,
+    feat: null,
+    difficulty: "easy",
+    context: "Hymne à la danse et aux nuits inoubliables. 'Baile Inolvidable' (Danse inoubliable) célèbre ces moments sur la piste de danse qui restent gravés à jamais. Beat festif, chanson feel-good qui invite à tout lâcher.",
+    vibe: "Festif, dansant, euphorie collective",
+    keyPhrase: "\"Un baile inolvidable\" — Une danse inoubliable",
+    lyrics: [
+      {section: "Intro"},
+      {es: "Esta noche vamos a bailar", fr: "Ce soir on va danser"},
+      {es: "Que el mundo se pare, yo no quiero parar", fr: "Que le monde s'arrête, moi je ne veux pas m'arrêter"},
+      {section: "Coro", key: true},
+      {es: "Un baile inolvidable, contigo", fr: "Une danse inoubliable, avec toi", key: true},
+      {es: "Esta noche, tú y yo, lo haremos", fr: "Ce soir, toi et moi, on le fera", key: true},
+      {es: "Muévete, que la música suena", fr: "Bouge-toi, la musique joue", key: true},
+      {es: "Un baile inolvidable, sí", fr: "Une danse inoubliable, oui", key: true},
+      {section: "Verso 1"},
+      {es: "Me miras y yo sé que quieres perrear", fr: "Tu me regardes et je sais que tu veux danser"},
+      {es: "Esta noche todo puede pasar", fr: "Ce soir tout peut arriver"},
+    ],
+    tips: [
+      {icon: "💃", text: "<strong>Facile :</strong> Chanson conçue pour être chantée en concert. Le coro est très court et répétitif."},
+      {icon: "⚡", text: "<strong>Énergie :</strong> Même si tu ne connais pas les paroles, danse ! C'est l'intention de la chanson."},
+      {icon: "⏱️", text: "<strong>Temps d'apprentissage :</strong> 10 min. Priorité basse, le feeling compte plus que les mots."}
+    ]
+  },
+  {
+    id: 7,
+    title: "NUEVAYoL",
+    album: "Debí Tirar Más Fotos",
+    year: 2025,
+    feat: null,
+    difficulty: "medium",
+    context: "'Nuevayol' = New York en espagnol populaire porto-ricain. Hommage à la communauté porto-ricaine de New York (El Barrio, le Bronx, Brooklyn). Bad Bunny célèbre la diaspora, ceux qui ont quitté l'île mais ont gardé leurs racines. Chanson d'appartenance culturelle profonde.",
+    vibe: "Nostalgique, fierté diaspora, urban",
+    keyPhrase: "\"Nuevayol, where my people at\" — New York, où sont mes gens",
+    lyrics: [
+      {section: "Intro"},
+      {es: "El barrio latino nunca muere", fr: "Le quartier latino ne meurt jamais"},
+      {es: "Aunque lejos, la raíz siempre vive", fr: "Même loin, la racine vit toujours"},
+      {section: "Verso 1"},
+      {es: "Nuevayol, donde mis abuelos soñaron", fr: "New York, où mes grands-parents ont rêvé"},
+      {es: "Con una vida mejor, aunque trabajaron", fr: "D'une meilleure vie, même s'ils ont travaillé dur"},
+      {es: "El cuchifrito, el arroz con pollo", fr: "Le cuchifrito, le riz au poulet"},
+      {es: "La cultura que nadie nos quitó", fr: "La culture que personne ne nous a volée"},
+      {section: "Coro", key: true},
+      {es: "Nuevayol, Nuevayol", fr: "New York, New York", key: true},
+      {es: "Donde mi gente nació y creció", fr: "Où mes gens sont nés et ont grandi", key: true},
+      {es: "Boricua en Nueva York, pa' siempre", fr: "Porto-Ricain à New York, pour toujours", key: true},
+    ],
+    tips: [
+      {icon: "🗽", text: "<strong>Contexte clé :</strong> Comprendre que 'Nuevayol' = New York en pronunciation porto-ricaine te permet de vivre la chanson autrement."},
+      {icon: "❤️", text: "<strong>Émotion :</strong> Chanson très chargée émotionnellement. La foule peut pleurer. Suis l'énergie."},
+      {icon: "🎵", text: "<strong>Apprends :</strong> 'Nuevayol, Nuevayol / Boricua en Nueva York' — c'est suffisant pour participer pleinement."}
+    ]
+  },
+  {
+    id: 8,
+    title: "VeLDÁ",
+    album: "Debí Tirar Más Fotos",
+    year: 2025,
+    feat: "Omar Courtz, Dei V",
+    difficulty: "medium",
+    context: "'Velda' est un prénom, mais 'velda' en argot porto-ricain peut désigner quelque chose de beau/authentique. Feat avec Omar Courtz et Dei V. Ambiance trap romantique, parle d'une fille unique et désirable. Beat moderne avec des éléments RnB.",
+    vibe: "Séducteur, trap romantique",
+    keyPhrase: "\"Ella tiene lo que yo quiero\" — Elle a ce que je veux",
+    lyrics: [
+      {section: "Verso 1 - Bad Bunny"},
+      {es: "Velda, tú eres diferente a las demás", fr: "Velda, tu es différente des autres"},
+      {es: "Cuando entras al cuarto, to' el mundo te da paso", fr: "Quand tu entres dans la pièce, tout le monde te laisse passer"},
+      {es: "Ella tiene lo que yo quiero", fr: "Elle a ce que je veux", key: true},
+      {section: "Coro", key: true},
+      {es: "Velda, Velda, ay", fr: "Velda, Velda, ay", key: true},
+      {es: "Tú eres la que me tiene así", fr: "C'est toi qui me mets dans cet état", key: true},
+      {es: "Velda, no te vayas", fr: "Velda, ne t'en vas pas", key: true},
+      {section: "Verso 2 - Omar Courtz"},
+      {es: "Desde que llegaste, nada es igual", fr: "Depuis que tu es arrivée, plus rien n'est pareil"},
+      {es: "Eres única, eso no es normal", fr: "Tu es unique, c'est pas normal"},
+    ],
+    tips: [
+      {icon: "🎤", text: "<strong>Feat à 3 :</strong> Bad Bunny, Omar Courtz et Dei V ont chacun leur section. Écoute bien pour savoir qui chante quand."},
+      {icon: "💜", text: "<strong>Coro simple :</strong> 'Velda, Velda, ay' est très facile. C'est le moment collectif."},
+      {icon: "🎧", text: "<strong>Écoute active :</strong> Le beat trap est hypnotique, écoute 3-4 fois en te concentrant sur les mots."}
+    ]
+  },
+  {
+    id: 9,
+    title: "Tití Me Preguntó",
+    album: "Un Verano Sin Ti",
+    year: 2022,
+    feat: null,
+    difficulty: "easy",
+    context: "Un des plus grands hits de Bad Bunny ! 'Tití' = tante en espagnol caraïbéen. La tante demande pourquoi il n'a toujours pas de copine... et il répond qu'il est tellement demandé qu'il n'a pas le temps. Humour, auto-dérision et fierté mélangés. Numéro 1 mondial en 2022.",
+    vibe: "Humoristique, confident, estival",
+    keyPhrase: "\"Tití me preguntó que cuándo me iba a conseguir novia\" — Ma tante m'a demandé quand j'allais trouver une copine",
+    lyrics: [
+      {section: "Intro"},
+      {es: "Bendiciendo el año que viene", fr: "Bénissant l'année qui vient"},
+      {section: "Verso 1"},
+      {es: "Tití me preguntó que cuándo me iba a conseguir novia", fr: "Ma tante m'a demandé quand j'allais trouver une copine", key: true},
+      {es: "Que ya tengo que dejar la vida mía de bon vivant", fr: "Que je dois arrêter ma vie de bon vivant"},
+      {es: "Que a mi edad ella ya tenía dos niñas y una historia", fr: "Qu'à mon âge elle avait déjà deux filles et une histoire"},
+      {es: "Y yo le dije: 'Tití, pa' eso hay que tener tiempo'", fr: "Et je lui ai dit : 'Tante, pour ça il faut du temps'"},
+      {section: "Coro", key: true},
+      {es: "Bendiciendo el año que viene, sigo siendo el mismo", fr: "Bénissant l'année qui vient, je reste le même", key: true},
+      {es: "Pero ahora tengo más dinero y tengo más amigos", fr: "Mais maintenant j'ai plus d'argent et plus d'amis", key: true},
+      {es: "Y las nenas to' me llaman, yo no sé ni sus apellidos", fr: "Et les filles m'appellent toutes, je ne connais même pas leurs noms de famille", key: true},
+      {section: "Puente", key: true},
+      {es: "De noche soy un diablo, de día soy tranquilo", fr: "La nuit je suis un diable, le jour je suis calme", key: true},
+      {es: "Tití me preguntó, yo no supe qué decirle", fr: "Ma tante m'a demandé, je n'ai pas su quoi lui répondre"},
+    ],
+    tips: [
+      {icon: "⭐", text: "<strong>PRIORITÉ ABSOLUE :</strong> Chanson ultra-connue, tout le stade la chante. C'est LE moment collectif du concert avec UVST."},
+      {icon: "😂", text: "<strong>Humour :</strong> L'intro 'Tití me preguntó' est iconique. Chante-la en rigolant, l'ambiance est légère."},
+      {icon: "⏱️", text: "<strong>Temps d'apprentissage :</strong> 20-25 min. Haute priorité absolue !"}
+    ]
+  },
+  {
+    id: 10,
+    title: "Neverita",
+    album: "Un Verano Sin Ti",
+    year: 2022,
+    feat: null,
+    difficulty: "easy",
+    context: "'Neverita' (Petit frigo) est une chanson sensuelle de l'été. Métaphore : elle est froide (neverita) mais lui fait chaud. Beat de reggaeton classique estival de 'Un Verano Sin Ti', l'album de l'été qui a dominé 2022.",
+    vibe: "Estival, sensuel, léger",
+    keyPhrase: "\"Tú eres mi neverita\" — Tu es mon petit frigo (tu me rafraîchis)",
+    lyrics: [
+      {section: "Verso 1"},
+      {es: "Hace calor aquí afuera", fr: "Il fait chaud ici dehors"},
+      {es: "Pero tú eres mi neverita", fr: "Mais tu es mon petit frigo", key: true},
+      {es: "Me refrescas cuando llegas", fr: "Tu me rafraîchis quand tu arrives"},
+      {es: "Con esa carita bonita", fr: "Avec ce beau visage"},
+      {section: "Coro", key: true},
+      {es: "Neverita, neverita", fr: "Mon petit frigo, mon petit frigo", key: true},
+      {es: "Tú me tienes loquito", fr: "Tu me rends fou", key: true},
+      {es: "Ven acá, bebecita", fr: "Viens ici, petite", key: true},
+      {es: "Neverita, ay", fr: "Mon petit frigo, ay", key: true},
+      {section: "Verso 2"},
+      {es: "En la playa o en la disco", fr: "À la plage ou en disco"},
+      {es: "Tú siempre estás a mi lado", fr: "Tu es toujours à mes côtés"},
+    ],
+    tips: [
+      {icon: "🏖️", text: "<strong>Vibes été :</strong> Chanson très courte et répétitive. Si tu connais le coro tu as tout ce qu'il faut."},
+      {icon: "🎵", text: "<strong>En concert :</strong> Les gens balancent les bras. Suis le mouvement collectif."},
+      {icon: "⏱️", text: "<strong>Temps :</strong> 10 min max. Très facile à mémoriser."}
+    ]
+  },
+  {
+    id: 11,
+    title: "Si Veo a Tu Mamá",
+    album: "Un Verano Sin Ti",
+    year: 2022,
+    feat: null,
+    difficulty: "medium",
+    context: "Chanson de rupture post-relation. Si jamais il croise la mère de son ex, que dira-t-il ? Une réflexion mélancolique sur ce qu'on laisse derrière soi après une relation. Beat mid-tempo avec une mélodie planante, typique d'UVST.",
+    vibe: "Nostalgique, post-rupture, doux-amer",
+    keyPhrase: "\"Si veo a tu mamá, ¿qué le digo?\" — Si je vois ta mère, que lui dis-je ?",
+    lyrics: [
+      {section: "Verso 1"},
+      {es: "¿Qué le digo si la veo por ahí?", fr: "Que lui dis-je si je la croise quelque part ?"},
+      {es: "Que tú eres feliz, que superé lo nuestro al fin", fr: "Que tu es heureuse, que j'ai surmonté notre histoire"},
+      {es: "Que fui valiente y que ya no me duele así", fr: "Que j'ai été courageux et que ça ne me fait plus autant mal"},
+      {section: "Coro", key: true},
+      {es: "Si veo a tu mamá, le digo que estás bien", fr: "Si je vois ta mère, je lui dis que tu vas bien", key: true},
+      {es: "Aunque por dentro todavía me dueles tú a mí", fr: "Même si au fond tu me fais encore mal", key: true},
+      {es: "Si veo a tu mamá", fr: "Si je vois ta mère", key: true},
+      {section: "Verso 2"},
+      {es: "Le diré que te vi, que te ves más bella", fr: "Je lui dirai que je t'ai vue, que tu es plus belle"},
+      {es: "Que la vida sin mí te fue bien, que eso es lo que ella", fr: "Que la vie sans moi t'a bien réussi, c'est ce qu'elle"},
+      {es: "Siempre quiso pa' su hija, lo mejor", fr: "A toujours voulu pour sa fille, le meilleur"},
+    ],
+    tips: [
+      {icon: "🥺", text: "<strong>Émotion :</strong> Chanson touchante qui crée un silence émotionnel dans le stade. Les gens chantent doucement."},
+      {icon: "🎵", text: "<strong>Mélodie :</strong> La mélodie est très mémorable, fredonner aide à mémoriser les paroles."},
+      {icon: "💡", text: "<strong>Astuce :</strong> Visualise la scène (croiser la mère d'une ex) pour ancrer les paroles."}
+    ]
+  },
+  {
+    id: 12,
+    title: "VOY A LLeVARTE PA PR",
+    album: "Debí Tirar Más Fotos",
+    year: 2025,
+    feat: null,
+    difficulty: "medium",
+    context: "'Voy a Llevarte pa' PR' (Je vais t'emmener à Porto Rico) — promesse romantique d'emmener une fille à Porto Rico pour lui montrer ses racines, sa culture, son île. Chanson d'amour et de fierté culturelle fusionnées. Beat urbain tropical.",
+    vibe: "Romantique, fier de ses origines, estival",
+    keyPhrase: "\"Voy a llevarte pa' Puerto Rico\" — Je vais t'emmener à Porto Rico",
+    lyrics: [
+      {section: "Verso 1"},
+      {es: "Quiero que conozcas de dónde yo vengo", fr: "Je veux que tu saches d'où je viens"},
+      {es: "Esa isla que yo siempre llevo", fr: "Cette île que je porte toujours"},
+      {es: "En el corazón, en la mente", fr: "Dans le cœur, dans l'esprit"},
+      {es: "Mi Puerto Rico, mi gente", fr: "Mon Porto Rico, mes gens"},
+      {section: "Coro", key: true},
+      {es: "Voy a llevarte pa' Puerto Rico", fr: "Je vais t'emmener à Porto Rico", key: true},
+      {es: "Pa' que tú veas lo que yo soy", fr: "Pour que tu voies ce que je suis", key: true},
+      {es: "Voy a llevarte pa' PR", fr: "Je vais t'emmener à Porto Rico", key: true},
+      {es: "Esta noche, amor, salimos hoy", fr: "Ce soir, mon amour, on part aujourd'hui", key: true},
+    ],
+    tips: [
+      {icon: "🌴", text: "<strong>Ambiance :</strong> Chanson positive et lumineuse. Facile à vivre même sans connaître toutes les paroles."},
+      {icon: "🎤", text: "<strong>Hook :</strong> 'Voy a llevarte pa' Puerto Rico' se chante naturellement."},
+      {icon: "⏱️", text: "<strong>Temps :</strong> 15-20 min. Niveau moyen accessible."}
+    ]
+  },
+  {
+    id: 13,
+    title: "Me Porto Bonito",
+    album: "Un Verano Sin Ti",
+    year: 2022,
+    feat: "Chencho Corleone",
+    difficulty: "easy",
+    context: "Un des hymnes absolus de l'été 2022. Feat avec Chencho Corleone. 'Me porto bonito' (Je me comporte bien / Porto Rico en jeu de mots). Chanson de séduction légère où il promet d'être 'gentil' avec elle... avec un double sens évident. Énorme succès mondial.",
+    vibe: "Festif, flirt, été, dansant",
+    keyPhrase: "\"Me porto bonito contigo\" — Je me comporte bien avec toi",
+    lyrics: [
+      {section: "Intro"},
+      {es: "Bebé, esta noche tengo ganas de ti", fr: "Bébé, ce soir j'ai envie de toi"},
+      {section: "Verso 1 - Bad Bunny"},
+      {es: "Dime, ¿qué tú quieres esta noche?", fr: "Dis-moi, qu'est-ce que tu veux ce soir ?"},
+      {es: "Yo sé que tú quieres que me acerque", fr: "Je sais que tu veux que je m'approche"},
+      {section: "Coro", key: true},
+      {es: "Me porto bonito, me porto bonito", fr: "Je me comporte bien, je me comporte bien", key: true},
+      {es: "Contigo, solo contigo", fr: "Avec toi, seulement avec toi", key: true},
+      {es: "Me porto bonito, ay", fr: "Je me comporte bien, ay", key: true},
+      {section: "Verso 2 - Chencho Corleone"},
+      {es: "Chencho llegó, prepárense", fr: "Chencho est arrivé, préparez-vous"},
+      {es: "Yo le dije que esta noche la iban a gozar", fr: "Je lui ai dit que ce soir elle allait en profiter"},
+      {section: "Puente", key: true},
+      {es: "Bebé, tú eres especial", fr: "Bébé, tu es spéciale", key: true},
+      {es: "Y yo me porto bonito contigo, sí", fr: "Et je me comporte bien avec toi, oui", key: true},
+    ],
+    tips: [
+      {icon: "⭐", text: "<strong>INCONTOURNABLE :</strong> Une des chansons les plus chantées en concert. Tout le monde sait le coro. Apprends-la en priorité."},
+      {icon: "🎯", text: "<strong>Simple :</strong> Le coro se répète beaucoup. 'Me porto bonito / contigo' suffit."},
+      {icon: "⏱️", text: "<strong>Temps :</strong> 15 min. Haute priorité, facilité maximale."}
+    ]
+  },
+  {
+    id: 14,
+    title: "No Me Conoce - Remix",
+    album: "Remix / JHAYCO",
+    year: 2019,
+    feat: "JHAYCO, J Balvin",
+    difficulty: "medium",
+    context: "Remix du hit de JHAYCO avec J Balvin et Bad Bunny. 'No me conoce' parle d'une fille qui dit ne pas le connaître mais le suit partout sur les réseaux. Ironie et jeu de cache-cache amoureux. Collaboration iconique des trois artistes.",
+    vibe: "Jeu amoureux, réseaux sociaux, léger",
+    keyPhrase: "\"Tú dices que no me conoces\" — Tu dis que tu ne me connais pas",
+    lyrics: [
+      {section: "Intro - JHAYCO"},
+      {es: "Ella dice que no me conoce", fr: "Elle dit qu'elle ne me connaît pas"},
+      {es: "Pero le dio like a todas mis fotos", fr: "Mais elle a liké toutes mes photos", key: true},
+      {section: "Coro", key: true},
+      {es: "Tú dices que no me conoces", fr: "Tu dis que tu ne me connais pas", key: true},
+      {es: "Pero te sé de memoria", fr: "Mais je te connais par cœur", key: true},
+      {es: "No me conoces, no me conoces", fr: "Tu ne me connais pas, tu ne me connais pas", key: true},
+      {section: "Verso - Bad Bunny"},
+      {es: "Yo sé que tú me stalkeas", fr: "Je sais que tu me stalkes"},
+      {es: "Que te gusta lo que yo perreo", fr: "Que tu aimes comment je danse"},
+      {section: "Verso - J Balvin"},
+      {es: "Hermosa, no te hagas", fr: "Belle, fais pas semblant"},
+      {es: "Que tú sabes quién soy yo", fr: "Tu sais qui je suis"},
+    ],
+    tips: [
+      {icon: "📱", text: "<strong>Référence réseaux :</strong> 'Like a todas mis fotos' — tout le monde comprend la référence Instagram. Rires garantis en concert."},
+      {icon: "🎤", text: "<strong>3 artistes :</strong> Écoute pour distinguer JHAYCO, Bad Bunny et J Balvin. Chacun a son timbre distinct."},
+      {icon: "💡", text: "<strong>Coro :</strong> 'No me conoces' répété = easy à mémoriser."}
+    ]
+  },
+  {
+    id: 15,
+    title: "Bichiyal",
+    album: "YHLQMDLG",
+    year: 2020,
+    feat: "Yaviah",
+    difficulty: "hard",
+    context: "'Bichiyal' vient de l'argot porto-ricain 'bichiyá' — désigne quelqu'un de riche/cool/avec du style. Feat avec Yaviah. Chanson de perreo intense, beat trap dembow. Représente l'esthétique underground de YHLQMDLG (Yo Hago Lo Que Me Da La Gana).",
+    vibe: "Trap, underground, perreo intense",
+    keyPhrase: "\"Bichiyal, bichiyal\" — Le stylé/le riche",
+    lyrics: [
+      {section: "Intro"},
+      {es: "Bichiyal, ay, bichiyal", fr: "Bichiyal, ay, bichiyal", key: true},
+      {section: "Verso 1 - Bad Bunny"},
+      {es: "Yo soy el bichote de este juego", fr: "Je suis le boss de ce jeu"},
+      {es: "Todo el mundo me respeta, yo no llego", fr: "Tout le monde me respecte, je ne me montre pas"},
+      {es: "Al mismo nivel que los demás, yo estoy arriba", fr: "Au même niveau que les autres, je suis au-dessus"},
+      {section: "Coro", key: true},
+      {es: "Bichiyal, bichiyal, bichiyal", fr: "Bichiyal, bichiyal, bichiyal", key: true},
+      {es: "Así dicen todos por ahí", fr: "C'est ce que tout le monde dit par là", key: true},
+      {section: "Verso 2 - Yaviah"},
+      {es: "Yaviah siempre llega con estilo", fr: "Yaviah arrive toujours avec style"},
+      {es: "Haciendo perreo y tirando flow", fr: "En dansant le perreo et envoyant du flow"},
+    ],
+    tips: [
+      {icon: "🔊", text: "<strong>Beat intense :</strong> Chanson pour les amateurs de reggaeton underground. Beat très bas et physique."},
+      {icon: "⚠️", text: "<strong>Difficulté :</strong> Rythme rapide. Concentre-toi uniquement sur 'Bichiyal' répété — c'est le mot clé."},
+      {icon: "💪", text: "<strong>En concert :</strong> Section pour les 'vrais fans'. Si tu connais cette chanson, tu impressionnes."}
+    ]
+  },
+  {
+    id: 16,
+    title: "Yo Perreo Sola",
+    album: "YHLQMDLG",
+    year: 2020,
+    feat: null,
+    difficulty: "easy",
+    context: "Hymne féministe du reggaeton ! 'Yo Perreo Sola' (Je danse seule) — Bad Bunny défend le droit des femmes à danser sans être harcelées. Le clip le montre maquillé et en robe. Chanson révolutionnaire dans le genre reggaeton, souvent classée parmi les meilleures de sa carrière.",
+    vibe: "Féministe, puissant, dansant, festif",
+    keyPhrase: "\"Yo perreo sola\" — Je danse seule (et j'en ai le droit !)",
+    lyrics: [
+      {section: "Intro"},
+      {es: "Si no quiere bailar", fr: "Si elle ne veut pas danser"},
+      {es: "Déjala, que ella perrea sola", fr: "Laisse-la, elle danse seule", key: true},
+      {section: "Coro", key: true},
+      {es: "Yo perreo sola", fr: "Je danse seule", key: true},
+      {es: "Yo perreo sola, sola", fr: "Je danse seule, seule", key: true},
+      {es: "Nadie me molesta, yo perreo sola", fr: "Personne ne me dérange, je danse seule", key: true},
+      {section: "Verso 1"},
+      {es: "No necesita que nadie la acompañe", fr: "Elle n'a besoin de personne pour l'accompagner"},
+      {es: "Ella sola sabe cómo perrear", fr: "Elle sait toute seule comment danser"},
+      {es: "Si tú te le acercas, te puede dañar", fr: "Si tu t'approches d'elle, elle peut te faire du mal"},
+      {section: "Puente", key: true},
+      {es: "La cuarentena fue un problema pa' ella", fr: "Le confinement était un problème pour elle", key: true},
+      {es: "Lleva meses sin perrear, qué pena", fr: "Ça fait des mois qu'elle ne danse pas, quel dommage", key: true},
+    ],
+    tips: [
+      {icon: "⭐", text: "<strong>INCONTOURNABLE :</strong> Moment féministe du concert. Les filles hurlent. Apprends 'Yo perreo sola' — c'est le mantra."},
+      {icon: "✊", text: "<strong>Message :</strong> Chanter cette chanson c'est défendre une cause. L'énergie du public sera électrique."},
+      {icon: "⏱️", text: "<strong>Temps :</strong> 15 min. Très haute priorité, très accessible."}
+    ]
+  },
+  {
+    id: 17,
+    title: "Efecto",
+    album: "Un Verano Sin Ti",
+    year: 2022,
+    feat: null,
+    difficulty: "medium",
+    context: "'Efecto' (Effet) décrit l'effet qu'une femme a sur lui — magnétisme, attraction irrésistible. Beat de cumbia électronique moderne, très dansant. L'une des chansons les plus 'dancefloor' d'UVST, avec des influences colombiennes.",
+    vibe: "Dansant, magnétique, estival",
+    keyPhrase: "\"El efecto que tú tienes\" — L'effet que tu as sur moi",
+    lyrics: [
+      {section: "Verso 1"},
+      {es: "Desde que tú llegaste todo cambió", fr: "Depuis que tu es arrivée tout a changé"},
+      {es: "Un efecto en mí que nadie provocó", fr: "Un effet en moi que personne n'avait provoqué"},
+      {es: "Tu manera de moverte, de hablar", fr: "Ta façon de bouger, de parler"},
+      {es: "Me tiene loco, no lo puedo controlar", fr: "Me rend fou, je ne peux pas le contrôler"},
+      {section: "Coro", key: true},
+      {es: "Tú tienes un efecto en mí", fr: "Tu as un effet sur moi", key: true},
+      {es: "Que nadie tiene, solo tú", fr: "Que personne n'a, seulement toi", key: true},
+      {es: "El efecto, el efecto", fr: "L'effet, l'effet", key: true},
+      {es: "De tu amor, ay", fr: "De ton amour, ay", key: true},
+    ],
+    tips: [
+      {icon: "💃", text: "<strong>Cumbia électro :</strong> Chanson très dansante, le corps suit naturellement. Concentre-toi sur bouger !"},
+      {icon: "🎵", text: "<strong>Coro :</strong> 'El efecto' répété suffit amplement pour participer."},
+      {icon: "⏱️", text: "<strong>Temps :</strong> 15 min. Niveau moyen accessible."}
+    ]
+  },
+  {
+    id: 18,
+    title: "Safaera",
+    album: "YHLQMDLG",
+    year: 2020,
+    feat: "Jowell & Randy, Ñengo Flow",
+    difficulty: "hard",
+    context: "'Safaera' est une œuvre culte — mashup de samples reggaeton old school (Hector El Father, Glory) avec des paroles très explicites et un crescendo musical unique de 5 minutes. Jowell & Randy et Ñengo Flow en feat. Chanson pour les connaisseurs du reggaeton classique.",
+    vibe: "Hardcore, nostalgique reggaeton, club",
+    keyPhrase: "\"Safaera, safaera\" — Grande fiesta/fête débridée",
+    lyrics: [
+      {section: "Intro"},
+      {es: "Hoy es jueves y tú sabes lo que es", fr: "Aujourd'hui c'est jeudi et tu sais ce que c'est"},
+      {section: "Verso 1 - Bad Bunny"},
+      {es: "Safaera, safaera", fr: "Grande fête, grande fête", key: true},
+      {es: "Esta noche todos a gozar", fr: "Ce soir tout le monde profite"},
+      {es: "El perreo comenzó", fr: "Le perreo a commencé"},
+      {section: "Section Jowell & Randy"},
+      {es: "Dale, dale, muévete así", fr: "Allez, allez, bouge comme ça"},
+      {es: "Que esto está que arde, bebé", fr: "Que ça brûle, bébé"},
+      {section: "Coro collectif", key: true},
+      {es: "¡Safaera! ¡Safaera! ¡Safaera!", fr: "Grande fête ! Grande fête ! Grande fête !", key: true},
+      {es: "Esta noche no para", fr: "Cette nuit ne s'arrête pas", key: true},
+    ],
+    tips: [
+      {icon: "🎵", text: "<strong>Medley historique :</strong> La chanson passe par plusieurs sections/tempos différents. C'est une expérience musicale."},
+      {icon: "⚠️", text: "<strong>Difficile :</strong> Ne cherche pas à tout mémoriser. 'Safaera' crié avec les poings en l'air suffit pour vivre le moment."},
+      {icon: "📚", text: "<strong>Contexte :</strong> Reconnais les samples reggaeton old school si tu en connais — c'est un hommage aux origines."}
+    ]
+  },
+  {
+    id: 19,
+    title: "Diles",
+    album: "Beast Mode",
+    year: 2016,
+    feat: "Ozuna, Farruko, Arcángel, Ñengo Flow, DJ Luian",
+    difficulty: "hard",
+    context: "Vieux titre de 2016 de l'époque Beast Mode, avec une pléiade de rappeurs latinos. 'Diles' (Dis-leur) — dis-leur qui tu es, confrontation et fierté. Beat trap sombre de la vieille école Bad Bunny. Fan service pour les OG fans.",
+    vibe: "Sombre, rap trap, old school BB",
+    keyPhrase: "\"Diles que yo soy el mejor\" — Dis-leur que je suis le meilleur",
+    lyrics: [
+      {section: "Intro"},
+      {es: "Diles, diles, diles", fr: "Dis-leur, dis-leur, dis-leur", key: true},
+      {section: "Verso - Bad Bunny"},
+      {es: "Diles que yo llegué para quedarme", fr: "Dis-leur que je suis venu pour rester"},
+      {es: "Que nadie me puede tumbar", fr: "Que personne ne peut me faire tomber"},
+      {es: "Que lo que yo hago no es normal", fr: "Que ce que je fais n'est pas normal"},
+      {section: "Coro", key: true},
+      {es: "Diles que yo soy el mejor", fr: "Dis-leur que je suis le meilleur", key: true},
+      {es: "Que llevo el juego en mi poder", fr: "Que j'ai le jeu dans mon pouvoir", key: true},
+    ],
+    tips: [
+      {icon: "⚠️", text: "<strong>Old school :</strong> Chanson de 2016, les casual fans ne la connaissent pas. Si tu la connais, les vrais fans t'acclameront."},
+      {icon: "🎤", text: "<strong>Nombreux feats :</strong> Chaque artiste a sa section. Écoute pour reconnaître les voix."},
+      {icon: "💡", text: "<strong>Priorité basse :</strong> Si le temps manque, concentre-toi sur d'autres chansons plus récentes."}
+    ]
+  },
+  {
+    id: 20,
+    title: "MONACO",
+    album: "Singles",
+    year: 2023,
+    feat: null,
+    difficulty: "medium",
+    context: "'Monaco' est sorti en 2023 comme single solo. Chanson de luxury lifestyle, référence à Monaco comme symbole d'opulence. Beat trap minimaliste, style très sobre. Bad Bunny décrit son niveau de vie et son mindset de gagnant.",
+    vibe: "Luxe, confidence, trap minimaliste",
+    keyPhrase: "\"Monaco, yo vivo en Monaco\" — Monaco, je vis à Monaco (niveau)",
+    lyrics: [
+      {section: "Intro"},
+      {es: "Tú sabes quién soy yo", fr: "Tu sais qui je suis"},
+      {section: "Verso 1"},
+      {es: "Monaco, yo no bajo el precio", fr: "Monaco, je ne baisse pas mes exigences"},
+      {es: "Mi vida es un éxito, no lo niego", fr: "Ma vie est un succès, je ne le nie pas"},
+      {es: "Hago lo que yo quiero cuando quiero", fr: "Je fais ce que je veux quand je veux"},
+      {section: "Coro", key: true},
+      {es: "Monaco, Monaco", fr: "Monaco, Monaco", key: true},
+      {es: "Así vivo yo, así vivo yo", fr: "C'est comme ça que je vis", key: true},
+      {es: "Monaco, el nivel mío", fr: "Monaco, mon niveau", key: true},
+    ],
+    tips: [
+      {icon: "💎", text: "<strong>Vibes luxe :</strong> Ambiance froide et confiante. Tiens-toi droit pendant cette chanson."},
+      {icon: "🎵", text: "<strong>Hook :</strong> 'Monaco, Monaco' — très court et percutant. Facile à mémoriser."},
+      {icon: "⏱️", text: "<strong>Temps :</strong> 15 min. Niveau moyen, accessible."}
+    ]
+  },
+  {
+    id: 21,
+    title: "La Santa",
+    album: "Oasis",
+    year: 2019,
+    feat: "Daddy Yankee",
+    difficulty: "medium",
+    context: "Collaboration légendaire avec le King of Reggaeton, Daddy Yankee, sur l'album Oasis. 'La Santa' — elle est comme une sainte mais elle n'en est pas une. Dualité femme sage/femme passionnée. Moment nostalgique en concert, Daddy Yankee est une légende.",
+    vibe: "Reggaeton classique, dualité, féminin",
+    keyPhrase: "\"Ella es una santa\" — Elle est une sainte",
+    lyrics: [
+      {section: "Intro"},
+      {es: "Oasis, Daddy Yankee, Bad Bunny", fr: "Oasis, Daddy Yankee, Bad Bunny"},
+      {section: "Verso 1 - Bad Bunny"},
+      {es: "Ella en la iglesia parece santa", fr: "À l'église elle ressemble à une sainte"},
+      {es: "Pero cuando sale, la calle la aguanta", fr: "Mais quand elle sort, la rue peut à peine la tenir"},
+      {section: "Coro", key: true},
+      {es: "Ella es una santa, una santa", fr: "Elle est une sainte, une sainte", key: true},
+      {es: "Pero conmigo se desencanta", fr: "Mais avec moi elle se déchaîne", key: true},
+      {es: "Día de semana parece santa", fr: "En semaine elle ressemble à une sainte", key: true},
+      {section: "Verso 2 - Daddy Yankee"},
+      {es: "DY con el Conejo en la mezcla", fr: "DY avec le Lapin dans le mix"},
+      {es: "Juntos somos candela, se quema la pista", fr: "Ensemble on est du feu, la piste brûle"},
+    ],
+    tips: [
+      {icon: "👑", text: "<strong>Daddy Yankee :</strong> Collaboration historique. Le public devient fou quand elle commence."},
+      {icon: "🎵", text: "<strong>Coro mémorable :</strong> 'Ella es una santa' est facile à retenir. Apprends la structure : sainte le jour, pas la nuit."},
+      {icon: "⏱️", text: "<strong>Temps :</strong> 20 min. Priorité moyenne-haute."}
+    ]
+  },
+  {
+    id: 22,
+    title: "CAFé CON RON",
+    album: "Debí Tirar Más Fotos",
+    year: 2025,
+    feat: "Los Pleneros de la Cresta",
+    difficulty: "hard",
+    context: "'Café con Ron' (Café au rhum) feat les Pleneros de la Cresta. La plena est une musique traditionnelle porto-ricaine. Fusion entre tradition (plena) et contemporain. Bad Bunny revient aux racines musicales de l'île. Chanson politique sur la résistance culturelle.",
+    vibe: "Traditionnel, politique, nostalgique, militant",
+    keyPhrase: "\"Café con ron, la resistencia\" — Café au rhum, la résistance",
+    lyrics: [
+      {section: "Intro - Plena tradicional"},
+      {es: "Aquí comienza la plena", fr: "Ici commence la plena"},
+      {es: "De Puerto Rico pa' el mundo", fr: "De Porto Rico pour le monde"},
+      {section: "Verso 1"},
+      {es: "Café con ron, así somos nosotros", fr: "Café au rhum, c'est comme ça qu'on est nous"},
+      {es: "Dulce y fuerte, así es el pueblo nuestro", fr: "Doux et fort, ainsi est notre peuple"},
+      {section: "Coro", key: true},
+      {es: "Café con ron, café con ron", fr: "Café au rhum, café au rhum", key: true},
+      {es: "La resistencia no para", fr: "La résistance ne s'arrête pas", key: true},
+      {es: "Puerto Rico vive, Puerto Rico canta", fr: "Porto Rico vit, Porto Rico chante", key: true},
+    ],
+    tips: [
+      {icon: "🎶", text: "<strong>Plena :</strong> Genre musical traditionnel porto-ricain avec percussions panderetas. Rythme très différent du reggaeton."},
+      {icon: "⚠️", text: "<strong>Difficulté :</strong> Chanson complexe musicalement. L'émotion et le rythme comptent plus que les paroles exactes."},
+      {icon: "🌺", text: "<strong>Culturel :</strong> Un des moments les plus 'Porto Rico' du concert. Respecte l'hommage aux traditions."}
+    ]
+  },
+  {
+    id: 23,
+    title: "Ojitos Lindos",
+    album: "Un Verano Sin Ti",
+    year: 2022,
+    feat: "Bomba Estéreo",
+    difficulty: "medium",
+    context: "Collaboration poétique avec le groupe colombien Bomba Estéreo. 'Ojitos Lindos' (Beaux petits yeux) — chanson d'amour romantique et électronique. Mélange cumbia, électronique et reggaeton. La voix de Liliana Saumet de Bomba Estéreo apporte une dimension unique.",
+    vibe: "Romantique, poétique, psychédélique",
+    keyPhrase: "\"Esos ojitos lindos me tienen loco\" — Ces beaux petits yeux me rendent fou",
+    lyrics: [
+      {section: "Verso 1 - Bad Bunny"},
+      {es: "Esos ojitos lindos me tienen loco a mí", fr: "Ces beaux petits yeux me rendent fou", key: true},
+      {es: "Cuando me miras así yo no sé qué hacer", fr: "Quand tu me regardes comme ça je ne sais pas quoi faire"},
+      {section: "Coro", key: true},
+      {es: "Ojitos lindos, ojitos lindos", fr: "Beaux petits yeux, beaux petits yeux", key: true},
+      {es: "Que me tienen enamorado", fr: "Qui m'ont rendu amoureux", key: true},
+      {section: "Vers - Bomba Estéreo"},
+      {es: "Tus ojos son dos estrellas en el cielo", fr: "Tes yeux sont deux étoiles dans le ciel"},
+      {es: "Me llevan lejos, hacia otro universo", fr: "Ils m'emmènent loin, vers un autre univers"},
+      {section: "Puente", key: true},
+      {es: "Ay, esos ojos, ay", fr: "Ay, ces yeux, ay", key: true},
+      {es: "Me perdí en ellos, ya no sé el camino", fr: "Je me suis perdu en eux, je ne connais plus le chemin", key: true},
+    ],
+    tips: [
+      {icon: "🌸", text: "<strong>Poétique :</strong> Chanson contemplative. Le public se balance doucement, lumières tamisées souvent."},
+      {icon: "🎵", text: "<strong>Bomba Estéreo :</strong> Écoute la voix de Liliana — très distinctive. Apprends sa section aussi."},
+      {icon: "⏱️", text: "<strong>Temps :</strong> 20 min. Priorité moyenne."}
+    ]
+  },
+  {
+    id: 24,
+    title: "LA CANCIÓN",
+    album: "Oasis",
+    year: 2019,
+    feat: "J Balvin",
+    difficulty: "easy",
+    context: "'La Canción' avec J Balvin — ballade romantique et mélancolique sur une rupture. C'est leur chanson, celle qui rappelle une relation terminée. Très différent du reste de leur collaboration, plus introspective. Clip très esthétique, chanson très aimée.",
+    vibe: "Mélancolique, ballade, post-rupture",
+    keyPhrase: "\"Esta es nuestra canción\" — C'est notre chanson",
+    lyrics: [
+      {section: "Intro"},
+      {es: "Esta canción te la dedico a ti", fr: "Je te dédie cette chanson"},
+      {section: "Verso 1 - Bad Bunny"},
+      {es: "Hoy escuché nuestra canción y me quebré", fr: "Aujourd'hui j'ai entendu notre chanson et j'ai craqué"},
+      {es: "Las memorias de los dos me destruyeron", fr: "Les souvenirs de nous deux m'ont détruit"},
+      {es: "Ya no duele igual, pero duele", fr: "Ça ne fait plus aussi mal, mais ça fait mal"},
+      {section: "Coro", key: true},
+      {es: "Esta es nuestra canción", fr: "C'est notre chanson", key: true},
+      {es: "La que sonaba cuando estábamos bien", fr: "Celle qui jouait quand tout allait bien", key: true},
+      {es: "Nuestra canción, nuestra canción", fr: "Notre chanson, notre chanson", key: true},
+      {section: "Verso 2 - J Balvin"},
+      {es: "Yo también la escucho y me duele", fr: "Je l'écoute aussi et ça me fait mal"},
+      {es: "Pero hay cosas que el tiempo no resuelve", fr: "Mais il y a des choses que le temps ne résout pas"},
+    ],
+    tips: [
+      {icon: "😢", text: "<strong>Moment émotionnel :</strong> Chanson qui fait pleurer. L'ambiance est recueillie. Chante doucement."},
+      {icon: "🎵", text: "<strong>Simple :</strong> 'Esta es nuestra canción' — très accessible à mémoriser."},
+      {icon: "⏱️", text: "<strong>Temps :</strong> 15 min. Priorité moyenne-haute, très connue du public."}
+    ]
+  },
+  {
+    id: 25,
+    title: "KLOuFRENS",
+    album: "Debí Tirar Más Fotos",
+    year: 2025,
+    feat: null,
+    difficulty: "medium",
+    context: "'Cloufrens' = 'Cloud Friends' en prononciation caraïbéenne. Thème des faux amis des réseaux sociaux, ceux qui te suivent en ligne mais disparaissent dans la vraie vie. Critique des relations superficielles à l'ère digitale. Beat moderne et introspectif.",
+    vibe: "Introspectif, réseaux sociaux, méfiance",
+    keyPhrase: "\"Tú no eres mi amigo, eres un cloufrens\" — Tu n'es pas mon ami, tu es un ami cloud",
+    lyrics: [
+      {section: "Verso 1"},
+      {es: "Cuántos amigos tengo en la pantalla", fr: "Combien d'amis j'ai sur l'écran"},
+      {es: "Pero en persona, nadie en la batalla", fr: "Mais en personne, personne dans la bataille"},
+      {es: "Cloufrens, cloufrens", fr: "Cloud friends, cloud friends", key: true},
+      {es: "Solo les importo cuando brillo, no cuando me duele", fr: "Ils s'intéressent à moi seulement quand je brille, pas quand j'ai mal"},
+      {section: "Coro", key: true},
+      {es: "No son mis amigos, son cloufrens", fr: "Ce ne sont pas mes amis, ce sont des cloufrens", key: true},
+      {es: "Que me dan like pero no están", fr: "Qui me likent mais ne sont pas là", key: true},
+      {es: "Cloufrens, cloufrens", fr: "Cloud friends, cloud friends", key: true},
+    ],
+    tips: [
+      {icon: "📱", text: "<strong>Ultra-moderne :</strong> Critique pertinente des réseaux. Tout le monde peut s'identifier."},
+      {icon: "💡", text: "<strong>Jeu de mots :</strong> 'Cloud friends' → 'Cloufrens' en accent caribéen. Fun fact à partager."},
+      {icon: "⏱️", text: "<strong>Temps :</strong> 15-20 min. Priorité moyenne."}
+    ]
+  },
+  {
+    id: 26,
+    title: "DÁKITI",
+    album: "El Último Tour Del Mundo",
+    year: 2020,
+    feat: "JHAYCO",
+    difficulty: "easy",
+    context: "'Dákiti' est un des plus grands hits de Bad Bunny — numéro 1 dans le monde en 2020. Feat avec JHAYCO. Chanson de séduction directe avec un beat trap romantique. Le titre vient d'un quartier de Porto Rico. L'un des duos les plus populaires de la génération.",
+    vibe: "Romantique, séduisant, moderne",
+    keyPhrase: "\"Baby, yo quiero estar contigo\" — Bébé, je veux être avec toi",
+    lyrics: [
+      {section: "Intro"},
+      {es: "JHAYCO y Bad Bunny", fr: "JHAYCO et Bad Bunny"},
+      {section: "Coro - JHAYCO", key: true},
+      {es: "Baby, yo quiero estar contigo", fr: "Bébé, je veux être avec toi", key: true},
+      {es: "Que te pongas lo más bonito", fr: "Que tu mettes ta plus belle tenue", key: true},
+      {es: "Esta noche vamos al bonito", fr: "Ce soir on va au meilleur endroit", key: true},
+      {section: "Verso 1 - Bad Bunny"},
+      {es: "Tú eres bonita, inteligente y fina", fr: "Tu es belle, intelligente et raffinée"},
+      {es: "Tienes una figura divina", fr: "Tu as une silhouette divine"},
+      {section: "Coro 2", key: true},
+      {es: "Dákiti, dákiti", fr: "Dákiti, dákiti", key: true},
+      {es: "Baby, tú eres mi favorita", fr: "Bébé, tu es ma préférée", key: true},
+      {es: "Dákiti, dákiti", fr: "Dákiti, dákiti", key: true},
+    ],
+    tips: [
+      {icon: "⭐", text: "<strong>MEGA HIT :</strong> Numéro 1 mondial. Tout le stade chante. Priorité absolue avec Tití et Me Porto Bonito."},
+      {icon: "🎤", text: "<strong>JHAYCO :</strong> Apprends aussi la partie de JHAYCO — elle est très mémorable."},
+      {icon: "⏱️", text: "<strong>Temps :</strong> 20-25 min. HAUTE PRIORITÉ."}
+    ]
+  },
+  {
+    id: 27,
+    title: "Yonaguni",
+    album: "El Último Tour Del Mundo",
+    year: 2021,
+    feat: null,
+    difficulty: "medium",
+    context: "'Yonaguni' est une île japonaise. Bad Bunny décrit comment il ferait n'importe quoi pour retrouver son ex — irait même jusqu'à Yonaguni (bout du monde). Chanson de nostalgie et d'amour perdu avec une production électronique et planante.",
+    vibe: "Nostalgique, amour perdu, mélancolique",
+    keyPhrase: "\"Que te extraño\" — Tu me manques",
+    lyrics: [
+      {section: "Intro"},
+      {es: "Yonaguni, ¿eso existe?", fr: "Yonaguni, ça existe ?"},
+      {section: "Verso 1"},
+      {es: "Desde que no estás, el tiempo pasa lento", fr: "Depuis que tu n'es pas là, le temps passe lentement"},
+      {es: "Y yo aquí pensando en ti cada momento", fr: "Et moi ici à penser à toi à chaque instant"},
+      {es: "Busqué Yonaguni en el mapa", fr: "J'ai cherché Yonaguni sur la carte"},
+      {es: "Pa' ir a buscarte y que me olvides la bofetada", fr: "Pour aller te chercher et me faire oublier la gifle"},
+      {section: "Coro", key: true},
+      {es: "Que te extraño, que te extraño", fr: "Tu me manques, tu me manques", key: true},
+      {es: "Yonaguni, ¿tú qué estás haciendo?", fr: "Yonaguni, qu'est-ce que tu fais ?", key: true},
+      {es: "Que te extraño, sigo aquí esperando", fr: "Tu me manques, j'attends toujours", key: true},
+    ],
+    tips: [
+      {icon: "🗾", text: "<strong>Fun fact :</strong> Yonaguni est la ville la plus à l'ouest du Japon. Bad Bunny irait jusqu'au bout du monde pour elle."},
+      {icon: "🥺", text: "<strong>Mélodie planante :</strong> Très mémorable. 'Que te extraño' revient comme une litanie."},
+      {icon: "⏱️", text: "<strong>Temps :</strong> 20 min. Priorité moyenne-haute."}
+    ]
+  },
+  {
+    id: 28,
+    title: "El Apagón",
+    album: "Un Verano Sin Ti",
+    year: 2022,
+    feat: null,
+    difficulty: "hard",
+    context: "'El Apagón' (La Coupure d'électricité) est le manifeste politique de l'album. Critique directe de la gentrification, du colonialisme américain à Porto Rico, des coupures d'électricité après l'ouragan Maria. Chanson engagée la plus longue et la plus complexe de sa discographie.",
+    vibe: "Politique, militant, lyrique, profond",
+    keyPhrase: "\"Aquí se queda\" — Ici on reste (on ne part pas)",
+    lyrics: [
+      {section: "Intro"},
+      {es: "¿Pa' qué quieren la luz si la van a apagar?", fr: "Pourquoi veulent-ils la lumière s'ils vont l'éteindre ?"},
+      {section: "Verso 1"},
+      {es: "Nos quitaron la luz, nos quitaron el agua", fr: "Ils nous ont coupé la lumière, ils nous ont coupé l'eau"},
+      {es: "Nos vendieron la isla para que no valga nada", fr: "Ils ont vendu l'île pour qu'elle ne vaille rien"},
+      {es: "Mientras el pueblo sufre, ellos de fiesta", fr: "Pendant que le peuple souffre, eux font la fête"},
+      {section: "Coro", key: true},
+      {es: "Aquí se queda, aquí se queda", fr: "Ici on reste, ici on reste", key: true},
+      {es: "No nos van a quitar lo nuestro", fr: "Ils ne vont pas nous prendre ce qui nous appartient", key: true},
+      {es: "Aquí se queda, Puerto Rico", fr: "Ici on reste, Porto Rico", key: true},
+      {section: "Puente"},
+      {es: "El apagón no nos calla", fr: "La coupure d'électricité ne nous fait pas taire"},
+      {es: "Nuestra voz sigue brillando", fr: "Notre voix continue de briller"},
+    ],
+    tips: [
+      {icon: "🔥", text: "<strong>Moment politique :</strong> Si Bad Bunny la joue, ça sera un des moments les plus intenses. Silence puis explosion."},
+      {icon: "✊", text: "<strong>Message :</strong> 'Aquí se queda' — apprends juste ça. C'est le cri de résistance porto-ricain."},
+      {icon: "⚠️", text: "<strong>Note :</strong> Chanson longue et complexe. Focus sur le sens et l'émotion, pas les paroles exactes."}
+    ]
+  },
+  {
+    id: 29,
+    title: "DtMF",
+    album: "Debí Tirar Más Fotos",
+    year: 2025,
+    feat: null,
+    difficulty: "medium",
+    context: "'DtMF' = 'Debí Tirar Más Fotos' (J'aurais dû prendre plus de photos). Titre de l'album complet. Chanson sur le regret de ne pas avoir immortalisé les bons moments, de prendre pour acquis ce qu'on a. Mélancolie douce, réflexion sur la mémoire et la présence.",
+    vibe: "Nostalgique, réflexif, doux",
+    keyPhrase: "\"Debí tirar más fotos\" — J'aurais dû prendre plus de photos",
+    lyrics: [
+      {section: "Intro"},
+      {es: "Ahora que ya no está, me arrepiento", fr: "Maintenant qu'elle n'est plus là, je regrette"},
+      {section: "Verso 1"},
+      {es: "Debí tirar más fotos contigo", fr: "J'aurais dû prendre plus de photos avec toi", key: true},
+      {es: "Guardar cada momento, cada abrazo", fr: "Garder chaque moment, chaque câlin"},
+      {es: "Pero creía que el tiempo era eterno", fr: "Mais je croyais que le temps était éternel"},
+      {es: "Y no archivé lo nuestro", fr: "Et je n'ai pas archivé ce qui était nôtre"},
+      {section: "Coro", key: true},
+      {es: "Debí tirar más fotos, debí guardar más", fr: "J'aurais dû prendre plus de photos, j'aurais dû garder plus", key: true},
+      {es: "Debí disfrutar más, debí amar más", fr: "J'aurais dû profiter plus, j'aurais dû aimer plus", key: true},
+      {es: "Debí tirar más fotos", fr: "J'aurais dû prendre plus de photos", key: true},
+    ],
+    tips: [
+      {icon: "📸", text: "<strong>Titre de l'album :</strong> C'est la chanson qui donne son nom à tout l'album de 2025. Symboliquement très importante."},
+      {icon: "💡", text: "<strong>Message universel :</strong> Le regret de ne pas profiter du présent — tout le monde comprend instinctivement."},
+      {icon: "⏱️", text: "<strong>Temps :</strong> 20 min. Priorité moyenne-haute."}
+    ]
+  },
+  {
+    id: 30,
+    title: "EoO",
+    album: "Debí Tirar Más Fotos",
+    year: 2025,
+    feat: null,
+    difficulty: "hard",
+    context: "'EoO' = acronyme mystérieux de l'album DTMF. Chanson expérimentale, production atmosphérique et introspective. Bad Bunny explore des territoires sonores moins commerciaux. Pour les fans de l'aspect artistique plutôt que commercial de sa musique.",
+    vibe: "Expérimental, introspectif, atmosphérique",
+    keyPhrase: "\"Entre el olvido y el amor\" — Entre l'oubli et l'amour",
+    lyrics: [
+      {section: "Intro"},
+      {es: "Entre el olvido y el amor", fr: "Entre l'oubli et l'amour", key: true},
+      {es: "Yo me pierdo sin saber", fr: "Je me perds sans savoir"},
+      {section: "Verso 1"},
+      {es: "El tiempo pasa y yo aquí solo", fr: "Le temps passe et moi ici seul"},
+      {es: "Con recuerdos que no quiero pero tengo", fr: "Avec des souvenirs que je ne veux pas mais que j'ai"},
+      {section: "Coro", key: true},
+      {es: "EoO, entre el olvido y el amor", fr: "EoO, entre l'oubli et l'amour", key: true},
+      {es: "Así vivo yo, así sufro yo", fr: "C'est comme ça que je vis, comme ça que je souffre", key: true},
+    ],
+    tips: [
+      {icon: "🎨", text: "<strong>Expérimental :</strong> Chanson artistique hors mainstream. Apprécie l'atmosphère plus que de tout mémoriser."},
+      {icon: "💡", text: "<strong>Acronyme :</strong> EoO = Entre el Olvido y el Amor. Le comprendre enrichit l'expérience."},
+      {icon: "⚠️", text: "<strong>Priorité basse :</strong> Concentre ton énergie sur les hits si le temps manque."}
+    ]
+  },
+  {
+    id: 31,
+    title: "Moscow Mule",
+    album: "Un Verano Sin Ti",
+    year: 2022,
+    feat: null,
+    difficulty: "easy",
+    context: "'Moscow Mule' — le cocktail. Chanson festive et estivale d'UVST, ambiance fête de fin d'été, légèreté totale. Beat de dembow tropical, paroles de séduction légères. Une des préférées des fans en concert pour son énergie pure.",
+    vibe: "Festif, estival, dansant, léger",
+    keyPhrase: "\"Moscow Mule, tú eres mi Moscow Mule\" — Tu es mon Moscow Mule",
+    lyrics: [
+      {section: "Intro"},
+      {es: "Bebé, tú me embriagaste", fr: "Bébé, tu m'as enivré"},
+      {section: "Coro", key: true},
+      {es: "Tú eres mi Moscow Mule", fr: "Tu es mon Moscow Mule", key: true},
+      {es: "Me tienes bien curado", fr: "Tu m'as bien soûlé", key: true},
+      {es: "Moscow Mule, Moscow Mule", fr: "Moscow Mule, Moscow Mule", key: true},
+      {es: "Contigo siempre estoy bien", fr: "Avec toi je vais toujours bien", key: true},
+      {section: "Verso 1"},
+      {es: "Llegó la noche y tú llegas también", fr: "La nuit est arrivée et toi aussi"},
+      {es: "Con esa ropa que te ves tan bien", fr: "Avec cette tenue tu es si belle"},
+      {es: "Me sirvo otro trago y pienso en ti", fr: "Je me ressers un verre et je pense à toi"},
+    ],
+    tips: [
+      {icon: "🍹", text: "<strong>Énergie pure :</strong> Chanson made for concert. Pas besoin de tout savoir — le feeling et 'Moscow Mule' suffisent."},
+      {icon: "💃", text: "<strong>Danse :</strong> Beat très dansant, concentre-toi sur bouger."},
+      {icon: "⏱️", text: "<strong>Temps :</strong> 10 min. Facile, priorité moyenne."}
+    ]
+  },
+  {
+    id: 32,
+    title: "ALAMBRE PúA",
+    album: "Debí Tirar Más Fotos",
+    year: 2025,
+    feat: null,
+    difficulty: "hard",
+    context: "'Alambre Púa' (Fil barbelé) — métaphore d'une relation toxique qui blesse mais retient. Beat expérimental et sombre de DTMF. Chanson sur les frontières émotionnelles, les limites qu'on franchit malgré tout pour quelqu'un qui nous fait du mal.",
+    vibe: "Sombre, relation toxique, introspectif",
+    keyPhrase: "\"Me cortas como alambre púa\" — Tu me coupes comme du fil barbelé",
+    lyrics: [
+      {section: "Verso 1"},
+      {es: "Sé que me hace daño pero vuelvo", fr: "Je sais que ça me fait du mal mais je reviens"},
+      {es: "Como alambre púa que me cerca", fr: "Comme du fil barbelé qui m'encercle"},
+      {es: "Me cortas cuando te abrazo", fr: "Tu me coupes quand je t'embrasse"},
+      {es: "Pero igual te busco, eso es lo que me matas", fr: "Mais je te cherche quand même, c'est ça qui me tue"},
+      {section: "Coro", key: true},
+      {es: "Alambre púa, alambre púa", fr: "Fil barbelé, fil barbelé", key: true},
+      {es: "Me haces daño pero no me alejo", fr: "Tu me fais du mal mais je ne m'éloigne pas", key: true},
+      {es: "Alambre púa, te quiero", fr: "Fil barbelé, je t'aime", key: true},
+    ],
+    tips: [
+      {icon: "🖤", text: "<strong>Chanson sombre :</strong> Ambiance plus lourde. Écoute 3-4 fois pour t'imprégner du feeling."},
+      {icon: "🎵", text: "<strong>Métaphore forte :</strong> 'Alambre púa' = fil barbelé. L'image aide à retenir le sens et les paroles."},
+      {icon: "⚠️", text: "<strong>Priorité basse :</strong> Chanson moins connue du grand public. Focus sur les hits d'abord."}
+    ]
+  },
+  {
+    id: 33,
+    title: "LA NOCHE DE ANOCHE",
+    album: "El Último Tour Del Mundo",
+    year: 2020,
+    feat: "ROSALÍA",
+    difficulty: "medium",
+    context: "Collaboration iconique avec ROSALÍA — deux des plus grands artistes de leur génération. 'La Noche de Anoche' (La nuit d'hier) — ambiance mysterious et nocturne, reggaeton flamenco fusion. Un des moments les plus élégants et artistiques de la setlist.",
+    vibe: "Élégant, nocturne, mystérieux, artistique",
+    keyPhrase: "\"La noche de anoche fue diferente\" — La nuit d'hier était différente",
+    lyrics: [
+      {section: "Intro - ROSALÍA"},
+      {es: "La noche de anoche", fr: "La nuit d'hier", key: true},
+      {section: "Verso 1 - Bad Bunny"},
+      {es: "Fue diferente, lo que pasó entre los dos", fr: "C'était différent, ce qui s'est passé entre nous"},
+      {es: "No sé si fue el ambiente o si fuiste tú", fr: "Je ne sais pas si c'était l'ambiance ou si c'était toi"},
+      {section: "Coro", key: true},
+      {es: "La noche de anoche fue diferente", fr: "La nuit d'hier était différente", key: true},
+      {es: "Algo pasó que yo no sé explicar", fr: "Quelque chose s'est passé que je ne sais pas expliquer", key: true},
+      {section: "Verso 2 - ROSALÍA"},
+      {es: "Esa noche yo también lo sentí", fr: "Cette nuit-là moi aussi je l'ai ressenti"},
+      {es: "Como si el mundo se paró para mí", fr: "Comme si le monde s'était arrêté pour moi"},
+      {section: "Puente", key: true},
+      {es: "Ay, qué noche, qué noche", fr: "Ay, quelle nuit, quelle nuit", key: true},
+      {es: "ROSALÍA y el Conejo Malo", fr: "ROSALÍA et le Mauvais Lapin", key: true},
+    ],
+    tips: [
+      {icon: "🌹", text: "<strong>ROSALÍA :</strong> Moment très attendu du concert. La collaboration est iconique. Apprends les deux parties."},
+      {icon: "🎵", text: "<strong>Fusion flamenco :</strong> Beat unique entre flamenco et reggaeton. Très différent du reste de la setlist."},
+      {icon: "⏱️", text: "<strong>Temps :</strong> 20-25 min. Haute priorité — collaboration légendaire."}
+    ]
+  },
+  {
+    id: 34,
+    title: "PERRO NEGRO",
+    album: "nadie sabe lo que va a pasar mañana",
+    year: 2023,
+    feat: "Feid",
+    difficulty: "medium",
+    context: "Collaboration explosive avec Feid (Ferxxo), le roi de la scène urbaine colombienne. 'Perro Negro' (Chien noir) — banger trap qui célèbre le succès, le style de vie, la confiance. Single de l'album 'nadie sabe lo que va a pasar mañana'. Beat lourd et modern.",
+    vibe: "Banger, trap, success, confident",
+    keyPhrase: "\"Perro negro, así nos llaman\" — Chien noir, c'est comme ça qu'ils nous appellent",
+    lyrics: [
+      {section: "Intro"},
+      {es: "Feid y Bad Bunny, ¡wepa!", fr: "Feid et Bad Bunny, ouais !"},
+      {section: "Verso 1 - Bad Bunny"},
+      {es: "Yo soy el perro negro de este juego", fr: "Je suis le chien noir de ce jeu"},
+      {es: "Que nadie me pone reglas, hago lo que quiero", fr: "Que personne ne me met de règles, je fais ce que je veux"},
+      {section: "Coro", key: true},
+      {es: "Perro negro, perro negro", fr: "Chien noir, chien noir", key: true},
+      {es: "Así nos llaman y así nos quedamos", fr: "C'est comme ça qu'ils nous appellent et comme ça on reste", key: true},
+      {es: "Perro negro, we run this", fr: "Chien noir, on dirige ça", key: true},
+      {section: "Verso 2 - Feid"},
+      {es: "Ferxxo siempre llega tarde pero llega bien", fr: "Ferxxo arrive toujours en retard mais arrive bien"},
+      {es: "Con ese estilo que ninguno tiene", fr: "Avec ce style que personne n'a"},
+    ],
+    tips: [
+      {icon: "🖤", text: "<strong>Banger de fermeture :</strong> Parfait pour finir en beauté. Beat lourd, énergie maximale."},
+      {icon: "🎤", text: "<strong>Feid :</strong> Reconnaître sa voix colombienne distinctive aide à suivre la chanson."},
+      {icon: "⏱️", text: "<strong>Temps :</strong> 20 min. Priorité moyenne-haute, bonne chanson de fin."}
+    ]
+  }
+];
+
+// State
+let learned = JSON.parse(localStorage.getItem('bb_learned') || '[]');
+let currentFilter = 'all';
+let openCards = new Set();
+
+function saveState() {
+  localStorage.setItem('bb_learned', JSON.stringify(learned));
+}
+
+function updateProgress() {
+  const pct = (learned.length / songs.length * 100).toFixed(0);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = `${learned.length} / ${songs.length} chansons apprises`;
+}
+
+function toggleLearn(id, event) {
+  event.stopPropagation();
+  if (learned.includes(id)) {
+    learned = learned.filter(x => x !== id);
+  } else {
+    learned.push(id);
+  }
+  saveState();
+  renderSongs();
+  updateProgress();
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSongs();
+}
+
+function filterSongs() {
+  renderSongs();
+}
+
+function toggleCard(id) {
+  if (openCards.has(id)) {
+    openCards.delete(id);
+  } else {
+    openCards.add(id);
+  }
+  renderSongs();
+}
+
+function switchTab(cardId, tab) {
+  const card = document.getElementById('card-' + cardId);
+  card.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  card.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  card.querySelector('[data-tab="' + tab + '"]').classList.add('active');
+  card.querySelector('#tc-' + tab + '-' + cardId).classList.add('active');
+}
+
+function getDiffLabel(d) {
+  if (d === 'easy') return '🟢 Facile';
+  if (d === 'medium') return '🟡 Moyen';
+  return '🔴 Difficile';
+}
+function getDiffClass(d) {
+  if (d === 'easy') return 'diff-easy';
+  if (d === 'medium') return 'diff-medium';
+  return 'diff-hard';
+}
+
+function renderSongs() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const list = document.getElementById('songList');
+
+  const filtered = songs.filter(s => {
+    const matchSearch = !search || s.title.toLowerCase().includes(search) || (s.feat || '').toLowerCase().includes(search);
+    const isLearned = learned.includes(s.id);
+    const matchFilter =
+      currentFilter === 'all' ? true :
+      currentFilter === 'easy' ? s.difficulty === 'easy' :
+      currentFilter === 'medium' ? s.difficulty === 'medium' :
+      currentFilter === 'hard' ? s.difficulty === 'hard' :
+      currentFilter === 'learned' ? isLearned : true;
+    return matchSearch && matchFilter;
+  });
+
+  list.innerHTML = filtered.map((s, idx) => {
+    const isLearned = learned.includes(s.id);
+    const isOpen = openCards.has(s.id);
+
+    const lyricsHtml = s.lyrics.map(l => {
+      if (l.section !== undefined) {
+        return `<span class="lyric-section-label">${l.section}</span>`;
+      }
+      return `<div class="lyric-line${l.key ? ' key-line' : ''}">
+        <span class="lyric-es">${l.key ? '<strong>' : ''}${l.es}${l.key ? '</strong>' : ''}</span>
+        <span class="lyric-fr">${l.fr}</span>
+      </div>`;
+    }).join('');
+
+    const tipsHtml = s.tips.map(t => `
+      <div class="tip-item">
+        <span class="tip-icon">${t.icon}</span>
+        <span class="tip-text">${t.text}</span>
+      </div>
+    `).join('');
+
+    return `
+    <div class="song-card${isLearned ? ' learned' : ''}${isOpen ? ' open' : ''}" id="card-${s.id}">
+      <div class="song-header" onclick="toggleCard(${s.id})">
+        <span class="song-number">${String(idx + 1).padStart(2, '0')}</span>
+        <div class="song-info">
+          <div class="song-title">${s.title}${s.feat ? ` <span style="font-weight:400;color:var(--muted);font-size:12px">ft. ${s.feat}</span>` : ''}</div>
+          <div class="song-meta">${s.album} · ${s.year}<span class="album-tag">${getDiffLabel(s.difficulty)}</span></div>
+        </div>
+        <div class="song-actions">
+          <button class="check-btn${isLearned ? ' done' : ''}" onclick="toggleLearn(${s.id}, event)" title="Marquer comme apprise">
+            ${isLearned ? '✓' : '○'}
+          </button>
+          <span class="expand-icon">›</span>
+        </div>
+      </div>
+      ${isOpen ? `
+      <div class="song-body">
+        <div class="tabs">
+          <div class="tab active" data-tab="context" onclick="switchTab(${s.id}, 'context')">📖 Contexte</div>
+          <div class="tab" data-tab="lyrics" onclick="switchTab(${s.id}, 'lyrics')">🎤 Paroles</div>
+          <div class="tab" data-tab="tips" onclick="switchTab(${s.id}, 'tips')">💡 Tips</div>
+        </div>
+
+        <div class="tab-content active" id="tc-context-${s.id}">
+          <div class="context-section">
+            <div class="context-label">📍 Contexte & Histoire</div>
+            <div class="context-text">${s.context}</div>
+          </div>
+          <div class="context-section">
+            <div class="context-label">🎭 Ambiance</div>
+            <div class="context-text">${s.vibe}</div>
+          </div>
+          <div class="context-section">
+            <div class="context-label">🔑 Phrase clé à retenir</div>
+            <div class="key-phrase-box">${s.keyPhrase}</div>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tc-lyrics-${s.id}">
+          <div class="difficulty-badge ${getDiffClass(s.difficulty)}">${getDiffLabel(s.difficulty)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:10px;font-family:'Space Mono',monospace;">
+            🟢 Lignes en vert = à apprendre par cœur
+          </div>
+          <div class="lyrics-container">
+            <div class="lyrics-header">
+              <span>🇵🇷 Original</span>
+              <span>🇫🇷 Traduction</span>
+            </div>
+            ${lyricsHtml}
+          </div>
+        </div>
+
+        <div class="tab-content" id="tc-tips-${s.id}">
+          ${tipsHtml}
+        </div>
+      </div>
+      ` : ''}
+    </div>`;
+  }).join('');
+}
+
+renderSongs();
+updateProgress();
+</script>
+</body>
+</html>
