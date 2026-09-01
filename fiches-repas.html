@@ -152,6 +152,7 @@ h4.rayon{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:16px;margi
 .coche input{accent-color:var(--olive);width:17px;height:17px;flex:0 0 auto}
 .coche.fait{opacity:.42;text-decoration:line-through}
 #al-recherche{margin-bottom:4px}
+#rec-recherche{margin-bottom:12px}
 .modal{position:fixed;inset:0;background:rgba(22,35,27,.5);display:flex;align-items:flex-end;justify-content:center;z-index:50}
 .modal[hidden]{display:none}
 .modal-boite{background:var(--paper);border-radius:10px 10px 0 0;padding:20px 16px 24px;width:100%;max-width:620px;max-height:90vh;overflow-y:auto}
@@ -235,6 +236,12 @@ footer{margin-top:34px;font-size:13px;color:var(--soft);border-top:1px solid var
       </div>
 
       <div class="field">
+        <div class="lab"><span>Ingrédients à privilégier</span></div>
+        <input type="text" id="f-pref" placeholder="ex : poulet, courgettes, riz">
+        <p class="aide" id="pref-msg"></p>
+      </div>
+
+      <div class="field">
         <div class="lab"><span>Ingrédients à éviter</span></div>
         <input type="text" id="f-excl" placeholder="ex : champignons, saumon, crème">
         <p class="aide" id="excl-msg"></p>
@@ -266,6 +273,7 @@ footer{margin-top:34px;font-size:13px;color:var(--soft);border-top:1px solid var
   <!-- ============ onglet Recettes ============ -->
   <section data-p="recettes" hidden>
     <p class="sub">Les modèles dans lesquels l'outil pioche. Chacun se décline selon les ingrédients listés.</p>
+    <input type="text" id="rec-recherche" placeholder="Chercher une recette ou un ingrédient">
     <div class="chips" id="rec-filtre"></div>
     <div class="actions"><button class="btn" id="rec-ajout">Ajouter une recette</button></div>
     <p class="aide">Un point orange signale une recette ajoutée ou modifiée. <button class="lien" id="rec-reset">Rétablir les recettes d'origine</button></p>
@@ -531,7 +539,9 @@ const FOODS = {
   gingembre:   {n:"gingembre frais",     k:80,p:1.8,c:18,f:0.8,v:1,ct:"gingembre",g2:"m"},
   lait:        {n:"lait demi-écrémé",    k:46,p:3.3,c:4.8,f:1.5,v:1,lac:1,ct:"lait",g2:"m"},
   maizena:     {n:"maïzena",             k:350,p:0.3,c:85,f:0.1,v:1,g2:"f"},
-  balsamique:  {n:"vinaigre balsamique", k:80,p:0.5,c:17,f:0,v:1,ct:"vinaigre balsamique",g2:"m"}
+  balsamique:  {n:"vinaigre balsamique", k:80,p:0.5,c:17,f:0,v:1,ct:"vinaigre balsamique",g2:"m"},
+  cacao:       {n:"cacao non sucré",     k:230,p:20,c:15,f:12,v:1,maxg:15,ct:"cacao",g2:"m"},
+  jaune:       {n:"jaune d'œuf",         k:320,p:16,c:1,f:29,v:1,piece:18,mot:"jaune d'œuf",motPl:"jaunes d'œufs",ct:"jaune d'œuf",g2:"m"}
 };
 
 /* ============ 2. Modèles de repas ============ */
@@ -542,7 +552,7 @@ const TPLS = [
  fec:{o:["riz","rizcomplet","soba"],min:40,max:110},
  leg:{o:["brocoli","poivron","carotte","edamame","champignons"],min:150,max:250,n:2},
  gras:{o:["hsesame","holive"],min:5,max:12},
- extras:[{i:"soja",g:10},{i:"sesame",g:5}],
+ extras:[{i:"soja",g:10},{i:"sesame",g:10}],
  assaiso:"Ail, gingembre, ciboule",
  etapes:["Lancer {le:fec} à cuire.","Saisir {le:prot} à feu vif, réserver.","Faire sauter {le:leg} 5 min, remettre {le:prot}, déglacer à la sauce soja.","Dresser sur {le:fec}, parsemer de graines de sésame."]},
 
@@ -560,9 +570,9 @@ const TPLS = [
  fec:{o:["riz","pdt"],min:40,max:300},
  leg:{o:["carotte","champignons","poireau"],min:180,max:300,n:2},
  gras:{o:["creme"],min:40,max:80},
- extras:[{i:"bouillon",g:150},{i:"oignon",g:50}],
- assaiso:"Thym, laurier, sel, poivre",
- etapes:["Faire revenir l'oignon, ajouter {le:prot} coupé en morceaux.","Ajouter {le:leg} et le bouillon, laisser mijoter 25 min à couvert.","Hors du feu, incorporer la crème.","Servir avec {le:fec}."]},
+ extras:[{i:"bouillon",g:150},{i:"oignon",g:50},{i:"maizena",g:5},{i:"jaune",g:18},{i:"citron",g:10}],
+ assaiso:"Thym, laurier, persil, sel, poivre",
+ etapes:["Faire revenir l'oignon, ajouter {le:prot} coupé en morceaux.","Ajouter {le:leg} et le bouillon, laisser mijoter 25 min à couvert.","Délayer la maïzena dans un peu de bouillon froid, verser et laisser épaissir 2 min.","Hors du feu, incorporer la crème battue avec le jaune d'œuf, puis le jus de citron.","Servir avec {le:fec}."]},
 
 {id:"poelee-medit",e:"🫒",nom:"Poêlée méditerranéenne {au:prot}",type:"repas",rapide:1,
  prot:{o:["poulet","dinde","crevettes","tofu"],min:90,max:200},
@@ -695,9 +705,9 @@ const TPLS = [
  fec:{o:["wrap"],min:60,max:180},
  leg:{o:["salade","tomates","concombre","poivron"],min:120,max:220,n:2},
  gras:{o:["avocat","holive"],min:8,max:40},
- extras:[{i:"fblanc",g:60},{i:"moutarde",g:5}],
- assaiso:"Citron, ciboulette, poivre",
- etapes:["Mélanger le fromage blanc et la moutarde pour la sauce.","Tiédir la galette 30 s à la poêle.","Garnir de {leg}, de {prot} et de sauce.","Rouler serré et couper en deux."]},
+ extras:[{i:"fblanc",g:60},{i:"moutarde",g:5},{i:"miel",g:5}],
+ assaiso:"Paprika, ail, citron, poivre",
+ etapes:["Mélanger le fromage blanc, la moutarde et le miel pour la sauce.","Tiédir la galette 30 s à la poêle.","Garnir de {leg}, de {prot} et de sauce.","Rouler serré et couper en deux."]},
 
 {id:"pdt-farcies",e:"🥔",nom:"Pommes de terre farcies {au:prot}",type:"repas",
  prot:{o:["jambon","poulet","thon"],min:80,max:180},
@@ -721,10 +731,10 @@ const TPLS = [
  prot:{o:["poulet","dinde","jambon","crevettes"],min:80,max:190},
  fec:{o:["pates"],min:45,max:110},
  leg:{o:["courgette","champignons","epinards","tomates","brocoli"],min:100,max:250,n:1},
- gras:{o:["ffrais","creme","fblanc"],min:40,max:90},
+ gras:{o:["ffrais","creme","fblanc","skyr"],min:40,max:90},
  extras:[{i:"parmesan",g:10},{i:"ail",g:5}],
  assaiso:"Ail, basilic, sel, poivre",
- etapes:["Cuire les pâtes al dente, garder un peu d'eau de cuisson.","Saisir {le:prot} avec l'ail, réserver.","Faire revenir {le:leg} 6 min, ajouter le fromage frais et un filet d'eau de cuisson.","Mélanger le tout aux pâtes, râper le parmesan."]},
+ etapes:["Cuire les pâtes al dente, garder un peu d'eau de cuisson.","Saisir {le:prot} avec l'ail, réserver.","Faire revenir {le:leg} 6 min, ajouter la base crémeuse et un filet d'eau de cuisson.","Mélanger le tout aux pâtes, râper le parmesan."]},
 
 {id:"burger-maison",e:"🍔",nom:"Burger maison & pommes de terre",type:"repas",
  prot:{o:["hache5","dinde","poulet"],min:80,max:180},
@@ -858,8 +868,8 @@ const TPLS = [
  fec:{o:["avoine"],min:25,max:70},
  leg:{o:["banane","framboises","myrtilles"],min:50,max:130,n:1},
  gras:{o:["chocnoir","bcacahuete","pamandes"],min:5,max:15},
- extras:[{i:"lait",g:50},{i:"cannelle",g:1}],
- assaiso:"Cacao non sucré, vanille",
+ extras:[{i:"lait",g:50},{i:"cacao",g:5},{i:"cannelle",g:1}],
+ assaiso:"Vanille",
  etapes:["Mélanger les flocons, le skyr, le lait et le cacao dans un bocal.","Laisser au frais toute la nuit.","Au matin, ajouter {le:leg} et le chocolat."]},
 
 {id:"bagel-saumon",e:"🥯",nom:"Bagel {au:prot} & fromage frais",type:"petitdej",rapide:1,
@@ -943,7 +953,7 @@ const CATS = {
   fec:["riz","rizcomplet","pates","semoule","boulgour","quinoa","sarrasin","orge","soba","pdt","patatedouce","polenta","pain","painbrioche","bagel","painburger","wrap","avoine","favoine","granola","popcorn","hrouges","pchiches","lentilles"],
   leg:["courgette","brocoli","carotte","champignons","poivron","hverts","epinards","tomates","tcerises","aubergine","choufleur","chourouge","kale","poireau","ppois","salade","roquette","concombre","mais","oignon","edamame","banane","myrtilles","framboises","fraises","cerises","raisin","ananas","melon","pasteque","kiwi","orange","pomme","poire","peche"],
   gras:["holive","hsesame","creme","coco","emmental","parmesan","feta","mozza","cheddar","burrata","avocat","bcacahuete","tahini","pamandes","amandes","noix","noisettes","gcourge","chia","lin","tournesol","chocnoir"],
-  extra:["soja","coulis","bouillon","cornichons","sesame","moutarde","citron","oignon","ail","gingembre","miel","lait","maizena","balsamique","fblanc","ffrais","cottage","parmesan","emmental","granola","chia"]
+  extra:["soja","coulis","bouillon","cornichons","sesame","moutarde","citron","oignon","ail","gingembre","miel","lait","maizena","balsamique","cacao","jaune","fblanc","ffrais","cottage","parmesan","emmental","granola","chia"]
 };
 
 /* ============ 2 ter. Ajouts enregistrés par l'utilisateur ============ */
@@ -1022,7 +1032,7 @@ function AU(id){
 const DE = id => de(CT(id));
 function liste(t){ return t.length<2 ? (t[0]||"") : t.slice(0,-1).join(", ") + " et " + t[t.length-1]; }
 
-let etat = {type:"repas", diet:[], excl:[]};
+let etat = {type:"repas", diet:[], excl:[], pref:[]};
 
 /* comparaison souple : « pates » doit écarter les pâtes, « oeufs » les œufs */
 /* comparaison souple : majuscules, accents, ligatures, tirets et pluriels ne comptent pas */
@@ -1058,6 +1068,20 @@ function okFood(id){
   return true;
 }
 function filtre(liste){ return liste.filter(okFood); }
+
+/* aliments à privilégier : ils ne restreignent rien, ils passent devant au tirage */
+function estPref(id){
+  if(!etat.pref.length) return false;
+  const F = FOODS[id]; if(!F) return false;
+  const n = F.n + " " + (F.ct || "");
+  return etat.pref.some(x => contient(n, x));
+}
+/* tirage au sort qui donne la priorité aux aliments demandés, s'il y en a dans la liste */
+function pickP(a){
+  const p = a.filter(estPref);
+  return pick(p.length ? p : a);
+}
+const melange = a => a.map(v => [Math.random(), v]).sort((x,y) => x[0]-y[0]).map(x => x[1]);
 
 /* un extra cité dans les étapes fait partie de la recette : si le filtre l'écarte,
    le modèle entier devient indisponible plutôt que de garder une étape sans ingrédient */
@@ -1115,26 +1139,25 @@ function malAssorti(P, G, legs){
 function composer(tpl, cibleK, cibleP){
   const legsDispo = filtre(tpl.leg.o);
   const nLeg = Math.min(tpl.leg.n||1, legsDispo.length);
-  const tirerLegs = source => {
-    const out = [], pool = source.slice();
-    for(let i=0;i<Math.min(nLeg,pool.length);i++) out.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
-    return out;
-  };
-  let P = pick(filtre(tpl.prot.o));
-  let G = pick(filtre(tpl.gras.o));
+  /* les légumes demandés remplissent les places d'abord, le reste est tiré au sort */
+  const tirerLegs = source => melange(source.filter(estPref))
+    .concat(melange(source.filter(id => !estPref(id))))
+    .slice(0, Math.min(nLeg, source.length));
+  let P = pickP(filtre(tpl.prot.o));
+  let G = pickP(filtre(tpl.gras.o));
   let legs = tirerLegs(legsDispo);
   /* si l'assiette est mal assortie, on la répare : d'abord la garniture, sinon la protéine */
   if(malAssorti(P, G, legs)){
     const gOK = filtre(tpl.gras.o).filter(g => !SUCRE.includes(g) || g === "coco");
     const legOK = legsDispo.filter(l => !FRUITS.includes(l));
-    if(gOK.length && legOK.length >= nLeg){ G = pick(gOK); legs = tirerLegs(legOK); }
+    if(gOK.length && legOK.length >= nLeg){ G = pickP(gOK); legs = tirerLegs(legOK); }
     else {
       const pOK = filtre(tpl.prot.o).filter(p => !SALE.includes(p));
-      if(pOK.length) P = pick(pOK);
-      else if(gOK.length){ G = pick(gOK); if(legOK.length) legs = tirerLegs(legOK); }
+      if(pOK.length) P = pickP(pOK);
+      else if(gOK.length){ G = pickP(gOK); if(legOK.length) legs = tirerLegs(legOK); }
     }
   }
-  const Fe = pick(filtre(tpl.fec.o));
+  const Fe = pickP(filtre(tpl.fec.o));
 
   const gTotalLeg = rint(tpl.leg.min, tpl.leg.max);
   const legItems = legs.map((id,i) => {
@@ -1223,7 +1246,24 @@ function genererRepas(cibleK, cibleP){
   if(!dispo.length) return null;
   /* on ne pioche que dans les modèles capables d'atteindre la cible, sinon dans tous */
   const atteignables = dispo.filter(t => { const [lo,hi] = plage(t); return cibleK >= lo-40 && cibleK <= hi+40; });
-  const pool = atteignables.length ? atteignables : dispo;
+  /* combien de souhaits un modèle peut-il réellement servir, filtres compris ?
+     on garde ensuite les meilleurs, pour que « crevettes, brocolis » donne les deux */
+  const score = t => {
+    const ids = ["prot","fec","leg","gras"].reduce((a,r) => a.concat(filtre(t[r].o)), [])
+      .concat((t.extras||[]).filter(x => okFood(x.i)).map(x => x.i));
+    return etat.pref.filter(x => ids.some(id => contient(FOODS[id].n + " " + (FOODS[id].ct || ""), x))).length;
+  };
+  const meilleurs = l => {
+    const n = l.map(t => [t, score(t)]), max = Math.max(0, ...n.map(x => x[1]));
+    return max ? n.filter(x => x[1] === max).map(x => x[0]) : [];
+  };
+  /* l'ingrédient demandé passe avant la cible calorique : mieux vaut le plat voulu avec un
+     écart de calories qu'un plat parfaitement calibré sans ce qu'on avait envie de manger */
+  let pool = atteignables.length ? atteignables : dispo;
+  if(etat.pref.length){
+    const a = meilleurs(atteignables), voulus = a.length ? a : meilleurs(dispo);
+    if(voulus.length) pool = voulus;
+  }
   let best = null;
   for(let i=0;i<6;i++){
     const m = composer(pick(pool), cibleK, cibleP);
@@ -1341,14 +1381,25 @@ function majDiet(v){
   chips($("#f-diet"), DIETS, etat.diet, majDiet);
 }
 
-function lireExcl(){
-  etat.excl = $("#f-excl").value.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+const decouper = v => (v || "").split(/[,;]/).map(s => s.trim()).filter(Boolean);
+const inconnu = x => !Object.values(FOODS).some(F => contient(F.n + " " + (F.ct || ""), x));
+const phraseInconnus = l => !l.length ? ""
+  : (l.length > 1 ? "Aucun aliment ne correspond à : " : "Aucun aliment ne correspond à ") + l.join(", ") + ".";
+
+function lireFiltres(){
+  etat.excl = decouper($("#f-excl").value);
+  const voulus = decouper($("#f-pref").value);
+  /* si un terme est dans les deux listes, l'exclusion l'emporte */
+  const bloques = voulus.filter(x => etat.excl.some(e => contient(x, e) || contient(e, x)));
+  etat.pref = voulus.filter(x => !bloques.includes(x));
   /* on prévient quand un terme ne correspond à aucun aliment connu */
-  const inconnus = etat.excl.filter(x =>
-    !Object.values(FOODS).some(F => contient(F.n + " " + (F.ct || ""), x)));
-  $("#excl-msg").textContent = inconnus.length
-    ? (inconnus.length > 1 ? "Aucun aliment ne correspond à : " : "Aucun aliment ne correspond à ") + inconnus.join(", ") + "."
-    : "";
+  $("#excl-msg").textContent = phraseInconnus(etat.excl.filter(inconnu));
+  let msg = phraseInconnus(etat.pref.filter(inconnu));
+  if(bloques.length) msg += (msg ? " " : "")
+    + (bloques.length > 1 ? "Ces termes sont aussi dans la liste à éviter, l'exclusion l'emporte : "
+                          : "Ce terme est aussi dans la liste à éviter, l'exclusion l'emporte : ")
+    + bloques.join(", ") + ".";
+  $("#pref-msg").textContent = msg;
 }
 
 /* ---- favoris ---- */
@@ -1384,7 +1435,7 @@ function rendreFavoris(){
   if(!document.querySelector('section[data-p="courses"]').hidden) rendreCourses();
 }
 
-const LAITAGES = ["skyr","fblanc","feta","emmental","parmesan","creme","oeufs","cottage","ffrais","mozza","cheddar","burrata","lait"];
+const LAITAGES = ["skyr","fblanc","feta","emmental","parmesan","creme","oeufs","jaune","cottage","ffrais","mozza","cheddar","burrata","lait"];
 const FRAIS = ["ail","gingembre","citron","avocat"];
 const VEGETAL = ["lentilles","pchiches","hrouges","tofu","tempeh"];
 function rayon(id){
@@ -1477,6 +1528,10 @@ function afficher(liste){
     return;
   }
   let html = "";
+  /* on le dit plutôt que de laisser croire que la demande a été prise en compte */
+  if(etat.pref.length && !liste.some(m => m.items.some(it => estPref(it.id))))
+    html += '<p class="note">Aucune recette disponible ne peut accueillir ' + etat.pref.join(", ")
+          + " avec ces filtres. Voici ce qui s'en approche le plus.</p>";
   if(liste.length > 1){
     const k = liste.reduce((a,m)=>a+m.kcal,0), p = liste.reduce((a,m)=>a+m.prot,0);
     html += '<div class="total"><span>Journée</span><span>'+k+' kcal · '+p+' g de protéines</span></div>';
@@ -1487,13 +1542,13 @@ function afficher(liste){
 }
 
 function genererUn(){
-  lireExcl();
+  lireFiltres();
   const m = genererRepas(+$("#s-kcal").value, +$("#s-prot").value);
   afficher(m ? [m] : []);
 }
 
 function genererJour(){
-  lireExcl();
+  lireFiltres();
   const total = +$("#s-jour").value;
   const parts = [
     {t:"petitdej", slot:"Petit-déjeuner", k:.25, p:.22},
@@ -1634,12 +1689,27 @@ function nomLisible(t){
 function rendreRecettes(){
   const MOMENTS = [["tous","Tout"],["repas","Déjeuner / dîner"],["petitdej","Petit-déjeuner"],["collation","Collation"],["perso","Mes recettes"]];
   chips($("#rec-filtre"), MOMENTS, [filtreRec], v => { filtreRec = v; rendreRecettes(); });
-  const l = TPLS.filter(t => filtreRec === "tous" || (filtreRec === "perso" ? t.perso : t.type === filtreRec));
+  /* la recherche porte sur le nom et sur tout ce que la recette peut contenir */
+  const q = ($("#rec-recherche").value || "").trim();
+  const termes = q ? q.split(/[\s,;]+/).filter(Boolean) : [];
+  const texteRec = t => [
+    t.nom, nomLisible(t), t.assaiso || "",
+    ...["prot","fec","leg","gras"].map(r => t[r].o.map(id => FOODS[id] ? FOODS[id].n + " " + (FOODS[id].ct || "") : "").join(" ")),
+    (t.extras || []).map(x => FOODS[x.i] ? FOODS[x.i].n : "").join(" ")
+  ].join(" ");
+  const l = TPLS.filter(t => {
+    if(!(filtreRec === "tous" || (filtreRec === "perso" ? t.perso : t.type === filtreRec))) return false;
+    if(!termes.length) return true;
+    const txt = texteRec(t);
+    return termes.every(m => contient(txt, m));
+  });
   $("#rec-liste").innerHTML = l.length ? l.map(t =>
     '<div class="rec" role="button" tabindex="0" data-r="' + t.id + '"><h4>' + t.e + ' ' + nomLisible(t) + (t.perso || mesRecettes.some(r => r.id === t.id) ? ' <span class="perso"></span>' : '') + '</h4>'
     + '<p>' + t.prot.o.map(CT).join(", ") + ' · ' + t.fec.o.map(CT).join(", ") + (t.rapide ? ' · moins de 20 min' : '') + '</p>'
-    + '</div>').join("") : '<p class="empty">Aucune recette dans ce filtre.</p>';
+    + '</div>').join("")
+    : '<p class="empty">' + (termes.length ? "Aucune recette ne correspond." : "Aucune recette dans ce filtre.") + '</p>';
 }
+$("#rec-recherche").addEventListener("input", rendreRecettes);
 $("#rec-reset").onclick = () => {
   if(!confirm("Rétablir les recettes d'origine ? Tes recettes et tes modifications seront perdues.")) return;
   mesRecettes = []; supprR = []; sauverR();
