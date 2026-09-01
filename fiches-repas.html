@@ -237,6 +237,7 @@ footer{margin-top:34px;font-size:13px;color:var(--soft);border-top:1px solid var
       <div class="field">
         <div class="lab"><span>Ingrédients à éviter</span></div>
         <input type="text" id="f-excl" placeholder="ex : champignons, saumon, crème">
+        <p class="aide" id="excl-msg"></p>
       </div>
     </div>
 
@@ -274,7 +275,7 @@ footer{margin-top:34px;font-size:13px;color:var(--soft);border-top:1px solid var
 
   <!-- ============ onglet Courses ============ -->
   <section data-p="courses" hidden>
-    <p class="sub">Tout ce qu'il faut acheter pour les fiches gardées, additionné et rangé par rayon.</p>
+    <p class="sub">Tout ce qu'il faut acheter pour les fiches gardées, additionné, rangé par rayon et arrondi vers le haut aux quantités qu'on trouve en rayon.</p>
     <p class="empty" id="courses-vide">Aucune fiche gardée pour l'instant. Va dans Composer, puis garde les repas que tu veux cuisiner.</p>
     <div id="courses-zone" hidden>
       <div class="courses" id="courses"></div>
@@ -388,7 +389,7 @@ footer{margin-top:34px;font-size:13px;color:var(--soft);border-top:1px solid var
       <input type="text" id="r-assaiso" placeholder="ex : Aneth, ail, citron, poivre">
       <label class="form-l" for="r-etapes">Étapes, une par ligne</label>
       <textarea id="r-etapes" placeholder="Répartir {le:leg} sur une feuille de papier cuisson.&#10;Poser {le:prot}, arroser d'huile.&#10;Fermer et enfourner 20 min à 190 °C."></textarea>
-      <p class="aide">Dans le nom et les étapes, écris {prot}, {fec}, {leg} pour insérer l'ingrédient tiré au sort, et {le:prot}, {de:prot}, {au:prot} pour la version avec l'article.</p>
+      <p class="aide">Dans le nom et les étapes, écris {prot}, {fec}, {leg} pour insérer l'ingrédient tiré au sort, et {le:prot}, {de:prot}, {au:prot} pour la version avec l'article. Les mêmes marqueurs existent pour {de:fec} et {au:leg}.</p>
       <p class="aide" id="r-msg"></p>
       <div class="actions">
         <button class="btn" id="r-save">Ajouter la recette</button>
@@ -419,12 +420,23 @@ const FOODS = {
   thon:        {n:"thon au naturel égoutté",k:105,p:24,c:0,f:1,mer:1,ct:"thon",g2:"m"},
   oeufs:       {n:"œufs",                   k:145,p:13,c:0.7,f:10,v:1,piece:55,mot:"œuf",motPl:"œufs",ct:"œufs",g2:"p"},
   tofu:        {n:"tofu ferme",             k:130,p:14,c:2,f:8,v:1,maxg:250,ct:"tofu",g2:"m"},
+  ysoja:       {n:"yaourt de soja nature", k:50,p:4,c:4,f:2,v:1,maxg:300,ct:"yaourt de soja",g2:"m"},
+  tofusoyeux:  {n:"tofu soyeux",           k:55,p:6,c:2,f:3,v:1,maxg:300,ct:"tofu soyeux",g2:"m"},
   tempeh:      {n:"tempeh",                 k:190,p:19,c:8,f:10,v:1,maxg:200,ct:"tempeh",g2:"m"},
   skyr:        {n:"skyr nature",            k:60, p:11,c:4,f:0.2,v:1,lac:1,maxg:300,ct:"skyr",g2:"m"},
   fblanc:      {n:"fromage blanc 0 %",      k:47, p:8, c:4,f:0.2,v:1,lac:1,maxg:300,ct:"fromage blanc",g2:"m"},
   pchiches:    {n:"pois chiches cuits",     k:140,p:8, c:20,f:2.5,v:1,ct:"pois chiches",g2:"p"},
   lentilles:   {n:"lentilles cuites",       k:115,p:9, c:17,f:0.5,v:1,ct:"lentilles",g2:"p"},
   hrouges:     {n:"haricots rouges cuits",  k:120,p:8, c:20,f:0.5,v:1,ct:"haricots rouges",g2:"p"},
+  sardines:    {n:"sardines",               k:220,p:25,c:0,f:13,mer:1,ct:"sardines",g2:"p"},
+  maquereau:   {n:"filet de maquereau",     k:205,p:19,c:0,f:14,mer:1,ct:"maquereau",g2:"m"},
+  hareng:      {n:"filet de hareng",        k:200,p:18,c:0,f:14,mer:1,ct:"hareng",g2:"m"},
+  saumonfume:  {n:"saumon fumé",            k:180,p:22,c:0,f:10,mer:1,ct:"saumon fumé",g2:"m"},
+  blancsoeufs: {n:"blancs d'œufs",          k:48, p:11,c:0.7,f:0.2,v:1,maxg:300,ct:"blancs d'œufs",g2:"p"},
+  cottage:     {n:"cottage cheese",         k:98, p:11,c:3.4,f:4.3,v:1,lac:1,maxg:300,ct:"cottage cheese",g2:"m"},
+  mozza:       {n:"mozzarella légère",      k:170,p:20,c:1,f:10,v:1,lac:1,ct:"mozzarella",g2:"f"},
+  ffrais:      {n:"fromage frais léger",    k:90, p:8, c:4,f:4,v:1,lac:1,maxg:200,ct:"fromage frais",g2:"m"},
+  whey:        {n:"whey en poudre",         k:380,p:78,c:8,f:5,v:1,lac:1,maxg:45,ct:"whey",g2:"f"},
 
   riz:         {n:"riz cru",                k:350,p:7, c:78,f:1,v:1,ct:"riz",g2:"m"},
   pates:       {n:"pâtes crues",            k:355,p:12,c:71,f:1.5,v:1,glu:1,ct:"pâtes",g2:"p"},
@@ -438,6 +450,15 @@ const FOODS = {
   pain:        {n:"pain complet",           k:250,p:9, c:43,f:3,v:1,glu:1,piece:35,mot:"tranche",motPl:"tranches",ct:"pain",g2:"m"},
   wrap:        {n:"galette de blé",         k:300,p:8, c:50,f:7,v:1,glu:1,piece:60,mot:"galette",motPl:"galettes",ct:"galette",g2:"f"},
   avoine:      {n:"flocons d'avoine",       k:375,p:13,c:60,f:7,v:1,ct:"flocons d'avoine",g2:"p"},
+  favoine:     {n:"farine d'avoine",        k:375,p:13,c:60,f:7,v:1,ct:"farine d'avoine",g2:"f"},
+  rizcomplet:  {n:"riz complet cru",        k:350,p:8, c:73,f:2.5,v:1,ct:"riz complet",g2:"m"},
+  sarrasin:    {n:"sarrasin cru",           k:345,p:13,c:65,f:3,v:1,ct:"sarrasin",g2:"m"},
+  orge:        {n:"orge perlé cru",         k:350,p:10,c:73,f:2,v:1,glu:1,ct:"orge",g2:"f"},
+  painbrioche: {n:"pain brioché complet",   k:300,p:9, c:48,f:8,v:1,glu:1,piece:30,mot:"tranche",motPl:"tranches",ct:"pain brioché",g2:"m"},
+  bagel:       {n:"bagel",                  k:270,p:10,c:50,f:2,v:1,glu:1,piece:85,mot:"bagel",motPl:"bagels",ct:"bagel",g2:"m"},
+  painburger:  {n:"pain burger",            k:280,p:9, c:48,f:5,v:1,glu:1,piece:60,mot:"pain",motPl:"pains",ct:"pain burger",g2:"m"},
+  granola:     {n:"granola",                k:450,p:9, c:62,f:18,v:1,glu:1,ct:"granola",g2:"m"},
+  popcorn:     {n:"popcorn nature",         k:380,p:11,c:63,f:8,v:1,ct:"popcorn",g2:"m"},
 
   courgette:   {n:"courgettes",     k:17,p:1.2,c:3,f:0.2,v:1},
   brocoli:     {n:"brocolis",       k:34,p:3,  c:6,f:0.4,v:1},
@@ -447,7 +468,7 @@ const FOODS = {
   hverts:      {n:"haricots verts", k:31,p:2,  c:5,f:0.2,v:1},
   epinards:    {n:"épinards",       k:23,p:3,  c:1,f:0.4,v:1},
   tomates:     {n:"tomates",        k:18,p:0.9,c:3.5,f:0.2,v:1},
-  aubergine:   {n:"aubergines",     k:25,p:1,  c:6,f:0.2,v:1},
+  aubergine:   {n:"aubergines",     k:25,p:1,  c:4,f:0.2,v:1},
   choufleur:   {n:"chou-fleur",     k:25,p:2,  c:3,f:0.3,v:1,g2:"m"},
   poireau:     {n:"poireaux",       k:30,p:1.5,c:6,f:0.3,v:1},
   ppois:       {n:"petits pois",    k:80,p:5,  c:13,f:0.4,v:1},
@@ -456,22 +477,46 @@ const FOODS = {
   mais:        {n:"maïs",           k:95,p:3,  c:17,f:1.2,v:1,g2:"m"},
   oignon:      {n:"oignon",         k:40,p:1.1,c:9,f:0.1,v:1,g2:"m"},
   edamame:     {n:"edamame",        k:120,p:11,c:9,f:5,v:1,g2:"m"},
+  roquette:    {n:"roquette",       k:25,p:2.6,c:2,f:0.7,v:1,g2:"f"},
+  kale:        {n:"chou kale",      k:35,p:3,  c:4,f:0.6,v:1,ct:"chou kale",g2:"m"},
+  chourouge:   {n:"chou rouge",     k:31,p:1.4,c:6,f:0.2,v:1,ct:"chou rouge",g2:"m"},
+  tcerises:    {n:"tomates cerises",k:20,p:0.9,c:3.5,f:0.2,v:1,ct:"tomates cerises",g2:"p"},
+  fraises:     {n:"fraises",        k:33,p:0.7,c:7,f:0.3,v:1,g2:"p"},
+  cerises:     {n:"cerises",        k:63,p:1,  c:14,f:0.3,v:1,g2:"p"},
+  raisin:      {n:"raisin",         k:70,p:0.7,c:17,f:0.2,v:1,g2:"m"},
+  ananas:      {n:"ananas",         k:50,p:0.5,c:12,f:0.1,v:1,g2:"m"},
+  melon:       {n:"melon",          k:34,p:0.8,c:8,f:0.2,v:1,g2:"m"},
+  pasteque:    {n:"pastèque",       k:30,p:0.6,c:7,f:0.2,v:1,g2:"f"},
+  kiwi:        {n:"kiwi",           k:61,p:1.1,c:14,f:0.5,v:1,piece:90,mot:"kiwi",motPl:"kiwis",g2:"m"},
+  orange:      {n:"orange",         k:47,p:0.9,c:10,f:0.1,v:1,piece:150,mot:"orange",motPl:"oranges",g2:"f"},
+  poire:       {n:"poire",          k:57,p:0.4,c:13,f:0.1,v:1,piece:170,mot:"poire",motPl:"poires",g2:"f"},
+  peche:       {n:"pêche",          k:45,p:1,  c:9,f:0.2,v:1,piece:150,mot:"pêche",motPl:"pêches",g2:"f"},
 
-  holive:      {n:"huile d'olive",       k:900,p:0,c:0,f:100,v:1},
-  hsesame:     {n:"huile de sésame",     k:900,p:0,c:0,f:100,v:1},
-  creme:       {n:"crème légère 5 %",    k:90,p:3,c:4,f:5,v:1,lac:1},
+  holive:      {n:"huile d'olive",       k:900,p:0,c:0,f:100,v:1,maxg:20},
+  hsesame:     {n:"huile de sésame",     k:900,p:0,c:0,f:100,v:1,maxg:20},
+  creme:       {n:"crème légère 5 %",    k:82,p:3,c:4,f:5,v:1,lac:1},
   coco:        {n:"lait de coco léger",  k:90,p:1,c:2,f:8,v:1},
   emmental:    {n:"emmental râpé léger", k:280,p:30,c:1,f:17,v:1,lac:1},
   parmesan:    {n:"parmesan",            k:400,p:36,c:0,f:28,v:1,lac:1},
   feta:        {n:"feta",                k:260,p:14,c:1,f:21,v:1,lac:1,ct:"feta",g2:"f"},
   avocat:      {n:"avocat",              k:160,p:2,c:2,f:15,v:1},
-  bcacahuete:  {n:"beurre de cacahuète", k:600,p:25,c:12,f:50,v:1},
-  tahini:      {n:"tahini",              k:600,p:17,c:10,f:54,v:1},
+  bcacahuete:  {n:"beurre de cacahuète", k:600,p:25,c:12,f:50,v:1,maxg:25},
+  tahini:      {n:"tahini",              k:600,p:17,c:10,f:54,v:1,maxg:25},
+  pamandes:    {n:"purée d'amandes",     k:620,p:21,c:8,f:55,v:1,maxg:25,ct:"purée d'amandes",g2:"f"},
+  amandes:     {n:"amandes",             k:600,p:21,c:8,f:52,v:1,maxg:30,g2:"p"},
+  noix:        {n:"noix",                k:650,p:15,c:7,f:62,v:1,maxg:30,g2:"p"},
+  noisettes:   {n:"noisettes",           k:630,p:15,c:8,f:60,v:1,maxg:30,g2:"p"},
+  gcourge:     {n:"graines de courge",   k:560,p:30,c:10,f:45,v:1,maxg:25,ct:"graines de courge",g2:"p"},
+  chia:        {n:"graines de chia",     k:440,p:17,c:8,f:31,v:1,ct:"graines de chia",g2:"p"},
+  lin:         {n:"graines de lin",      k:530,p:18,c:4,f:42,v:1,ct:"graines de lin",g2:"p"},
+  tournesol:   {n:"graines de tournesol",k:580,p:21,c:12,f:50,v:1,maxg:25,ct:"graines de tournesol",g2:"p"},
+  cheddar:     {n:"cheddar",             k:400,p:25,c:1,f:33,v:1,lac:1,ct:"cheddar",g2:"m"},
+  burrata:     {n:"burrata",             k:280,p:13,c:2,f:25,v:1,lac:1,ct:"burrata",g2:"f"},
 
-  soja:        {n:"sauce soja",          k:60,p:6,c:6,f:0,v:1,glu:1},
+  soja:        {n:"sauce soja",          k:53,p:6,c:6,f:0,v:1,glu:1},
   coulis:      {n:"coulis de tomate",    k:30,p:1.5,c:5,f:0.3,v:1},
   bouillon:    {n:"bouillon de volaille",k:5,p:0.5,c:0.5,f:0},
-  cornichons:  {n:"cornichons",          k:15,p:0.5,c:2,f:0.1,v:1},
+  cornichons:  {n:"cornichons",          k:12,p:0.5,c:2,f:0.1,v:1},
   sesame:      {n:"graines de sésame",   k:570,p:18,c:10,f:50,v:1},
   moutarde:    {n:"moutarde",            k:65,p:4,c:4,f:3,v:1},
   citron:      {n:"citron",              k:25,p:0.5,c:5,f:0.2,v:1},
@@ -480,8 +525,13 @@ const FOODS = {
   framboises:  {n:"framboises",          k:52,p:1.2,c:9,f:0.6,v:1},
   pomme:       {n:"pomme",               k:52,p:0.3,c:12,f:0.2,v:1,piece:150,mot:"pomme",motPl:"pommes",g2:"f"},
   miel:        {n:"miel",                k:300,p:0,c:80,f:0,v:1},
-  chocnoir:    {n:"chocolat noir 70 %",  k:560,p:8,c:33,f:42,v:1,ct:"chocolat noir",g2:"m"},
-  cannelle:    {n:"cannelle",            k:0,p:0,c:0,f:0,v:1}
+  chocnoir:    {n:"chocolat noir 70 %",  k:560,p:8,c:33,f:42,v:1,maxg:25,ct:"chocolat noir",g2:"m"},
+  cannelle:    {n:"cannelle",            k:0,p:0,c:0,f:0,v:1},
+  ail:         {n:"ail",                 k:130,p:6,c:28,f:0.5,v:1,g2:"m"},
+  gingembre:   {n:"gingembre frais",     k:80,p:1.8,c:18,f:0.8,v:1,ct:"gingembre",g2:"m"},
+  lait:        {n:"lait demi-écrémé",    k:46,p:3.3,c:4.8,f:1.5,v:1,lac:1,ct:"lait",g2:"m"},
+  maizena:     {n:"maïzena",             k:350,p:0.3,c:85,f:0.1,v:1,g2:"f"},
+  balsamique:  {n:"vinaigre balsamique", k:80,p:0.5,c:17,f:0,v:1,ct:"vinaigre balsamique",g2:"m"}
 };
 
 /* ============ 2. Modèles de repas ============ */
@@ -489,7 +539,7 @@ const TPLS = [
 /* --- déjeuner / dîner --- */
 {id:"bowl-asiat",e:"🍚",nom:"Bowl {prot}, {fec} & légumes",type:"repas",rapide:1,
  prot:{o:["poulet","dinde","crevettes","tofu"],min:80,max:200},
- fec:{o:["riz","soba"],min:40,max:110},
+ fec:{o:["riz","rizcomplet","soba"],min:40,max:110},
  leg:{o:["brocoli","poivron","carotte","edamame","champignons"],min:150,max:250,n:2},
  gras:{o:["hsesame","holive"],min:5,max:12},
  extras:[{i:"soja",g:10},{i:"sesame",g:5}],
@@ -525,7 +575,7 @@ const TPLS = [
 
 {id:"curry",e:"🍛",nom:"Curry léger {de:prot}",type:"repas",
  prot:{o:["poulet","crevettes","tofu","pchiches"],min:100,max:220},
- fec:{o:["riz","quinoa"],min:45,max:110},
+ fec:{o:["riz","rizcomplet","quinoa"],min:45,max:110},
  leg:{o:["poivron","courgette","choufleur","epinards"],min:180,max:280,n:2},
  gras:{o:["coco"],min:50,max:100},
  extras:[{i:"oignon",g:50},{i:"coulis",g:60}],
@@ -551,8 +601,8 @@ const TPLS = [
  etapes:["Précuire {le:fec} et {le:leg} 10 min.","Mélanger la crème et le fromage blanc, assaisonner à la muscade.","Alterner les couches dans un plat avec {le:prot}.","Couvrir d'emmental, four 200 °C pendant 20 min."]},
 
 {id:"saumon-four",e:"🐟",nom:"{prot} rôti, {fec} & {leg}",type:"repas",
- prot:{o:["saumon","cabillaud"],min:100,max:220},
- fec:{o:["riz","quinoa","pdt","patatedouce"],min:45,max:300},
+ prot:{o:["saumon","cabillaud","maquereau","sardines"],min:100,max:220},
+ fec:{o:["riz","rizcomplet","quinoa","pdt","patatedouce"],min:45,max:300},
  leg:{o:["brocoli","hverts","epinards","courgette"],min:180,max:280,n:1},
  gras:{o:["holive"],min:5,max:14},
  extras:[{i:"citron",g:30}],
@@ -560,9 +610,9 @@ const TPLS = [
  etapes:["Four à 190 °C. Poser {le:prot} sur du papier cuisson, huile et citron.","Enfourner 12 à 15 min.","Cuire {le:fec} et {le:leg} à la vapeur.","Assaisonner à l'aneth."]},
 
 {id:"salade-complete",e:"🥗",nom:"Salade complète {au:prot}",type:"repas",rapide:1,
- prot:{o:["thon","oeufs","poulet","feta"],min:80,max:200},
+ prot:{o:["thon","oeufs","poulet","feta","mozza"],min:80,max:200},
  fec:{o:["pdt","pchiches","boulgour"],min:60,max:280},
- leg:{o:["salade","tomates","concombre","poivron","mais"],min:200,max:320,n:3},
+ leg:{o:["salade","roquette","tomates","tcerises","concombre","poivron","mais"],min:200,max:320,n:3},
  gras:{o:["holive","avocat"],min:8,max:40},
  extras:[{i:"moutarde",g:5},{i:"citron",g:15}],
  assaiso:"Échalote, ciboulette, sel, poivre",
@@ -624,9 +674,9 @@ const TPLS = [
 
 {id:"buddha",e:"🥙",nom:"Buddha bowl {prot} & {fec}",type:"repas",
  prot:{o:["tofu","pchiches","tempeh","oeufs"],min:100,max:230},
- fec:{o:["quinoa","boulgour","patatedouce"],min:45,max:280},
+ fec:{o:["quinoa","sarrasin","orge","boulgour","patatedouce"],min:45,max:280},
  leg:{o:["carotte","choufleur","brocoli","epinards","concombre"],min:200,max:320,n:3},
- gras:{o:["tahini","avocat"],min:12,max:40},
+ gras:{o:["tahini","avocat","gcourge","amandes"],min:12,max:40},
  extras:[{i:"citron",g:15},{i:"sesame",g:5}],
  assaiso:"Curcuma, paprika, ail, sel",
  etapes:["Rôtir {le:leg} et {le:prot} au four 200 °C pendant 25 min avec les épices.","Cuire {le:fec}.","Détendre le tahini avec le citron et un peu d'eau.","Assembler en parts séparées dans le bol."]},
@@ -667,11 +717,74 @@ const TPLS = [
  assaiso:"Romarin, thym, ail en chemise",
  etapes:["Couper tous les légumes en gros morceaux, les mêler à l'huile et aux herbes.","Étaler sur une plaque, four 200 °C pendant 20 min.","Ajouter {le:prot}, poursuivre 20 min.","Arroser de citron à la sortie."]},
 
+{id:"pates-cremeuses",e:"🍝",nom:"Pâtes crémeuses {au:prot} & {leg}",type:"repas",rapide:1,
+ prot:{o:["poulet","dinde","jambon","crevettes"],min:80,max:190},
+ fec:{o:["pates"],min:45,max:110},
+ leg:{o:["courgette","champignons","epinards","tomates","brocoli"],min:100,max:250,n:1},
+ gras:{o:["ffrais","creme","fblanc"],min:40,max:90},
+ extras:[{i:"parmesan",g:10},{i:"ail",g:5}],
+ assaiso:"Ail, basilic, sel, poivre",
+ etapes:["Cuire les pâtes al dente, garder un peu d'eau de cuisson.","Saisir {le:prot} avec l'ail, réserver.","Faire revenir {le:leg} 6 min, ajouter le fromage frais et un filet d'eau de cuisson.","Mélanger le tout aux pâtes, râper le parmesan."]},
+
+{id:"burger-maison",e:"🍔",nom:"Burger maison & pommes de terre",type:"repas",
+ prot:{o:["hache5","dinde","poulet"],min:80,max:180},
+ fec:{o:["painburger"],min:60,max:120},
+ leg:{o:["salade","tomates","oignon"],min:80,max:160,n:2},
+ gras:{o:["holive"],min:5,max:12},
+ extras:[{i:"pdt",g:150},{i:"cheddar",g:15},{i:"moutarde",g:5},{i:"cornichons",g:20}],
+ assaiso:"Paprika, ail, sel, poivre",
+ etapes:["Couper les pommes de terre en frites, huile et paprika, air fryer ou four 200 °C pendant 25 min.","Former le steak et le cuire 3 min par face, poser le cheddar dessus à la fin.","Toaster le pain, tartiner de moutarde.","Garnir de {leg} et refermer."]},
+
+{id:"pizza-tortilla",e:"🍕",nom:"Pizza tortilla {prot} & mozzarella",type:"repas",rapide:1,
+ prot:{o:["jambon","poulet","thon","dinde"],min:60,max:150},
+ fec:{o:["wrap"],min:60,max:120},
+ leg:{o:["champignons","tomates","poivron","epinards","oignon"],min:80,max:180,n:2},
+ gras:{o:["mozza"],min:30,max:70},
+ extras:[{i:"coulis",g:100}],
+ assaiso:"Origan, ail, basilic",
+ etapes:["Poser la galette sur une plaque, étaler la sauce tomate.","Répartir {le:leg} et {le:prot}.","Couvrir de mozzarella, four 220 °C pendant 8 à 10 min.","Parsemer d'origan à la sortie."]},
+
+{id:"omelette-xxl",e:"🍳",nom:"Omelette XXL aux {leg}",type:"repas",
+ prot:{o:["oeufs","blancsoeufs"],min:110,max:280},
+ fec:{o:["pdt","pain"],min:100,max:300},
+ leg:{o:["champignons","epinards","poivron","courgette","tomates"],min:150,max:280,n:2},
+ gras:{o:["holive"],min:5,max:14},
+ extras:[{i:"emmental",g:30},{i:"salade",g:80}],
+ assaiso:"Persil, ail, sel, poivre",
+ etapes:["Cuire les pommes de terre en rondelles à la poêle.","Faire revenir {le:leg} 5 min.","Verser les œufs battus, cuire à couvert à feu doux 8 min.","Ajouter le fromage râpé, servir avec une grosse salade verte."]},
+
+{id:"poisson-gras",e:"🐠",nom:"{prot} grillé, {fec} & légumes verts",type:"repas",
+ prot:{o:["sardines","maquereau","hareng","saumon"],min:80,max:180},
+ fec:{o:["rizcomplet","orge","sarrasin","patatedouce","pdt"],min:45,max:300},
+ leg:{o:["brocoli","epinards","kale","hverts","courgette"],min:180,max:300,n:2},
+ gras:{o:["holive"],min:6,max:14},
+ extras:[{i:"citron",g:25},{i:"ail",g:5}],
+ assaiso:"Ail, romarin, citron, poivre",
+ etapes:["Cuire {le:fec} selon les indications du paquet.","Faire sauter {le:leg} à l'huile d'olive avec l'ail 8 min.","Griller {le:prot} 3 min par face.","Arroser de citron et servir."]},
+
+{id:"salade-cereales",e:"🥬",nom:"Salade {de:fec}, {leg} & graines",type:"repas",
+ prot:{o:["pchiches","lentilles","feta","thon","oeufs","mozza"],min:80,max:200},
+ fec:{o:["sarrasin","orge","quinoa","boulgour","rizcomplet"],min:45,max:120},
+ leg:{o:["roquette","tcerises","concombre","chourouge","carotte","poivron"],min:200,max:320,n:3},
+ gras:{o:["holive","tournesol","gcourge","amandes"],min:8,max:25},
+ extras:[{i:"citron",g:15},{i:"balsamique",g:10}],
+ assaiso:"Persil, menthe, citron, poivre",
+ etapes:["Cuire {le:fec} et laisser refroidir.","Couper {le:leg} en petits morceaux.","Fouetter l'huile, le citron et le vinaigre balsamique.","Mélanger, ajouter {le:prot} et les graines au moment de servir."]},
+
 /* --- petit-déjeuner --- */
+{id:"bowl-vegetal",e:"🌱",nom:"Bowl végétal avoine & {leg}",type:"petitdej",rapide:1,
+ prot:{o:["ysoja","tofusoyeux","skyr","fblanc"],min:120,max:300},
+ fec:{o:["avoine","favoine"],min:25,max:80},
+ leg:{o:["banane","myrtilles","framboises","fraises","pomme","poire"],min:60,max:150,n:1},
+ gras:{o:["bcacahuete","pamandes","amandes","chia"],min:5,max:20},
+ extras:[{i:"cannelle",g:1}],
+ assaiso:"Cannelle, vanille",
+ etapes:["Verser {le:prot} dans un bol.","Ajouter les flocons d'avoine, crus ou trempés la veille.","Garnir de {leg}, de graines et d'une cuillère de purée d'oléagineux."]},
+
 {id:"bowl-skyr",e:"🥣",nom:"Bowl skyr, avoine & fruits",type:"petitdej",rapide:1,
  prot:{o:["skyr","fblanc"],min:120,max:300},
  fec:{o:["avoine"],min:30,max:90},
- leg:{o:["myrtilles","framboises"],min:80,max:150,n:1},
+ leg:{o:["myrtilles","framboises","fraises"],min:80,max:150,n:1},
  gras:{o:["bcacahuete","tahini"],min:5,max:20},
  extras:[{i:"cannelle",g:1}],
  assaiso:"Cannelle, zeste de citron",
@@ -689,7 +802,7 @@ const TPLS = [
 {id:"porridge",e:"🥄",nom:"Porridge protéiné",type:"petitdej",
  prot:{o:["skyr","fblanc"],min:100,max:280},
  fec:{o:["avoine"],min:35,max:90},
- leg:{o:["banane","myrtilles","pomme"],min:80,max:160,n:1},
+ leg:{o:["banane","myrtilles","fraises","poire","peche"],min:80,max:160,n:1},
  gras:{o:["bcacahuete"],min:5,max:20},
  extras:[{i:"cannelle",g:1}],
  assaiso:"Cannelle, vanille",
@@ -712,6 +825,51 @@ const TPLS = [
  extras:[{i:"citron",g:10}],
  assaiso:"Piment doux, citron, poivre",
  etapes:["Écraser l'avocat au citron, saler.","Griller le pain, tartiner.","Poser l'œuf poché ou au plat et {le:leg}."]},
+
+{id:"pancakes-whey",e:"🥞",nom:"Pancakes protéinés {leg} & chocolat",type:"petitdej",
+ prot:{o:["whey"],min:15,max:45},
+ fec:{o:["favoine","avoine"],min:25,max:75},
+ leg:{o:["banane","framboises","myrtilles","fraises"],min:60,max:150,n:1},
+ gras:{o:["chocnoir","bcacahuete"],min:5,max:15},
+ extras:[{i:"oeufs",g:55},{i:"skyr",g:60},{i:"cannelle",g:1}],
+ assaiso:"Levure, vanille, cannelle",
+ etapes:["Mixer la farine d'avoine, la protéine, l'œuf et un peu d'eau.","Cuire de petites louches 2 min par face à la poêle antiadhésive.","Garnir de {leg} et de chocolat concassé."]},
+
+{id:"bowl-cheesecake",e:"🍰",nom:"Bowl façon cheesecake",type:"petitdej",rapide:1,
+ prot:{o:["skyr","fblanc","cottage"],min:150,max:300},
+ fec:{o:["granola","avoine"],min:15,max:45},
+ leg:{o:["fraises","framboises","myrtilles","cerises"],min:30,max:130,n:1},
+ gras:{o:["bcacahuete","pamandes","amandes"],min:5,max:20},
+ extras:[{i:"miel",g:5}],
+ assaiso:"Vanille, zeste de citron",
+ etapes:["Fouetter le skyr avec la vanille pour l'aérer.","Verser dans un bol, couvrir de granola.","Ajouter les fruits, le miel et la purée d'oléagineux."]},
+
+{id:"brioche-perdue",e:"🍞",nom:"Brioche perdue protéinée",type:"petitdej",
+ prot:{o:["skyr","fblanc"],min:80,max:250},
+ fec:{o:["painbrioche","pain"],min:30,max:90},
+ leg:{o:["framboises","myrtilles","fraises","banane"],min:60,max:140,n:1},
+ gras:{o:["bcacahuete","pamandes"],min:3,max:12},
+ extras:[{i:"oeufs",g:55},{i:"lait",g:80},{i:"cannelle",g:1}],
+ assaiso:"Vanille, cannelle",
+ etapes:["Battre l'œuf avec le lait et la vanille.","Y tremper les tranches, cuire 2 min par face à feu moyen.","Servir avec le skyr fouetté et les fruits."]},
+
+{id:"overnight-oats",e:"🥣",nom:"Overnight oats chocolat & {leg}",type:"petitdej",rapide:1,
+ prot:{o:["skyr","fblanc"],min:100,max:280},
+ fec:{o:["avoine"],min:25,max:70},
+ leg:{o:["banane","framboises","myrtilles"],min:50,max:130,n:1},
+ gras:{o:["chocnoir","bcacahuete","pamandes"],min:5,max:15},
+ extras:[{i:"lait",g:50},{i:"cannelle",g:1}],
+ assaiso:"Cacao non sucré, vanille",
+ etapes:["Mélanger les flocons, le skyr, le lait et le cacao dans un bocal.","Laisser au frais toute la nuit.","Au matin, ajouter {le:leg} et le chocolat."]},
+
+{id:"bagel-saumon",e:"🥯",nom:"Bagel {au:prot} & fromage frais",type:"petitdej",rapide:1,
+ prot:{o:["saumonfume","oeufs","jambon"],min:50,max:150},
+ fec:{o:["bagel","pain"],min:35,max:180},
+ leg:{o:["tomates","roquette","concombre","tcerises"],min:60,max:150,n:2},
+ gras:{o:["ffrais","avocat"],min:25,max:60},
+ extras:[{i:"citron",g:10}],
+ assaiso:"Aneth, citron, poivre",
+ etapes:["Couper le bagel en deux et le toaster.","Tartiner de fromage frais.","Poser {le:prot}, puis {le:leg}.","Terminer par un tour de moulin et un filet de citron."]},
 
 /* --- collations --- */
 {id:"col-skyr",e:"🫐",nom:"Skyr, fruits rouges & amandes",type:"collation",rapide:1,
@@ -757,26 +915,56 @@ const TPLS = [
  gras:{o:["chocnoir"],min:5,max:15},
  extras:[],
  assaiso:"Vanille",
- etapes:["Concasser le chocolat sur le skyr, ajouter les fruits."]}
+ etapes:["Concasser le chocolat sur le skyr, ajouter les fruits."]},
+
+{id:"col-popcorn",e:"🍿",nom:"Popcorn & fromage blanc vanille",type:"collation",rapide:1,
+ prot:{o:["skyr","fblanc","cottage"],min:100,max:250},
+ fec:{o:["popcorn"],min:10,max:30},
+ leg:{o:["pomme","framboises","raisin"],min:60,max:150,n:1},
+ gras:{o:["chocnoir","amandes"],min:5,max:12},
+ extras:[],
+ assaiso:"Vanille, cannelle",
+ etapes:["Éclater le maïs à la casserole, sans matière grasse.","Servir à côté du fromage blanc et des fruits."]},
+
+{id:"col-fruits-graines",e:"🍏",nom:"{leg}, oléagineux & fromage blanc",type:"collation",rapide:1,
+ prot:{o:["skyr","fblanc","cottage"],min:80,max:250},
+ fec:{o:["avoine","granola"],min:10,max:35},
+ leg:{o:["pomme","poire","orange","kiwi","raisin","ananas","cerises","peche"],min:80,max:180,n:1},
+ gras:{o:["amandes","noix","noisettes","pamandes","gcourge"],min:5,max:20},
+ extras:[],
+ assaiso:"Cannelle",
+ etapes:["Couper le fruit en morceaux.","Ajouter le fromage blanc, les flocons et les oléagineux."]}
 ];
 
 
 /* ============ 2 bis. Catégories, pour les listes de choix ============ */
 const CATS = {
-  prot:["poulet","cuisse","dinde","hache5","porc","jambon","saumon","cabillaud","crevettes","thon","oeufs","tofu","tempeh","skyr","fblanc","pchiches","lentilles","feta"],
-  fec:["riz","pates","semoule","boulgour","quinoa","soba","pdt","patatedouce","polenta","pain","wrap","avoine","hrouges","pchiches","lentilles"],
-  leg:["courgette","brocoli","carotte","champignons","poivron","hverts","epinards","tomates","aubergine","choufleur","poireau","ppois","salade","concombre","mais","oignon","edamame","banane","myrtilles","framboises","pomme"],
-  gras:["holive","hsesame","creme","coco","emmental","parmesan","feta","avocat","bcacahuete","tahini","chocnoir"],
-  extra:["soja","coulis","bouillon","cornichons","sesame","moutarde","citron","oignon","miel","fblanc","parmesan","emmental"]
+  prot:["poulet","cuisse","dinde","hache5","porc","jambon","saumon","cabillaud","crevettes","thon","sardines","maquereau","hareng","saumonfume","oeufs","blancsoeufs","tofu","tofusoyeux","tempeh","ysoja","skyr","fblanc","cottage","ffrais","mozza","whey","pchiches","lentilles","feta"],
+  fec:["riz","rizcomplet","pates","semoule","boulgour","quinoa","sarrasin","orge","soba","pdt","patatedouce","polenta","pain","painbrioche","bagel","painburger","wrap","avoine","favoine","granola","popcorn","hrouges","pchiches","lentilles"],
+  leg:["courgette","brocoli","carotte","champignons","poivron","hverts","epinards","tomates","tcerises","aubergine","choufleur","chourouge","kale","poireau","ppois","salade","roquette","concombre","mais","oignon","edamame","banane","myrtilles","framboises","fraises","cerises","raisin","ananas","melon","pasteque","kiwi","orange","pomme","poire","peche"],
+  gras:["holive","hsesame","creme","coco","emmental","parmesan","feta","mozza","cheddar","burrata","avocat","bcacahuete","tahini","pamandes","amandes","noix","noisettes","gcourge","chia","lin","tournesol","chocnoir"],
+  extra:["soja","coulis","bouillon","cornichons","sesame","moutarde","citron","oignon","ail","gingembre","miel","lait","maizena","balsamique","fblanc","ffrais","cottage","parmesan","emmental","granola","chia"]
 };
 
 /* ============ 2 ter. Ajouts enregistrés par l'utilisateur ============ */
 const CLE_A = "fiches-repas-aliments-v1", CLE_R = "fiches-repas-recettes-v1";
 const CLE_AS = "fiches-repas-aliments-suppr-v1", CLE_RS = "fiches-repas-recettes-suppr-v1";
 let mesAliments = {}, mesRecettes = [], supprA = [], supprR = [];
-const lire = (cle, def) => { try { return JSON.parse(localStorage.getItem(cle)) ?? def; } catch(e){ return def; } };
-mesAliments = lire(CLE_A, {}); mesRecettes = lire(CLE_R, []);
-supprA = lire(CLE_AS, []); supprR = lire(CLE_RS, []);
+const lire = (cle, def) => {
+  try {
+    const v = JSON.parse(localStorage.getItem(cle));
+    if(v === null || v === undefined) return def;
+    if(Array.isArray(def) !== Array.isArray(v)) return def;   /* un objet là où on attend un tableau */
+    if(typeof v !== "object") return def;
+    return v;
+  } catch(e){ return def; }
+};
+/* une recette venue du stockage doit avoir la forme attendue, sinon on l'ignore */
+const recetteValide = r => r && typeof r === "object" && typeof r.id === "string"
+  && ["prot","fec","leg","gras"].every(k => r[k] && Array.isArray(r[k].o));
+mesAliments = lire(CLE_A, {}); mesRecettes = lire(CLE_R, []).filter(recetteValide);
+supprA = lire(CLE_AS, []).filter(x => typeof x === "string");
+supprR = lire(CLE_RS, []).filter(x => typeof x === "string");
 
 /* un aliment enregistré remplace ou complète celui d'origine */
 Object.keys(mesAliments).forEach(id => {
@@ -806,7 +994,7 @@ function purger(){
 purger();
 
 /* ============ 3. Moteur ============ */
-const H_ASPIRE = /^(haricot|haut)/;
+const H_ASPIRE = /^(haricot|haut|hareng)/;
 const VOY = "aeiouyéèêà";
 function de(nom){
   if(H_ASPIRE.test(nom)) return "de "+nom;
@@ -836,6 +1024,28 @@ function liste(t){ return t.length<2 ? (t[0]||"") : t.slice(0,-1).join(", ") + "
 
 let etat = {type:"repas", diet:[], excl:[]};
 
+/* comparaison souple : « pates » doit écarter les pâtes, « oeufs » les œufs */
+/* comparaison souple : majuscules, accents, ligatures, tirets et pluriels ne comptent pas */
+const aplati = t => (t||"").toLowerCase()
+  .replace(/œ/g,"oe").replace(/æ/g,"ae")
+  .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+  .replace(/['’-]/g," ")
+  .replace(/\s+/g," ").trim();
+/* radical très simple : « pommes » et « pomme » se valent, « choux » et « chou » aussi */
+const radical = m => m.replace(/(eaux|aux|x|s)$/,"");
+const mots = t => aplati(t).split(" ").map(radical).filter(Boolean);
+/* « pomme de terre » doit retrouver « pommes de terre » : on cherche la suite de mots */
+const contient = (texte, terme) => {
+  const a = mots(texte), b = mots(terme);
+  if(!b.length || !a.length) return false;
+  for(let i = 0; i + b.length <= a.length; i++){
+    /* un mot du texte peut être plus long que le mot cherché (« pomm » trouve « pomme »),
+       mais jamais l'inverse, sinon « dragon » attraperait l'huile d'olive par son « d ». */
+    if(b.every((w,j) => a[i+j] === w || (w.length >= 3 && a[i+j].startsWith(w)))) return true;
+  }
+  return false;
+};
+
 function okFood(id){
   const F = FOODS[id]; if(!F) return false;
   const d = etat.diet;
@@ -843,16 +1053,26 @@ function okFood(id){
   if(d.includes("mer") && !F.v && !F.mer) return false;
   if(d.includes("sanslactose") && F.lac) return false;
   if(d.includes("sansgluten") && F.glu) return false;
-  const n = F.n.toLowerCase();
-  if(etat.excl.some(x => x && n.includes(x))) return false;
+  const n = F.n + " " + (F.ct || "");
+  if(etat.excl.some(x => contient(n, x))) return false;
   return true;
 }
 function filtre(liste){ return liste.filter(okFood); }
+
+/* un extra cité dans les étapes fait partie de la recette : si le filtre l'écarte,
+   le modèle entier devient indisponible plutôt que de garder une étape sans ingrédient */
+function extraCite(t, id){
+  const F = FOODS[id]; if(!F) return false;
+  const mot = aplati(F.ct || F.n).split(" ")[0].replace(/s$/,"");
+  if(mot.length < 4) return false;
+  return aplati(t.nom + " " + (t.etapes||[]).join(" ")).includes(mot);
+}
 
 function tplsDispo(){
   return TPLS.filter(t => {
     if(t.type !== etat.type) return false;
     if(etat.diet.includes("rapide") && !t.rapide) return false;
+    if((t.extras||[]).some(x => !okFood(x.i) && extraCite(t, x.i))) return false;
     return filtre(t.prot.o).length && filtre(t.fec.o).length && filtre(t.leg.o).length && filtre(t.gras.o).length;
   });
 }
@@ -867,24 +1087,79 @@ function ajuste(id, g){
   return arr(g,5);
 }
 
+/* l'assaisonnement est du texte libre : on en retire ce que les filtres écartent */
+const BASIQUES = ["sel","poivre"];
+function assaisoFiltre(txt){
+  const gardes = (txt || "").split(",").map(x => x.trim()).filter(seg => {
+    const a = aplati(seg);
+    if(etat.excl.some(x => contient(seg, x))) return false;
+    const id = Object.keys(FOODS).find(k => aplati(FOODS[k].ct || FOODS[k].n) === a);
+    return id ? okFood(id) : true;
+  });
+  return gardes.join(", ");
+}
+
+/* règle d'assortiment : on ne marie pas une protéine salée avec une garniture sucrée.
+   Elle s'applique aussi aux recettes ajoutées par l'utilisateur. */
+const SALE = ["poulet","cuisse","dinde","hache5","porc","jambon","saumon","cabillaud","crevettes",
+  "thon","sardines","maquereau","hareng","saumonfume","tempeh","feta","mozza","cheddar","burrata"];
+const SUCRE = ["bcacahuete","pamandes","chocnoir","miel","coco"];
+const FRUITS = ["banane","myrtilles","framboises","fraises","cerises","raisin","ananas",
+  "melon","pasteque","kiwi","orange","poire","peche","pomme"];
+function malAssorti(P, G, legs){
+  if(!SALE.includes(P)) return false;
+  if(SUCRE.includes(G) && G !== "coco") return true;   /* le lait de coco reste bon en curry */
+  return legs.some(l => FRUITS.includes(l));
+}
+
 function composer(tpl, cibleK, cibleP){
-  const P = pick(filtre(tpl.prot.o));
-  const Fe = pick(filtre(tpl.fec.o));
-  const G = pick(filtre(tpl.gras.o));
   const legsDispo = filtre(tpl.leg.o);
   const nLeg = Math.min(tpl.leg.n||1, legsDispo.length);
-  const legs = [];
-  const pool = legsDispo.slice();
-  for(let i=0;i<nLeg;i++) legs.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
+  const tirerLegs = source => {
+    const out = [], pool = source.slice();
+    for(let i=0;i<Math.min(nLeg,pool.length);i++) out.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
+    return out;
+  };
+  let P = pick(filtre(tpl.prot.o));
+  let G = pick(filtre(tpl.gras.o));
+  let legs = tirerLegs(legsDispo);
+  /* si l'assiette est mal assortie, on la répare : d'abord la garniture, sinon la protéine */
+  if(malAssorti(P, G, legs)){
+    const gOK = filtre(tpl.gras.o).filter(g => !SUCRE.includes(g) || g === "coco");
+    const legOK = legsDispo.filter(l => !FRUITS.includes(l));
+    if(gOK.length && legOK.length >= nLeg){ G = pick(gOK); legs = tirerLegs(legOK); }
+    else {
+      const pOK = filtre(tpl.prot.o).filter(p => !SALE.includes(p));
+      if(pOK.length) P = pick(pOK);
+      else if(gOK.length){ G = pick(gOK); if(legOK.length) legs = tirerLegs(legOK); }
+    }
+  }
+  const Fe = pick(filtre(tpl.fec.o));
 
   const gTotalLeg = rint(tpl.leg.min, tpl.leg.max);
-  const legItems = legs.map((id,i) => ({id, g: arr(gTotalLeg/legs.length, 10)}));
-  let gGras = rint(tpl.gras.min, tpl.gras.max);
+  const legItems = legs.map((id,i) => {
+    const part = gTotalLeg/legs.length;
+    return {id, g: FOODS[id].piece ? ajuste(id, part) : arr(part, 10)};
+  });
+  const maxG = Math.min(tpl.gras.max, FOODS[G].maxg || 9999);
+  let gGras = rint(Math.min(tpl.gras.min, maxG), maxG);
   if(gGras > 20) gGras = arr(gGras, 5);
+  const somme = (items, ch) => items.reduce((s,it) => s + FOODS[it.id][ch]*it.g/100, 0);
   const extras = (tpl.extras||[]).filter(x => okFood(x.i)).map(x => ({id:x.i, g:x.g}));
 
+  /* les extras volumineux (150 g de pommes de terre...) sont réductibles jusqu'à moitié
+     quand le socle du plat dépasse déjà la cible en calories */
+  const reductible = it => !FOODS[it.id].piece && it.g >= 30;
+  const socle = somme(legItems,"k") + FOODS[G].k*gGras/100
+              + FOODS[P].k*tpl.prot.min/100 + FOODS[Fe].k*tpl.fec.min/100
+              + somme(extras.filter(it => !reductible(it)),"k");
+  const kRed = somme(extras.filter(reductible),"k");
+  if(kRed > 0 && socle + kRed > cibleK){
+    const f = clamp((cibleK - socle)/kRed, 0.5, 1);
+    extras.forEach(it => { if(reductible(it)) it.g = Math.max(20, arr(it.g*f, 5)); });
+  }
+
   const fixes = [...legItems, {id:G, g:gGras}, ...extras];
-  const somme = (items, ch) => items.reduce((s,it) => s + FOODS[it.id][ch]*it.g/100, 0);
   const fK = somme(fixes,"k"), fP = somme(fixes,"p");
 
   const kp = FOODS[P].k, pp = FOODS[P].p, kf = FOODS[Fe].k, pf = FOODS[Fe].p;
@@ -911,7 +1186,9 @@ function composer(tpl, cibleK, cibleP){
   const remplir = (str, listeLeg) => str
     .replace(/\{de:prot\}/g, DE(P)).replace(/\{au:prot\}/g, AU(P)).replace(/\{le:prot\}/g, ART(P))
     .replace(/\{prot\}/g, CT(P))
+    .replace(/\{de:fec\}/g, DE(Fe)).replace(/\{au:fec\}/g, AU(Fe))
     .replace(/\{le:fec\}/g, ART(Fe)).replace(/\{fec\}/g, CT(Fe))
+    .replace(/\{de:leg\}/g, de(liste(listeLeg.map(CT)))).replace(/\{au:leg\}/g, AU(listeLeg[0]))
     .replace(/\{le:leg\}/g, liste(listeLeg.map(ART)))
     .replace(/\{leg\}/g, liste(listeLeg.map(CT)));
 
@@ -920,18 +1197,36 @@ function composer(tpl, cibleK, cibleP){
 
   return {
     tpl:tpl.id, e:tpl.e, nom: nom.charAt(0).toUpperCase()+nom.slice(1),
-    items, assaiso: tpl.assaiso, etapes: tpl.etapes.map(remp),
+    items, assaiso: assaisoFiltre(tpl.assaiso), etapes: tpl.etapes.map(remp),
     kcal: tot("k"), prot: tot("p"), gluc: tot("c"), lip: tot("f"),
     cibleK, cibleP
   };
 }
 
+/* fourchette calorique atteignable par un modèle, compte tenu des filtres actifs */
+function plage(tpl){
+  const kc = (id,g) => FOODS[id].k*g/100;
+  const bas = (r,q) => Math.min(...filtre(tpl[r].o).map(i => kc(i,q)));
+  const haut = (r,q) => Math.max(...filtre(tpl[r].o).map(i => kc(i, Math.min(q, FOODS[i].maxg || 9999))));
+  const fixe = (tpl.extras||[]).filter(x => okFood(x.i)).reduce((s,x) => s + kc(x.i,x.g), 0);
+  /* le plancher tient compte de la réduction possible des extras volumineux */
+  const fixeBas = (tpl.extras||[]).filter(x => okFood(x.i))
+    .reduce((s,x) => s + kc(x.i, (!FOODS[x.i].piece && x.g >= 30) ? Math.max(20, x.g/2) : x.g), 0);
+  return [
+    fixeBas + bas("prot",tpl.prot.min) + bas("fec",tpl.fec.min) + bas("leg",tpl.leg.min) + bas("gras",tpl.gras.min),
+    fixe + haut("prot",tpl.prot.max) + haut("fec",tpl.fec.max) + haut("leg",tpl.leg.max) + haut("gras",tpl.gras.max)
+  ];
+}
+
 function genererRepas(cibleK, cibleP){
   const dispo = tplsDispo();
   if(!dispo.length) return null;
+  /* on ne pioche que dans les modèles capables d'atteindre la cible, sinon dans tous */
+  const atteignables = dispo.filter(t => { const [lo,hi] = plage(t); return cibleK >= lo-40 && cibleK <= hi+40; });
+  const pool = atteignables.length ? atteignables : dispo;
   let best = null;
   for(let i=0;i<6;i++){
-    const m = composer(pick(dispo), cibleK, cibleP);
+    const m = composer(pick(pool), cibleK, cibleP);
     const ecart = Math.abs(m.kcal-cibleK)/8 + Math.abs(m.prot-cibleP);
     if(!best || ecart < best.ecart){ best = m; best.ecart = ecart; }
     if(ecart < 4) break;
@@ -940,15 +1235,39 @@ function genererRepas(cibleK, cibleP){
 }
 
 /* ============ 4. Affichage ============ */
-function ligne(it){
-  const F = FOODS[it.id];
-  let q;
+/* les fiches gardées conservent une copie des aliments : supprimer un aliment
+   de la base ne doit pas vider une fiche déjà enregistrée */
+const ARCHIVE = {};
+const AL = id => FOODS[id] || ARCHIVE[id];
+function archiver(m){
+  m.snap = {};
+  m.items.forEach(it => { const F = AL(it.id); if(F) m.snap[it.id] = Object.assign({ray:rayon(it.id)}, F); });
+  Object.assign(ARCHIVE, m.snap);
+  return m;
+}
+
+/* palier d'achat : on arrondit vers le haut à une quantité qu'on trouve en rayon */
+function palier(id, g){
+  const F = AL(id);
+  const pas = g < 20 ? 5 : (F.k > 400 ? 10 : (g < 200 ? 25 : 50));
+  return Math.ceil(g/pas)*pas;
+}
+
+/* seule fonction qui met une quantité en toutes lettres, pour la fiche comme pour les courses */
+function quantite(id, g, achat){
+  const F = AL(id);
   if(F.piece){
-    const n = Math.round(it.g/F.piece);
-    q = n + " " + (n>1 ? F.motPl : F.mot) + " (" + it.g + " g)";
-  } else if(it.id==="bouillon"){ q = it.g + " ml";
-  } else { q = it.g + " g"; }
-  return {nom: F.n.charAt(0).toUpperCase()+F.n.slice(1), q};
+    const n = Math.max(1, Math.round(g/F.piece));
+    return n + " " + (n > 1 ? F.motPl : F.mot) + (achat ? "" : " (" + g + " g)");
+  }
+  const v = achat ? palier(id, g) : g;
+  if(achat && v >= 1000) return (v/1000).toFixed(1).replace(".",",") + " kg";
+  return v + (id === "bouillon" ? " ml" : " g");
+}
+
+function ligne(it){
+  const F = AL(it.id);
+  return {nom: F.n.charAt(0).toUpperCase()+F.n.slice(1), q: quantite(it.id, it.g, false)};
 }
 
 function texteFiche(m){
@@ -960,7 +1279,7 @@ function texteFiche(m){
 
 function htmlFiche(m, opts){
   opts = opts||{};
-  const lignes = m.items.filter(it => FOODS[it.id]).map(it => {
+  const lignes = m.items.filter(it => AL(it.id)).map(it => {
     const x = ligne(it);
     return '<li><span class="nom">'+x.nom+'</span><span class="dots"></span><span class="qte">'+x.q+'</span></li>';
   }).join("");
@@ -982,7 +1301,8 @@ function htmlFiche(m, opts){
     + '<ol class="etapes">'+m.etapes.map(e=>'<li>'+e+'</li>').join("")+'</ol>'
     + '<div class="fiche-actions">'
     + (opts.fav
-        ? '<button class="btn ghost small" data-act="suppr">Retirer</button>'
+        ? '<button class="btn ghost small" data-act="nommer">Renommer</button>'
+          + '<button class="btn ghost small" data-act="suppr">Retirer</button>'
         : '<button class="btn ghost small" data-act="garder">Garder</button>'
           + '<button class="btn ghost small" data-act="autre">Une autre</button>')
     + '<button class="btn ghost small" data-act="copier">Copier</button>'
@@ -1022,27 +1342,58 @@ function majDiet(v){
 }
 
 function lireExcl(){
-  etat.excl = $("#f-excl").value.toLowerCase().split(/[,;]/).map(s=>s.trim()).filter(Boolean);
+  etat.excl = $("#f-excl").value.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+  /* on prévient quand un terme ne correspond à aucun aliment connu */
+  const inconnus = etat.excl.filter(x =>
+    !Object.values(FOODS).some(F => contient(F.n + " " + (F.ct || ""), x)));
+  $("#excl-msg").textContent = inconnus.length
+    ? (inconnus.length > 1 ? "Aucun aliment ne correspond à : " : "Aucun aliment ne correspond à ") + inconnus.join(", ") + "."
+    : "";
 }
 
 /* ---- favoris ---- */
 const CLE = "fiches-repas-v1";
 let favoris = [];
 try { favoris = JSON.parse(localStorage.getItem(CLE) || "[]"); } catch(e) { favoris = []; }
-function sauver(){ try { localStorage.setItem(CLE, JSON.stringify(favoris)); } catch(e){} }
+if(!Array.isArray(favoris)) favoris = [];
+favoris = favoris.filter(m => m && Array.isArray(m.items));
+let stockageKO = false;
+function stockagePlein(){
+  if(stockageKO) return;
+  stockageKO = true;
+  const p = document.createElement("p");
+  p.className = "note";
+  p.textContent = "Rien ne peut être enregistré dans ce navigateur : sa mémoire est pleine ou bloquée, en navigation privée par exemple. Ce qui est affiché reste utilisable, mais ne sera pas retrouvé au prochain chargement.";
+  const nav = document.getElementById("onglets");
+  nav.parentNode.insertBefore(p, nav);
+}
+function sauver(){ try { localStorage.setItem(CLE, JSON.stringify(favoris)); } catch(e){ stockagePlein(); } }
+
+const MOIS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+function etiquette(m){
+  if(m.label) return m.label;
+  if(!m.date) return "";
+  const d = new Date(m.date);
+  return "Gardée le " + d.getDate() + " " + MOIS[d.getMonth()];
+}
 
 function rendreFavoris(){
   $("#fav-vide").hidden = favoris.length > 0;
   favoris.forEach((m,i)=> m.uid = "f"+i);
-  $("#favoris").innerHTML = favoris.map(m => htmlFiche(m, {fav:true})).join("");
+  $("#favoris").innerHTML = favoris.map(m => htmlFiche(m, {fav:true, slot:etiquette(m)})).join("");
   if(!document.querySelector('section[data-p="courses"]').hidden) rendreCourses();
 }
 
-const LAITAGES = ["skyr","fblanc","feta","emmental","parmesan","creme","oeufs"];
+const LAITAGES = ["skyr","fblanc","feta","emmental","parmesan","creme","oeufs","cottage","ffrais","mozza","cheddar","burrata","lait"];
+const FRAIS = ["ail","gingembre","citron","avocat"];
+const VEGETAL = ["lentilles","pchiches","hrouges","tofu","tempeh"];
 function rayon(id){
-  const F = FOODS[id];
+  const F = AL(id);
+  if(!FOODS[id] && F && F.ray) return F.ray;
   if(LAITAGES.includes(id) || F.lac) return "Crèmerie";
+  if(FRAIS.includes(id)) return "Fruits et légumes";
   if(CATS.leg.includes(id)) return "Fruits et légumes";
+  if(VEGETAL.includes(id)) return "Épicerie sèche";
   if(CATS.prot.includes(id)) return "Boucherie et poissonnerie";
   if(CATS.fec.includes(id)) return "Épicerie sèche";
   return "Épicerie";
@@ -1050,23 +1401,29 @@ function rayon(id){
 const ORDRE_RAYONS = ["Fruits et légumes","Boucherie et poissonnerie","Crèmerie","Épicerie sèche","Épicerie"];
 let coches = {};
 
+/* les fiches gardées avant l'ajout des copies en prennent une maintenant */
+let aResauver = false;
+favoris.forEach(m => {
+  if(m.snap) Object.assign(ARCHIVE, m.snap);
+  else { archiver(m); aResauver = true; }
+});
+if(aResauver) sauver();
+
 function rendreCourses(){
   const vide = favoris.length === 0;
   $("#courses-vide").hidden = !vide;
   $("#courses-zone").hidden = vide;
   if(vide) return;
   const somme = {};
-  favoris.forEach(m => m.items.forEach(it => { if(FOODS[it.id]) somme[it.id] = (somme[it.id] || 0) + it.g; }));
+  favoris.forEach(m => m.items.forEach(it => { if(AL(it.id)) somme[it.id] = (somme[it.id] || 0) + it.g; }));
   const parRayon = {};
   Object.entries(somme).forEach(([id,g]) => { (parRayon[rayon(id)] = parRayon[rayon(id)] || []).push([id,g]); });
   let html = "";
   ORDRE_RAYONS.filter(r => parRayon[r]).forEach(r => {
     html += '<h4 class="rayon">' + r + '</h4><ul>';
-    html += parRayon[r].sort((a,b) => FOODS[a[0]].n.localeCompare(FOODS[b[0]].n)).map(([id,g]) => {
-      const F = FOODS[id];
-      const q = F.piece
-        ? Math.round(g/F.piece) + " " + (g/F.piece > 1 ? F.motPl : F.mot)
-        : (g >= 1000 ? (g/1000).toFixed(1).replace(".",",") + " kg" : g + " g");
+    html += parRayon[r].sort((a,b) => AL(a[0]).n.localeCompare(AL(b[0]).n)).map(([id,g]) => {
+      const F = AL(id);
+      const q = quantite(id, g, true);
       return '<li><label class="coche' + (coches[id] ? " fait" : "") + '">'
         + '<input type="checkbox" data-c="' + id + '"' + (coches[id] ? " checked" : "") + '>'
         + '<span class="nom">' + F.n.charAt(0).toUpperCase() + F.n.slice(1) + '</span>'
@@ -1074,6 +1431,23 @@ function rendreCourses(){
     }).join("");
     html += '</ul>';
   });
+  /* les aromates ne se pèsent pas, mais il faut les avoir */
+  const aromates = new Set();
+  favoris.forEach(m => (m.assaiso || "").split(",").forEach(x => {
+    const t = x.trim();
+    if(t && !BASIQUES.includes(aplati(t))) aromates.add(t.charAt(0).toUpperCase() + t.slice(1).toLowerCase());
+  }));
+  if(aromates.size){
+    html += '<h4 class="rayon">Épices et aromates</h4><ul>';
+    html += [...aromates].sort((a,b) => a.localeCompare(b)).map(t => {
+      const c = "aromate:" + aplati(t);
+      return '<li><label class="coche' + (coches[c] ? " fait" : "") + '">'
+        + '<input type="checkbox" data-c="' + c + '"' + (coches[c] ? " checked" : "") + '>'
+        + '<span class="nom">' + t + '</span>'
+        + '<span class="dots"></span><span class="qte">selon le goût</span></label></li>';
+    }).join("");
+    html += '</ul>';
+  }
   $("#courses").innerHTML = html;
 }
 $("#courses").addEventListener("change", e => {
@@ -1130,10 +1504,15 @@ function genererJour(){
   const protJour = Math.round(total*0.06); /* environ 25 % des apports */
   const memo = etat.type;
   const out = [];
+  /* on recalcule ce qu'il reste après chaque fiche, pour que le total tombe juste */
+  let restK = total, restP = protJour, poidsK = 1, poidsP = 1;
   parts.forEach(pt => {
     etat.type = pt.t;
-    const m = genererRepas(Math.round(total*pt.k/25)*25, Math.round(protJour*pt.p/5)*5);
-    if(m){ m.slot = pt.slot; out.push(m); }
+    const partK = clamp(restK * pt.k / poidsK, 120, 1200);
+    const partP = clamp(restP * pt.p / poidsP, 5, 80);
+    const m = genererRepas(Math.round(partK/25)*25, Math.round(partP/5)*5);
+    if(m){ m.slot = pt.slot; out.push(m); restK -= m.kcal; restP -= m.prot; }
+    poidsK -= pt.k; poidsP -= pt.p;
   });
   etat.type = memo;
   afficher(out);
@@ -1153,13 +1532,25 @@ document.addEventListener("click", e => {
     navigator.clipboard.writeText(texteFiche(m)).then(()=>{ b.textContent="Copié"; setTimeout(()=>b.textContent="Copier",1200); });
   }
   if(act === "garder"){
-    favoris.push(JSON.parse(JSON.stringify(m))); sauver(); rendreFavoris();
+    const copie = archiver(JSON.parse(JSON.stringify(m)));
+    copie.date = Date.now();
+    favoris.push(copie); sauver(); rendreFavoris();
     b.textContent = "Gardée"; b.disabled = true;
   }
   if(act === "autre"){
     if(courant.length === 1) genererUn(); else genererJour();
   }
-  if(act === "suppr"){ favoris.splice(+uid.slice(1),1); sauver(); rendreFavoris(); }
+  if(act === "nommer"){
+    const v = prompt("Nom de cette fiche, par exemple « Dîner de mardi »", m.label || "");
+    if(v !== null){ m.label = v.trim(); sauver(); rendreFavoris(); }
+  }
+  if(act === "suppr"){
+    const i = +uid.slice(1), copie = favoris[i];
+    favoris.splice(i,1); sauver(); rendreFavoris();
+    offrirAnnulation("Fiche retirée.", () => {
+      favoris.splice(Math.min(i, favoris.length), 0, copie); sauver(); rendreFavoris();
+    });
+  }
 });
 
 $("#s-kcal").addEventListener("input", e => $("#v-kcal").textContent = e.target.value);
@@ -1188,11 +1579,12 @@ $("#onglets").onclick = e => { const b = e.target.closest("button"); if(b) ongle
 /* ============ 8. Répertoire des aliments ============ */
 const NOMS_CAT = {prot:"Sources de protéines", fec:"Féculents et bases glucidiques", leg:"Légumes et fruits", gras:"Matières grasses", extra:"Condiments et extras"};
 function rendreAliments(){
-  const q = ($("#al-recherche").value || "").toLowerCase().trim();
+  const q = ($("#al-recherche").value || "").trim();
   const vus = new Set();
   let html = "";
   Object.keys(NOMS_CAT).forEach(cat => {
-    const ids = CATS[cat].filter(id => FOODS[id] && !vus.has(cat+id) && FOODS[id].n.toLowerCase().includes(q));
+    const ids = CATS[cat].filter(id => FOODS[id] && !vus.has(cat+id)
+      && (!q || contient(FOODS[id].n + " " + (FOODS[id].ct || ""), q)));
     if(!ids.length) return;
     html += '<h4 class="rayon">' + NOMS_CAT[cat] + '</h4>';
     html += ids.map(id => {
@@ -1216,6 +1608,8 @@ $("#al-liste").onclick = e => {
   proposer("a", id, FOODS[id].n);
 };
 function supprimerAliment(id){
+  const avant = etatBase(), nom = (FOODS[id] || {}).n || id;
+  offrirAnnulation("« " + nom + " » a été supprimé de la base.", () => restaurerBase(avant));
   delete mesAliments[id]; delete FOODS[id];
   if(!supprA.includes(id)) supprA.push(id);
   Object.values(CATS).forEach(l => { const i = l.indexOf(id); if(i >= 0) l.splice(i,1); });
@@ -1223,7 +1617,7 @@ function supprimerAliment(id){
     ["prot","fec","leg","gras"].forEach(x => r[x].o = r[x].o.filter(v => v !== id));
     r.extras = (r.extras || []).filter(x => x.i !== id);
   });
-  purger(); sauverA(); sauverR(); rendreAliments(); rendreChoix();
+  purger(); sauverA(); sauverR(); rendreAliments(); rendreChoix(); rendreFavoris();
 }
 
 /* ============ 9. Répertoire des recettes ============ */
@@ -1232,7 +1626,9 @@ function nomLisible(t){
   const p = t.prot.o[0], f = t.fec.o[0], l = t.leg.o[0];
   return t.nom
     .replace(/\{de:prot\}/g, DE(p)).replace(/\{au:prot\}/g, AU(p)).replace(/\{le:prot\}/g, ART(p)).replace(/\{prot\}/g, CT(p))
+    .replace(/\{de:fec\}/g, DE(f)).replace(/\{au:fec\}/g, AU(f))
     .replace(/\{le:fec\}/g, ART(f)).replace(/\{fec\}/g, CT(f))
+    .replace(/\{de:leg\}/g, DE(l)).replace(/\{au:leg\}/g, AU(l))
     .replace(/\{le:leg\}/g, ART(l)).replace(/\{leg\}/g, CT(l));
 }
 function rendreRecettes(){
@@ -1255,6 +1651,8 @@ $("#rec-liste").onclick = e => {
   proposer("r", t.id, t.e + " " + nomLisible(t));
 };
 function supprimerRecette(id){
+  const avant = etatBase(), t = TPLS.find(x => x.id === id);
+  offrirAnnulation("La recette « " + (t ? nomLisible(t) : id) + " » a été supprimée.", () => restaurerBase(avant));
   mesRecettes = mesRecettes.filter(r => r.id !== id);
   if(!supprR.includes(id)) supprR.push(id);
   const i = TPLS.findIndex(x => x.id === id); if(i >= 0) TPLS.splice(i,1);
@@ -1262,8 +1660,58 @@ function supprimerRecette(id){
 }
 
 /* ============ 9 bis. Fenêtres ============ */
-function ouvrir(sel){ $(sel).hidden = false; }
-function fermer(){ document.querySelectorAll(".modal").forEach(m => m.hidden = true); }
+/* une suppression reste annulable tant qu'on n'a pas fait autre chose */
+let annulation = null;
+function offrirAnnulation(msg, retablir){
+  annulation = retablir;
+  let z = document.getElementById("annul");
+  if(!z){
+    z = document.createElement("p");
+    z.id = "annul"; z.className = "note";
+    const nav = document.getElementById("onglets");
+    nav.parentNode.insertBefore(z, nav);
+  }
+  z.textContent = msg + " ";
+  const b = document.createElement("button");
+  b.className = "lien"; b.type = "button"; b.textContent = "Annuler";
+  b.onclick = () => { const f = annulation; annulation = null; z.remove(); if(f) f(); };
+  z.appendChild(b);
+}
+function etatBase(){
+  return {a: JSON.parse(JSON.stringify(mesAliments)), as: supprA.slice(),
+          r: JSON.parse(JSON.stringify(mesRecettes)), rs: supprR.slice()};
+}
+function restaurerBase(e){
+  mesAliments = e.a; supprA = e.as; mesRecettes = e.r; supprR = e.rs;
+  sauverA(); sauverR();
+  location.reload();
+}
+
+/* les fenêtres capturent le focus tant qu'elles sont ouvertes */
+let focusAvant = null;
+const FOCUSABLES = 'button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
+function ouvrir(sel){
+  focusAvant = document.activeElement;
+  const m = $(sel);
+  m.hidden = false;
+  const p = m.querySelector(FOCUSABLES);
+  if(p && p.focus) p.focus();
+}
+function fermer(){
+  document.querySelectorAll(".modal").forEach(m => m.hidden = true);
+  if(focusAvant && focusAvant.focus) focusAvant.focus();
+  focusAvant = null;
+}
+document.addEventListener("keydown", e => {
+  if(e.key !== "Tab") return;
+  const m = [...document.querySelectorAll(".modal")].find(x => !x.hidden);
+  if(!m) return;
+  const f = [...m.querySelectorAll(FOCUSABLES)].filter(el => !el.disabled);
+  if(!f.length) return;
+  const premier = f[0], dernier = f[f.length - 1];
+  if(e.shiftKey && document.activeElement === premier){ e.preventDefault(); dernier.focus(); }
+  else if(!e.shiftKey && document.activeElement === dernier){ e.preventDefault(); premier.focus(); }
+});
 document.addEventListener("click", e => {
   if(e.target.classList && e.target.classList.contains("modal")) fermer();
   else if(e.target.closest("[data-fermer]")) fermer();
@@ -1286,14 +1734,19 @@ $("#act-mod").onclick = () => {
   if(c.type === "a") editerAliment(c.id); else editerRecette(c.id);
 };
 $("#act-sup").onclick = () => {
-  const c = cible; fermer();
+  const c = cible, quoi = $("#act-titre").textContent;
+  const msg = c.type === "a"
+    ? "Supprimer « " + quoi + " » de la base ? Les recettes qui n'ont plus d'ingrédient possible disparaîtront aussi. Tes fiches déjà gardées ne bougent pas."
+    : "Supprimer la recette « " + quoi + " » ? Elle ne sera plus tirée au sort.";
+  if(!confirm(msg)) return;
+  fermer();
   if(c.type === "a") supprimerAliment(c.id); else supprimerRecette(c.id);
 };
 $("#al-ajout").onclick = () => { annulerA(); ouvrir("#modal-aliment"); };
 $("#rec-ajout").onclick = () => { annulerR(); ouvrir("#modal-recette"); };
 
 /* ============ 6. Éditeur : mes aliments, mes recettes ============ */
-const ecrire = (cle, v) => { try { localStorage.setItem(cle, JSON.stringify(v)); } catch(e){} };
+const ecrire = (cle, v) => { try { localStorage.setItem(cle, JSON.stringify(v)); } catch(e){ stockagePlein(); } };
 const sauverA = () => { ecrire(CLE_A, mesAliments); ecrire(CLE_AS, supprA); };
 const sauverR = () => { ecrire(CLE_R, mesRecettes); ecrire(CLE_RS, supprR); };
 const slug = n => n.toLowerCase().normalize("NFD").replace(/[^a-z0-9]/g,"").slice(0,18) || ("a"+Date.now());
@@ -1349,7 +1802,8 @@ $("#a-save").onclick = () => {
   if(!nom || [k,pr,gl,li].some(x => !isFinite(x))){
     $("#a-msg").textContent = "Il manque le nom ou une des quatre valeurs pour 100 g."; return;
   }
-  const id = editA || slug(nom);
+  let id = editA || slug(nom);
+  if(!editA && FOODS[id]){ let i = 2; while(FOODS[id + i]) i++; id = id + i; }
   const cat = $("#a-cat").value;
   const ancienneCat = editA ? catDe(editA) : null;
   const al = {n:nom, k:k, p:pr, c:gl, f:li, g2:$("#a-g").value, cat:cat};
